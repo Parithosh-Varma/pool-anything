@@ -45,6 +45,8 @@ ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;g
 li{background:#f5f5f5;border-radius:8px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:center}
 li.sel{outline:2px solid #111}li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 li button{min-height:28px;font-size:12px}
+#provlist button{animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 pre{background:#111;color:#eee;border-radius:8px;padding:12px;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 .badge{font-size:12px;color:#737373}
 .err{color:#b00;font-size:13px;min-height:18px}
@@ -94,9 +96,9 @@ function renderProv(f){
   f=(f||'').toLowerCase();
   const box=document.getElementById('provlist');box.innerHTML='';
   if(!f) return;
-  provs.filter(p=>p.name.toLowerCase().includes(f)||p.id.includes(f)).forEach(p=>{
+  provs.filter(p=>p.name.toLowerCase().includes(f)||p.id.includes(f)).forEach((p,i)=>{
     const b=document.createElement('button');b.type='button';b.className=prov===p.id?'':'ghost';
-    b.style.cssText='display:flex;align-items:center;gap:8px';
+    b.style.cssText='display:flex;align-items:center;gap:8px;animation-delay:'+Math.min(i*35,350)+'ms';
     const img=document.createElement('img');img.className='tabimg';img.alt='';img.src='/logos/'+(p.logoFile||p.id+'.svg');
     img.onerror=()=>img.remove();b.appendChild(img);
     const t=document.createElement('span');t.textContent=p.name+' · '+p.quota;b.appendChild(t);

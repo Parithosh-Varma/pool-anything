@@ -100,10 +100,11 @@ const page = `<!doctype html>
   .kbd { display:flex; gap:4px; padding-right:10px; }
   .kbd kbd { height:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-family:inherit; background:#fff; color:#525252; border:1px solid #e5e5e5; border-radius:4px; }
   #results { width:100%; display:flex; flex-direction:column; gap:8px; }
-  .prov { display:flex; align-items:center; gap:10px; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 14px; cursor:pointer; font-size:14px; text-align:left; }
+  .prov { display:flex; align-items:center; gap:10px; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 14px; cursor:pointer; font-size:14px; text-align:left; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
   .prov:hover { background:#f5f5f5; }
   .prov img { width:22px; height:22px; }
   .prov small { color:var(--subtle); margin-left:auto; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
   dialog { border:1px solid var(--line); border-radius:16px; padding:20px; max-width:460px; width:calc(100vw - 32px); font-family:inherit; }
   dialog::backdrop { background:rgba(0,0,0,.3); }
   dialog h2 { margin:0 0 4px; font-size:18px; }
@@ -214,9 +215,10 @@ const page = `<!doctype html>
     f = (f || '').toLowerCase();
     results.innerHTML = '';
     if (!f) return;
-    providers.filter(p => p.name.toLowerCase().includes(f) || p.id.includes(f)).forEach(p => {
+    providers.filter(p => p.name.toLowerCase().includes(f) || p.id.includes(f)).forEach((p, i) => {
       const b = document.createElement('button');
       b.className = 'prov'; b.type = 'button';
+      b.style.animationDelay = Math.min(i * 35, 350) + 'ms';
       const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + (p.logoFile || p.id + '.svg');
       img.onerror = () => img.remove(); b.appendChild(img);
       const n = document.createElement('span'); n.textContent = p.name; b.appendChild(n);
