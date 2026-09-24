@@ -93,6 +93,7 @@ async function init(){
 function renderProv(f){
   f=(f||'').toLowerCase();
   const box=document.getElementById('provlist');box.innerHTML='';
+  if(!f) return;
   provs.filter(p=>p.name.toLowerCase().includes(f)||p.id.includes(f)).forEach(p=>{
     const b=document.createElement('button');b.type='button';b.className=prov===p.id?'':'ghost';
     b.style.cssText='display:flex;align-items:center;gap:8px';

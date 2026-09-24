@@ -213,6 +213,7 @@ const page = `<!doctype html>
   function renderProviders(f) {
     f = (f || '').toLowerCase();
     results.innerHTML = '';
+    if (!f) return;
     providers.filter(p => p.name.toLowerCase().includes(f) || p.id.includes(f)).forEach(p => {
       const b = document.createElement('button');
       b.className = 'prov'; b.type = 'button';
