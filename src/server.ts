@@ -216,7 +216,7 @@ const page = `<!doctype html>
     providers.filter(p => p.name.toLowerCase().includes(f) || p.id.includes(f)).forEach(p => {
       const b = document.createElement('button');
       b.className = 'prov'; b.type = 'button';
-      const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + p.id + '.svg';
+      const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + (p.logoFile || p.id + '.svg');
       img.onerror = () => img.remove(); b.appendChild(img);
       const n = document.createElement('span'); n.textContent = p.name; b.appendChild(n);
       const q = document.createElement('small'); q.textContent = p.quota; b.appendChild(q);
@@ -363,12 +363,19 @@ const server = http.createServer(async (req, res) => {
       if (!target.baseUrl) return send(res, 400, { error: "pool has no base_url (set it for custom providers)" });
       const sel = nextKeyRaw(poolId);
       if ("error" in sel) return send(res, 400, sel);
-      const fwdPath = (b.path || "/").startsWith("/") ? b.path || "/" : "/" + b.path;
+      let fwdPath: string = (b.path || "/").startsWith("/") ? b.path || "/" : "/" + b.path;
+      const fwdHeaders: Record<string, string> = { "content-type": "application/json", ...target.extraHeaders, ...(b.headers ?? {}) };
+      if (target.keyHeader.startsWith("query:")) {
+        const sep = fwdPath.includes("?") ? "&" : "?";
+        fwdPath += `${sep}${target.keyHeader.slice("query:".length)}=${encodeURIComponent(sel.api_key)}`;
+      } else {
+        fwdHeaders[target.keyHeader] = target.keyPrefix + sel.api_key;
+      }
       let upstream: Response;
       try {
         upstream = await fetch(target.baseUrl + fwdPath, {
           method: b.method || "POST",
-          headers: { "content-type": "application/json", ...target.extraHeaders, ...(b.headers ?? {}), [target.keyHeader]: target.keyPrefix + sel.api_key },
+          headers: fwdHeaders,
           body: b.body === undefined ? undefined : JSON.stringify(b.body),
         });
       } catch (e) {

@@ -96,7 +96,7 @@ function renderProv(f){
   provs.filter(p=>p.name.toLowerCase().includes(f)||p.id.includes(f)).forEach(p=>{
     const b=document.createElement('button');b.type='button';b.className=prov===p.id?'':'ghost';
     b.style.cssText='display:flex;align-items:center;gap:8px';
-    const img=document.createElement('img');img.className='tabimg';img.alt='';img.src='/logos/'+p.id+'.svg';
+    const img=document.createElement('img');img.className='tabimg';img.alt='';img.src='/logos/'+(p.logoFile||p.id+'.svg');
     img.onerror=()=>img.remove();b.appendChild(img);
     const t=document.createElement('span');t.textContent=p.name+' · '+p.quota;b.appendChild(t);
     b.onclick=()=>{pick(p.id);renderProv(document.getElementById('q').value);};
@@ -248,12 +248,19 @@ const server = http.createServer(async (req, res) => {
         if (!target.baseUrl) return send(res, 400, { error: "pool has no base_url (set it for custom providers)" });
         const sel = nextKeyRaw(poolId);
         if ("error" in sel) return send(res, 400, sel);
-        const fwdPath = (b.path || "/").startsWith("/") ? b.path || "/" : "/" + b.path;
+        let fwdPath = (b.path || "/").startsWith("/") ? b.path || "/" : "/" + b.path;
+        const fwdHeaders: Record<string, string> = { "content-type": "application/json", ...target.extraHeaders, ...(b.headers ?? {}) };
+        if (target.keyHeader.startsWith("query:")) {
+          const sep = fwdPath.includes("?") ? "&" : "?";
+          fwdPath += `${sep}${target.keyHeader.slice("query:".length)}=${encodeURIComponent(sel.api_key)}`;
+        } else {
+          fwdHeaders[target.keyHeader] = target.keyPrefix + sel.api_key;
+        }
         let upstream: Response;
         try {
           upstream = await fetch(target.baseUrl + fwdPath, {
             method: b.method || "POST",
-            headers: { "content-type": "application/json", ...target.extraHeaders, ...(b.headers ?? {}), [target.keyHeader]: target.keyPrefix + sel.api_key },
+            headers: fwdHeaders,
             body: b.body === undefined ? undefined : JSON.stringify(b.body),
           });
         } catch (e) {

@@ -44,9 +44,12 @@ export type Provider = {
   keyHeader: string;
   keyPrefix: string;
   extraHeaders: Record<string, string>;
+  docsUrl?: string;
+  logoFile?: string;
+  poolable?: boolean | string;
 };
 
-export const PROVIDERS: Provider[] = [
+const FALLBACK_PROVIDERS: Provider[] = [
   {
     id: "cartesia",
     name: "Cartesia",
@@ -81,6 +84,33 @@ export const PROVIDERS: Provider[] = [
     extraHeaders: {},
   },
 ];
+
+function loadProviders(): Provider[] {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "providers.json"), "utf8")) as Record<string, unknown>[];
+    if (!Array.isArray(raw)) throw new Error("not an array");
+    return raw
+      .filter((p) => typeof p.id === "string" && typeof p.name === "string" && typeof p.baseUrl === "string")
+      .map((p) => ({
+        id: p.id as string,
+        name: p.name as string,
+        quota: String(p.quota ?? ""),
+        keyFields: Array.isArray(p.keyFields) ? (p.keyFields as string[]) : ["api_key"],
+        hint: String(p.hint ?? ""),
+        baseUrl: p.baseUrl as string,
+        keyHeader: String(p.keyHeader ?? "X-API-Key"),
+        keyPrefix: String(p.keyPrefix ?? ""),
+        extraHeaders: (p.extraHeaders ?? {}) as Record<string, string>,
+        docsUrl: typeof p.docsUrl === "string" ? p.docsUrl : undefined,
+        logoFile: typeof p.logo === "string" ? path.basename(p.logo) : undefined,
+        poolable: (p.poolable ?? true) as boolean | string,
+      }));
+  } catch {
+    return FALLBACK_PROVIDERS;
+  }
+}
+
+export const PROVIDERS: Provider[] = loadProviders();
 
 export function mask(key: string): string {
   if (key.length <= 8) return "****";
