@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & discussion
+    url: https://github.com/Parithosh-Varma/pool-anything/discussions
+    about: Ask questions or discuss ideas about pooling API keys.

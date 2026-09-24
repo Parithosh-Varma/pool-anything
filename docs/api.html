@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HTTP API — pool-anything</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="dot">⧉</span> pool-anything</a>
+  <nav>
+    <div class="sec">Start here</div>
+    <a class="item" href="index.html">Overview</a>
+    <a class="item" href="getting-started.html">Getting started</a>
+    <div class="sec">Reference</div>
+    <a class="item active" href="api.html">HTTP API</a>
+    <a class="item" href="architecture.html">Architecture</a>
+    <div class="sec">On this page</div>
+    <a class="item sub" href="#conventions">Conventions</a>
+    <a class="item sub" href="#providers">Providers</a>
+    <a class="item sub" href="#pools">Pools</a>
+    <a class="item sub" href="#rotation">Rotation</a>
+    <a class="item sub" href="#proxy">Proxy</a>
+    <a class="item sub" href="#keys">Keys</a>
+    <a class="item sub" href="#misc">Misc</a>
+  </nav>
+</aside>
+<main>
+<div class="page">
+  <div class="crumb">Docs · Reference</div>
+  <h1>HTTP API</h1>
+  <p class="lead">Everything the web UI can do, as a plain JSON API. Base URL: <code>http://localhost:3000</code></p>
+
+  <h2 id="conventions">Conventions</h2>
+  <ul>
+    <li>All request bodies are JSON (<code>content-type: application/json</code>); all responses are JSON unless noted.</li>
+    <li>Errors are <code>{ "error": "…" }</code> with a <code>4xx</code>/<code>5xx</code> status.</li>
+    <li>List endpoints <b>mask keys</b> (<code>gsk_…ab</code>). Only <code>GET /keys/:id</code> returns the full key.</li>
+    <li>The API is unauthenticated — run it on localhost or behind your own auth.</li>
+    <li><code>:id</code> in pool paths is the pool id; <code>:keyId</code> is a key id.</li>
+  </ul>
+
+  <h2 id="providers">Providers</h2>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/providers</span></div>
+    <p>All known providers from <code>data/providers.json</code>.</p>
+    <pre><code>[
+  { "id": "groq", "name": "Groq", "baseUrl": "https://api.groq.com/openai/v1",
+    "keyHeader": "Authorization", "keyPrefix": "Bearer ",
+    "quota": "30 req/min, 14.4k req/day free (Llama 3.3 70B)",
+    "docsUrl": "https://console.groq.com/docs/openai",
+    "keyFields": ["api_key"], "hint": "console.groq.com/keys, gsk_…",
+    "logoFile": "groq.svg", "poolable": true },
+  …
+]</code></pre>
+  </div>
+
+  <h2 id="pools">Pools</h2>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/pools</span></div>
+    <p>List all pools, newest first. Each row: <code>id, provider, name, cursor, base_url, key_header, key_prefix, created_at</code>.</p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge post">POST</span><span class="route">/api/pools</span></div>
+    <p>Create a pool.</p>
+    <pre><code>{ "provider": "groq", "name": "groq pool",
+  "base_url": "", "key_header": "", "key_prefix": "" }
+# → 200 { "id": 1, "provider": "groq", "name": "groq pool", "cursor": 0, … }</code></pre>
+    <p><code>provider</code> and <code>name</code> are required. The optional <code>base_url</code> / <code>key_header</code> / <code>key_prefix</code> override the registry values (useful for custom providers; empty means “use the registry”).</p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/pools/:id</span></div>
+    <p>Pool summary with usage.</p>
+    <pre><code>{ "id": 1, "provider": "groq", "cursor": 12, "keys": 3, "used": 1520,
+  "quota": null, "remaining": null,
+  "perKey": [ { "id": 1, "label": "key 1", "used": 520 }, … ] }</code></pre>
+    <p><code>quota</code> / <code>remaining</code> are <code>null</code> unless the provider has a known token quota (currently Cartesia: 20000).</p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge delete">DELETE</span><span class="route">/api/pools/:id</span></div>
+    <p>Delete the pool, its keys and its usage records.</p>
+  </div>
+
+  <h2 id="rotation">Rotation</h2>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/pools/:id/next</span></div>
+    <p>Return the next key (masked) and <b>advance the cursor</b>.</p>
+    <pre><code>{ "key_id": 2, "label": "key 2", "masked": "gsk_…9f", "info": "" }</code></pre>
+    <p><code>400 { "error": "pool has no keys" }</code> · <code>404 { "error": "pool not found" }</code></p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge post">POST</span><span class="route">/api/pools/:id/consume</span></div>
+    <p>Rotate to the next key <b>and</b> record usage against it.</p>
+    <pre><code>{ "tokens": 250 }
+# → { "key_id": 2, "label": "key 2", "masked": "gsk_…9f", "info": "", "tokens": 250 }</code></pre>
+    <p><code>tokens</code> must be a positive integer.</p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/pools/:id/usage</span></div>
+    <p>Usage rollup for the pool.</p>
+    <pre><code>{ "pool_id": 1, "used": 1520, "quota": null, "remaining": null,
+  "perKey": [ { "id": 1, "label": "key 1", "used": 520 }, … ] }</code></pre>
+  </div>
+
+  <h2 id="proxy">Proxy</h2>
+  <div class="ep">
+    <div class="ep-head"><span class="badge post">POST</span><span class="route">/api/pools/:id/proxy</span></div>
+    <p>The main event: pick the next key, inject its credentials, forward the request to the provider, record usage, and report back.</p>
+    <pre><code>{ "path": "/chat/completions",     // appended to the pool's base URL
+  "method": "POST",               // optional, defaults to POST
+  "body": { "…": "…" },           // optional, JSON-encoded upstream
+  "headers": { "x-custom": "v" }, // optional extra headers
+  "tokens": 24 }                  // optional, recorded as usage</code></pre>
+    <pre><code>curl -X POST http://localhost:3000/api/pools/1/proxy \
+  -H 'content-type: application/json' \
+  -d '{"path":"/openai/v1/models","method":"GET"}'</code></pre>
+    <p>Response:</p>
+    <pre><code>{ "key_id": 2, "label": "key 2", "masked": "gsk_…9f",
+  "status": 200, "body": "…" }   // body truncated to 4000 chars</code></pre>
+    <p>How the key is injected, based on the provider's <code>keyHeader</code>:</p>
+    <table>
+      <tr><th>keyHeader shape</th><th>Injection</th><th>Examples</th></tr>
+      <tr><td><code>Authorization</code> + prefix</td><td>Header <code>Authorization: Bearer &lt;key&gt;</code></td><td>Groq, OpenAI, OpenRouter, Cohere…</td></tr>
+      <tr><td>Plain name + prefix</td><td>Header <code>&lt;name&gt;&lt;prefix&gt;&lt;key&gt;</code></td><td><code>x-api-key</code> (Anthropic), <code>xi-api-key</code> (ElevenLabs), <code>Token </code> (Deepgram)</td></tr>
+      <tr><td><code>query:&lt;param&gt;</code></td><td>Appended as <code>?&lt;param&gt;=&lt;key&gt;</code></td><td><code>query:access_token</code> (Mapbox), <code>query:key</code> (Google Maps), <code>query:appid</code> (OpenWeather)</td></tr>
+    </table>
+    <p>Provider-specific extras (e.g. <code>anthropic-version</code>, <code>Cartesia-Version</code>) are merged in automatically. On network failure you get <code>502 { "error": "upstream unreachable", "detail": … }</code>. If the pool has no base URL (custom provider): <code>400 { "error": "pool has no base_url …" }</code>.</p>
+  </div>
+
+  <h2 id="keys">Keys</h2>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/pools/:id/keys</span></div>
+    <p>List keys — <b>masked</b>, never the raw value.</p>
+    <pre><code>[ { "id": 1, "label": "key 1", "masked": "gsk_…ab", "info": "", "created_at": "…" } ]</code></pre>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge post">POST</span><span class="route">/api/pools/:id/keys</span></div>
+    <p>Add a key. <code>{ "label": "key 1", "api_key": "gsk_…", "info": "optional note" }</code> → <code>200 { "id": 7 }</code></p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge get">GET</span><span class="route">/api/pools/:id/keys/:keyId</span></div>
+    <p>Fetch a single key <b>in full</b> (powers the UI's View button).</p>
+    <pre><code>{ "id": 1, "label": "key 1", "api_key": "gsk_actual_key…", "info": "", "masked": "gsk_…ab" }</code></pre>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge patch">PATCH</span><span class="route">/api/pools/:id/keys/:keyId</span></div>
+    <p>Update any of <code>label</code>, <code>api_key</code>, <code>info</code> (omitted fields stay unchanged; empty <code>api_key</code> is rejected).</p>
+    <pre><code>{ "label": "key 1 — team B", "api_key": "gsk_new…" }</code></pre>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="badge delete">DELETE</span><span class="route">/api/pools/:id/keys/:keyId</span></div>
+    <p>Remove a key from the pool → <code>{ "ok": true }</code>.</p>
+  </div>
+
+  <h2 id="misc">Misc</h2>
+  <table>
+    <tr><th>Endpoint</th><th>Description</th></tr>
+    <tr><td><code>GET /health</code></td><td>Plain-text <code>ok</code> liveness probe.</td></tr>
+    <tr><td><code>GET /api/db/ping</code></td><td><code>{ ok, path, items }</code> — verifies the SQLite file.</td></tr>
+    <tr><td><code>GET /logos/&lt;name&gt;</code></td><td>Provider logo assets (<code>svg|png</code>), 1h cache.</td></tr>
+    <tr><td><code>GET /logo.png</code> / <code>/favicon.ico</code></td><td>App logo.</td></tr>
+    <tr><td><code>GET /pools</code> · <code>GET /keys</code></td><td>HTML pages: pools overview, API key manager.</td></tr>
+  </table>
+
+  <footer>
+    <span><a href="getting-started.html">← Getting started</a></span>
+    <span><a href="architecture.html">Architecture →</a></span>
+  </footer>
+</div>
+</main>
+</div>
+</body>
+</html>

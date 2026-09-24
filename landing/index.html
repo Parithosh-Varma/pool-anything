@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>pool-anything — one endpoint, every free key taking turns</title>
+<meta name="description" content="Gather free-tier API keys into one pool. Rotate through them automatically with round-robin, usage tracking, and a drop-in HTTP proxy. Zero dependencies, SQLite, self-hosted." />
+<link rel="icon" type="image/png" href="/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --porcelain: #EAF3FC;
+    --card: #F7FBFE;
+    --ink: #0B2A52;
+    --ink-soft: #47617F;
+    --teal: #1273E6;
+    --teal-deep: #0B4DA8;
+    --copper: #0E9BEB;
+    --mist: #9DB9D4;
+    --line: #C3D5E9;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--porcelain);
+    color: var(--ink);
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--teal); color: #fff; }
+  a { color: var(--teal-deep); }
+  :focus-visible { outline: 2px solid var(--copper); outline-offset: 3px; border-radius: 4px; }
+
+  .bar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 22px;
+    background: rgba(234,243,252,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; }
+  .bar .mark img { width: 26px; height: 26px; }
+  .bar nav { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .bar nav a {
+    font-size: 13.5px; text-decoration: none; color: var(--ink-soft);
+    padding: 7px 12px; border-radius: 999px;
+  }
+  .bar nav a:hover { background: #D8E7F7; color: var(--ink); }
+  .bar nav a.cta { background: var(--ink); color: #fff; font-weight: 500; }
+  .bar nav a.cta:hover { background: var(--teal-deep); }
+
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 22px 80px; }
+
+  .hero {
+    display: grid; grid-template-columns: 1.05fr .95fr;
+    gap: 36px; align-items: start;
+    padding: 64px 0 28px;
+  }
+  .hero h1 {
+    font-family: "Bricolage Grotesque", "Inter", sans-serif;
+    font-weight: 700;
+    font-size: clamp(38px, 5.4vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 16px;
+    max-width: 12ch;
+  }
+  .hero h1 em { font-style: normal; color: var(--teal-deep); }
+  .lede { font-size: 16.5px; color: var(--ink-soft); max-width: 46ch; margin: 0 0 22px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .btn {
+    appearance: none; border: 1px solid var(--ink); border-radius: 999px;
+    padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn.solid { background: var(--ink); color: #fff; }
+  .btn.solid:hover { background: var(--teal-deep); border-color: var(--teal-deep); }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.ghost:hover { background: #D8E7F7; }
+  .install {
+    display: flex; align-items: center; gap: 10px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
+    background: var(--ink); color: #D5E7F8;
+    border-radius: 10px; padding: 10px 12px; max-width: 440px;
+  }
+  .install code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .install button {
+    margin-left: auto; flex-shrink: 0;
+    border: 1px solid #2A4E80; background: transparent; color: #fff;
+    border-radius: 7px; font-size: 12px; padding: 5px 10px; cursor: pointer;
+  }
+  .install button:hover { background: #14315C; }
+  .fine { font-size: 12.5px; color: var(--ink-soft); margin-top: 10px; }
+
+  /* rotation instrument */
+  .well {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 1px 0 rgba(11,42,82,.08);
+  }
+  .well-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .well-top b { font-size: 14px; }
+  .well-top span { font-size: 12.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
+  .dial-wrap { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: center; }
+  .dial { position: relative; width: 210px; height: 210px; }
+  .dial svg { width: 100%; height: 100%; display: block; }
+  .dial .cursor-dot { transition: transform .45s cubic-bezier(.3,1.4,.4,1); }
+  .key-ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .key-ledger li {
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 10px;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 11px; font-size: 13px;
+    transition: border-color .3s, background .3s;
+  }
+  .key-ledger li.lit { border-color: var(--teal); background: #E3EFFD; }
+  .key-ledger .mask { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+  .key-ledger .use { font-size: 11.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
+  .meter { grid-column: 1 / -1; height: 4px; background: #DFEAF6; border-radius: 99px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0%; background: var(--teal); border-radius: 99px; transition: width .45s ease; }
+  li.lit .meter i { background: var(--copper); }
+  .well-foot { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+  .well-foot p { margin: 0; font-size: 12.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
+
+  /* pipe diagram */
+  .pipe {
+    margin: 34px 0;
+    border: 1px solid var(--line); border-radius: 18px;
+    background: var(--ink); color: #DCEBF8;
+    padding: 22px;
+    overflow: hidden;
+  }
+  .pipe h2 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em;
+  }
+  .pipe p { margin: 0 0 16px; color: #8FA9C7; font-size: 14px; max-width: 62ch; }
+  .flow { display: grid; grid-template-columns: auto 1fr auto 1fr auto; gap: 10px; align-items: center; }
+  .node {
+    background: #14315C; border: 1px solid #2A4E80; border-radius: 12px;
+    padding: 10px 14px; font-size: 13px; text-align: center; white-space: nowrap;
+  }
+  .node b { display: block; font-size: 13px; }
+  .node small { color: #8FA9C7; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .node.pool { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .node.pool small { color: #CFE6FB; }
+  .conduit { height: 2px; background-image: linear-gradient(90deg, #2E5A8C 55%, transparent 45%); background-size: 12px 2px; position: relative; }
+  .conduit::after {
+    content: ""; position: absolute; top: -3px; left: 0; width: 8px; height: 8px;
+    border-radius: 99px; background: var(--copper);
+    animation: travel 2.6s linear infinite;
+  }
+  .conduit.c2::after { animation-delay: 1.3s; }
+  @keyframes travel { from { left: 0; opacity: 1; } to { left: calc(100% - 8px); opacity: 1; } }
+  .keys3 { display: flex; flex-direction: column; gap: 6px; }
+  .keys3 .node { padding: 7px 14px; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
+  .panel h2 { font-family: "Bricolage Grotesque", sans-serif; font-size: 19px; margin: 0 0 8px; }
+  .panel p { margin: 0 0 12px; font-size: 14px; color: var(--ink-soft); }
+  pre {
+    margin: 0; background: var(--ink); color: #D5E7F8;
+    border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6;
+    font-family: "IBM Plex Mono", monospace; overflow-x: auto;
+  }
+  pre .k { color: #5FC6F5; } pre .s { color: #A8DCFF; } pre .c { color: #7E96B5; }
+  .log { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .log li { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; display: flex; gap: 8px; }
+  .log li b { color: var(--teal-deep); font-weight: 500; }
+
+  .providers { margin: 26px 0; border-top: 1px solid var(--line); padding-top: 18px; }
+  .providers h2 { font-family: "Bricolage Grotesque", sans-serif; font-size: 19px; margin: 0 0 4px; }
+  .providers p { margin: 0 0 12px; font-size: 14px; color: var(--ink-soft); }
+  .strip { display: flex; gap: 8px; flex-wrap: wrap; }
+  .strip span {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+  }
+
+  .start {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 22px;
+  }
+  .start h2 { font-family: "Bricolage Grotesque", sans-serif; font-size: 20px; margin: 0 0 8px; }
+  .start ol { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 8px; }
+  .start ol code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: #E6F0FA; padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; font-size: 12.5px; color: var(--ink-soft); }
+  footer span { margin-left: auto; font-family: "IBM Plex Mono", monospace; }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; padding-top: 40px; }
+    .dial-wrap { grid-template-columns: 1fr; }
+    .dial { margin: 0 auto; }
+    .flow { grid-template-columns: 1fr; }
+    .conduit { height: 18px; width: 2px; margin: 0 auto; background-image: linear-gradient(180deg, #2E5A8C 55%, transparent 45%); background-size: 2px 12px; }
+    .conduit::after { animation-name: travelY; }
+    @keyframes travelY { from { top: 0; left: -3px; } to { top: calc(100% - 8px); left: -3px; } }
+    .split, .start { grid-template-columns: 1fr; }
+    .bar nav a.hide-m { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .conduit::after { animation: none; }
+    .dial .cursor-dot { transition: none; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <a class="mark" href="#top"><img src="/logo.png" alt="" onerror="this.remove()" />pool-anything</a>
+  <nav>
+    <a class="hide-m" href="#how">How it pools</a>
+    <a class="hide-m" href="#demo">Rotation</a>
+    <a class="hide-m" href="#start">Run it</a>
+    <a href="docs.html">Docs</a>
+    <a class="cta" href="#start">Start pooling</a>
+  </nav>
+</header>
+
+<div class="page" id="top">
+  <section class="hero">
+    <div>
+      <h1>One endpoint. <em>Every free key</em> taking turns.</h1>
+      <p class="lede">Most providers hand you a small free tier. Pool-anything gathers N keys for the same provider into a single pool, then round-robins through them, tracks usage per key, and forwards requests with the right header. Zero dependencies, SQLite, self-hosted.</p>
+      <div class="actions">
+        <a class="btn solid" href="#start">Start pooling locally</a>
+        <button class="btn ghost" id="fireTop" type="button">Fire a request</button>
+      </div>
+      <div class="install">
+        <code id="installCmd">npm install &amp;&amp; npm run dev — open :3000</code>
+        <button type="button" id="copyBtn">Copy</button>
+      </div>
+      <p class="fine">37 providers preconfigured. Custom providers are one JSON row. Keys stay in local SQLite, masked everywhere except one view.</p>
+    </div>
+
+    <div class="well" id="demo" aria-label="Live round-robin demonstration">
+      <div class="well-top"><b>Rotation well</b><span id="reqCount">0 requests</span></div>
+      <div class="dial-wrap">
+        <div class="dial" aria-hidden="true">
+          <svg viewBox="0 0 210 210" id="dialSvg">
+            <circle cx="105" cy="105" r="86" fill="none" stroke="#B9CDE4" stroke-width="1.5" stroke-dasharray="3 6"/>
+            <circle cx="105" cy="105" r="58" fill="none" stroke="#B9CDE4" stroke-width="1.5"/>
+            <circle cx="105" cy="105" r="6" fill="#0B2A52"/>
+            <g id="slots"></g>
+            <g id="cursor" class="cursor-dot">
+              <circle id="cursorDot" cx="105" cy="19" r="7" fill="#0E9BEB" stroke="#fff" stroke-width="2"/>
+            </g>
+          </svg>
+        </div>
+        <ul class="key-ledger" id="ledger"></ul>
+      </div>
+      <div class="well-foot">
+        <button class="btn solid" id="fireBtn" type="button">Fire a request</button>
+        <p id="lastUsed">cursor at key 1</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="pipe" id="how">
+    <h2>Your app talks to one place. The pool does the turn-taking.</h2>
+    <p>Post to <span style="font-family:'IBM Plex Mono',monospace">/api/pools/:id/proxy</span> and pool-anything picks the next key, injects the auth header, forwards to the provider, and records usage. The cursor is just <span style="font-family:'IBM Plex Mono',monospace">cursor % keys.length</span>, so load spreads evenly.</p>
+    <div class="flow">
+      <div class="node"><b>your app</b><small>POST /proxy</small></div>
+      <div class="conduit" aria-hidden="true"></div>
+      <div class="node pool"><b>pool-anything</b><small>pick · inject · forward</small></div>
+      <div class="conduit c2" aria-hidden="true"></div>
+      <div class="keys3">
+        <div class="node"><b>key 1</b> <small>gsk_…ab · 12 used</small></div>
+        <div class="node"><b>key 2</b> <small>gsk_…9f · 12 used</small></div>
+        <div class="node"><b>key 3</b> <small>gsk_…c4 · 11 used</small></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="split">
+    <section class="panel">
+      <h2>Drop-in proxy call</h2>
+      <p>No SDK. Send the path, method, and body — the pool adds the key and counts the tokens you declare.</p>
+<pre><span class="c"># rotate + proxy in one call</span>
+curl -X POST localhost:3000/api/pools/1/proxy \
+  -H <span class="s">'content-type: application/json'</span> \
+  -d <span class="s">'{"path": "/chat/completions",
+      "method": "POST",
+      "body": {"model": "llama-3.3-70b",
+               "messages": [{"role":"user",
+                             "content":"hi"}]},
+      "tokens": 25}'</span>
+
+<span class="k">{ "key_id": 3, "status": 200,
+  "masked": "gsk_…c4" }</span></pre>
+    </section>
+    <section class="panel">
+      <h2>What each request leaves behind</h2>
+      <p>Every proxied call appends a usage row. <span style="font-family:'IBM Plex Mono',monospace">/usage</span> rolls it up per key and per pool against quota.</p>
+      <ul class="log" id="reqLog">
+        <li><b>·</b><span>press “Fire a request” — watch the cursor move and the ledger fill here</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="providers">
+    <h2>Preconfigured, plus bring-your-own</h2>
+    <p>Groq, OpenRouter, Gemini, Mistral, Cohere, and thirty-two more. Anything else fits the custom row: base URL, header name, prefix.</p>
+    <div class="strip">
+      <span>groq · 30/min</span><span>openrouter · :free</span><span>gemini · 15/min</span><span>mistral · trial</span><span>cohere · trial</span><span>fireworks · $1</span><span>together · $1</span><span>openai · payg</span><span>anthropic · $5</span><span>huggingface · hourly</span><span>replicate · trial</span><span>elevenlabs · 10k/mo</span><span>resend · 3k/mo</span><span>tavily · 1k/mo</span><span>openweather · 1k/day</span><span>+ custom</span>
+    </div>
+  </section>
+
+  <section class="start" id="start">
+    <div>
+      <h2>Run it on your machine</h2>
+      <ol>
+        <li>Install dependencies with <code>npm install</code>.</li>
+        <li>Start with <code>npm run dev</code> and open <code>http://localhost:3000</code>.</li>
+        <li>Search a provider, paste keys, hit <code>Gather</code>. Your pool is live.</li>
+        <li>Send traffic through <code>/api/pools/:id/proxy</code> or the Playground.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Good to know before you expose it</h2>
+      <ol>
+        <li>Keys live in <code>data/pool-anything.db</code>, which stays out of version control.</li>
+        <li>List endpoints return masked keys. Raw keys need the single-key view.</li>
+        <li>There is no auth built in — keep it on localhost or behind your own gate.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <span>pool-anything · round-robin key pool · zero runtime deps</span>
+    <span id="year"></span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    var copy = document.getElementById('copyBtn');
+    copy.addEventListener('click', function () {
+      var t = 'npm install && npm run dev';
+      if (navigator.clipboard) navigator.clipboard.writeText(t);
+      copy.textContent = 'Copied';
+      setTimeout(function(){ copy.textContent = 'Copy'; }, 1200);
+    });
+
+    // rotation well
+    var N = 5, cursor = 0, total = 0;
+    var masks = ['gsk_…ab', 'gsk_…9f', 'gsk_…c4', 'gsk_…71', 'gsk_…e0'];
+    var used = [12, 12, 11, 9, 8];
+    var slots = document.getElementById('slots');
+    var ledger = document.getElementById('ledger');
+    var NS = 'http://www.w3.org/2000/svg';
+    var pts = [];
+    for (var i = 0; i < N; i++) {
+      var a = -Math.PI / 2 + i * (Math.PI * 2 / N);
+      var x = 105 + 86 * Math.cos(a), y = 105 + 86 * Math.sin(a);
+      pts.push([x, y]);
+      var c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', '13');
+      c.setAttribute('fill', '#fff'); c.setAttribute('stroke', '#1273E6'); c.setAttribute('stroke-width', '2');
+      c.setAttribute('id', 'slot' + i);
+      slots.appendChild(c);
+      var t2 = document.createElementNS(NS, 'text');
+      t2.setAttribute('x', x); t2.setAttribute('y', y + 4.5);
+      t2.setAttribute('text-anchor', 'middle'); t2.setAttribute('font-size', '10');
+      t2.setAttribute('font-family', 'IBM Plex Mono, monospace'); t2.setAttribute('fill', '#0B2A52');
+      t2.textContent = (i + 1);
+      slots.appendChild(t2);
+    }
+    function renderLedger(lit) {
+      ledger.innerHTML = '';
+      for (var i = 0; i < N; i++) {
+        var li = document.createElement('li');
+        if (i === lit) li.className = 'lit';
+        var left = document.createElement('span');
+        left.className = 'mask'; left.textContent = 'key ' + (i + 1) + ' · ' + masks[i];
+        var right = document.createElement('span');
+        right.className = 'use'; right.textContent = used[i] + ' used';
+        var bar = document.createElement('span');
+        bar.className = 'meter';
+        var fill = document.createElement('i');
+        fill.style.width = Math.min(100, used[i] * 4) + '%';
+        bar.appendChild(fill);
+        li.appendChild(left); li.appendChild(right); li.appendChild(bar);
+        ledger.appendChild(li);
+      }
+    }
+    function moveCursor() {
+      var p = pts[cursor];
+      var cur = document.getElementById('cursor');
+      var dx = p[0] - 105, dy = p[1] - 19;
+      cur.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      cur.style.transformBox = 'fill-box';
+    }
+    var log = document.getElementById('reqLog');
+    var first = true;
+    function fire() {
+      if (first) { log.innerHTML = ''; first = false; }
+      var k = cursor;
+      used[k] += 1; total += 1;
+      renderLedger(k); moveCursor();
+      document.getElementById('reqCount').textContent = total + (total === 1 ? ' request' : ' requests') + ' (demo)';
+      document.getElementById('lastUsed').textContent = 'cursor at key ' + (k + 1) + ' · ' + masks[k];
+      var li = document.createElement('li');
+      var b = document.createElement('b'); b.textContent = '#' + total;
+      var s = document.createElement('span');
+      s.textContent = 'via key ' + (k + 1) + ' (' + masks[k] + ') · HTTP 200 · 25 tokens';
+      li.appendChild(b); li.appendChild(s);
+      log.prepend(li);
+      while (log.children.length > 5) log.removeChild(log.lastChild);
+      cursor = (cursor + 1) % N;
+    }
+    renderLedger(-1); moveCursor();
+    document.getElementById('fireBtn').addEventListener('click', fire);
+    document.getElementById('fireTop').addEventListener('click', function () {
+      document.getElementById('demo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(fire, 350);
+    });
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setTimeout(fire, 900);
+    }
+  })();
+</script>
+</body>
+</html>

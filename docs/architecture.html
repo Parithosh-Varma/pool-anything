@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Architecture — pool-anything</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="dot">⧉</span> pool-anything</a>
+  <nav>
+    <div class="sec">Start here</div>
+    <a class="item" href="index.html">Overview</a>
+    <a class="item" href="getting-started.html">Getting started</a>
+    <div class="sec">Reference</div>
+    <a class="item" href="api.html">HTTP API</a>
+    <a class="item active" href="architecture.html">Architecture</a>
+    <div class="sec">On this page</div>
+    <a class="item sub" href="#layout">Project layout</a>
+    <a class="item sub" href="#rotation">Rotation</a>
+    <a class="item sub" href="#proxy-flow">Proxy flow</a>
+    <a class="item sub" href="#storage">Storage</a>
+    <a class="item sub" href="#providers">Provider registry</a>
+    <a class="item sub" href="#security">Security</a>
+  </nav>
+</aside>
+<main>
+<div class="page">
+  <div class="crumb">Docs · Reference</div>
+  <h1>Architecture</h1>
+  <p class="lead">A deliberately small system: two HTTP servers, one SQLite file, one JSON registry, zero runtime dependencies.</p>
+
+  <h2 id="layout">Project layout</h2>
+  <pre><code>pool-anything/
+├── src/
+│   ├── server.ts          # main server: UI pages + JSON API + proxy  (:3000)
+│   ├── pool/
+│   │   └── index.ts       # core: schema, providers, rotation, usage, targets
+│   ├── db/
+│   │   ├── index.ts       # secondary "items" table + dbPing()
+│   │   └── init.ts        # db:init CLI (--seed)
+│   ├── sandbox/
+│   │   └── server.ts      # localhost-only test server + minimal UI   (:4000)
+│   └── logo.png
+├── data/
+│   ├── providers.json     # provider registry (36 providers)
+│   └── pool-anything.db   # SQLite — gitignored
+├── public/logos/          # provider logos + manifest.json
+├── docs/                  # this documentation site
+└── package.json           # scripts: dev, build, db:init, sandbox…</code></pre>
+  <p><code>src/pool/index.ts</code> is the heart of the system — both servers import the same functions, so behavior is identical between the main API and the sandbox.</p>
+
+  <h2 id="rotation">Rotation</h2>
+  <p>Each pool has a persistent integer <code>cursor</code>. Rotation is a single round-robin step:</p>
+  <pre><code>keys   = SELECT … FROM pool_keys WHERE pool_id = ? ORDER BY id
+pick   = keys[cursor % keys.length]
+cursor = cursor + 1          // committed immediately</code></pre>
+  <ul>
+    <li><b>Fair by construction</b> — every key gets a turn before any key gets a second.</li>
+    <li>State lives in the database, not in memory, so rotation survives restarts.</li>
+    <li><code>nextKeyRaw()</code> returns the raw key (used by the proxy); <code>nextKey()</code> strips it and returns only masked metadata (used by the API).</li>
+    <li>Removing a key shifts the index set — harmless, since the cursor just wraps over the new list.</li>
+  </ul>
+
+  <h2 id="proxy-flow">Proxy flow</h2>
+  <p><code>POST /api/pools/:id/proxy</code> runs this sequence:</p>
+  <ol>
+    <li><b>Resolve the target</b> — pool overrides (<code>base_url</code>, <code>key_header</code>, <code>key_prefix</code>) win over the provider registry; otherwise the registry value is used.</li>
+    <li><b>Pick the next key</b> via <code>nextKeyRaw()</code> (advances the cursor).</li>
+    <li><b>Inject credentials</b> — either a header (<code>Authorization: Bearer …</code>, <code>x-api-key</code>, custom prefix) or a query parameter (<code>query:access_token</code> style), plus provider <code>extraHeaders</code> and caller-supplied headers.</li>
+    <li><b>Forward</b> with native <code>fetch</code>: method, JSON body, computed headers → <code>baseUrl + path</code>.</li>
+    <li><b>Record usage</b> — if the caller passed a positive <code>tokens</code>, insert a row into <code>usage</code> against that key.</li>
+    <li><b>Respond</b> with <code>key_id, label, masked, status</code> and the upstream body (capped at 4000 chars). Network failures return <code>502</code> with the error detail.</li>
+  </ol>
+
+  <h2 id="storage">Storage</h2>
+  <p>One SQLite file (<code>data/pool-anything.db</code>) via Node's built-in <code>node:sqlite</code> (<code>DatabaseSync</code>) — a local stand-in for Cloudflare D1. Schema is created idempotently at startup; extra columns are added with guarded <code>ALTER TABLE</code> migrations.</p>
+  <pre><code>CREATE TABLE pools (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL,          -- registry id, e.g. 'groq'
+  name TEXT NOT NULL,
+  cursor INTEGER NOT NULL DEFAULT 0,      -- rotation position
+  base_url TEXT NOT NULL DEFAULT '',      -- override (custom providers)
+  key_header TEXT NOT NULL DEFAULT 'X-API-Key',
+  key_prefix TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE pool_keys (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pool_id INTEGER NOT NULL REFERENCES pools(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  api_key TEXT NOT NULL,           -- stored plaintext
+  info TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pool_id INTEGER NOT NULL REFERENCES pools(id) ON DELETE CASCADE,
+  key_id INTEGER NOT NULL REFERENCES pool_keys(id) ON DELETE CASCADE,
+  tokens INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);</code></pre>
+  <p>Aggregates (<code>used</code>, <code>perKey</code>, <code>remaining</code>) are computed on read with <code>SUM()</code> / <code>LEFT JOIN</code> — no denormalized counters to drift.</p>
+  <div class="note"><b>D1 note:</b> the <code>items</code> table used by <code>/api/db/ping</code> and <code>npm run db:init</code> is a separate demo table for exercising the local-D1 path; pools don't use it.</div>
+
+  <h2 id="providers">Provider registry</h2>
+  <p><code>data/providers.json</code> is a flat array; unknown/malformed entries are filtered out, and a small built-in fallback list applies if the file can't be read at all.</p>
+  <table>
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td><code>id</code> · <code>name</code></td><td>Registry key and display name.</td></tr>
+    <tr><td><code>baseUrl</code></td><td>Upstream root; the proxy appends the caller's <code>path</code>.</td></tr>
+    <tr><td><code>keyHeader</code> · <code>keyPrefix</code></td><td>Where the key goes: a header name (+ optional prefix like <code>Bearer </code>) or <code>query:&lt;param&gt;</code>.</td></tr>
+    <tr><td><code>extraHeaders</code></td><td>Always-sent headers (e.g. <code>anthropic-version</code>).</td></tr>
+    <tr><td><code>quota</code></td><td>Human-readable free-tier notes, shown in the UI.</td></tr>
+    <tr><td><code>keyFields</code></td><td>Input shape — <code>["api_key"]</code> or multiple fields (Twilio: SID + token).</td></tr>
+    <tr><td><code>hint</code> · <code>docsUrl</code></td><td>Where to get a key; official docs link.</td></tr>
+    <tr><td><code>logo</code></td><td>Path under <code>public/logos/</code>.</td></tr>
+    <tr><td><code>poolable</code></td><td><code>true</code> (default), <code>false</code> (control-plane only, e.g. Neon), or <code>"conditional"</code> (Supabase, Appwrite).</td></tr>
+  </table>
+  <p>Adding a provider = adding one JSON object. Adding a <i>custom</i> provider at runtime = create a pool with your own <code>base_url</code> / <code>key_header</code> / <code>key_prefix</code>.</p>
+
+  <h2 id="security">Security</h2>
+  <ul>
+    <li>Keys are stored <b>plaintext</b> in SQLite; the file and its WAL/journal siblings are gitignored.</li>
+    <li>List endpoints return masked keys only; <code>GET /keys/:id</code> returns the full value (used by the UI's View button).</li>
+    <li>The API has <b>no authentication</b> — it's a localhost tool. Don't expose <code>:3000</code> publicly without a reverse proxy and auth.</li>
+    <li>The sandbox binds <code>127.0.0.1</code> only.</li>
+    <li>Logo serving validates filenames against <code>^[a-z0-9-]+\.(svg|png)$</code>; request bodies are capped at 1 MB.</li>
+    <li>Upstream responses are passed through as text (capped at 4000 chars) — treat them as untrusted data.</li>
+  </ul>
+
+  <h2>Docs deployment</h2>
+  <p>This site is static HTML/CSS in <code>docs/</code> and is deployed to <b>Cloudflare Pages</b> with Wrangler:</p>
+  <pre><code>npx wrangler pages project create pool-anything-docs --production-branch=main
+npx wrangler pages deploy docs --project-name=pool-anything-docs --branch=main</code></pre>
+
+  <footer>
+    <span><a href="api.html">← HTTP API</a></span>
+    <span><a href="index.html">Overview</a></span>
+  </footer>
+</div>
+</main>
+</div>
+</body>
+</html>

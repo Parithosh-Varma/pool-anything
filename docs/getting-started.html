@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Getting started — pool-anything</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="dot">⧉</span> pool-anything</a>
+  <nav>
+    <div class="sec">Start here</div>
+    <a class="item" href="index.html">Overview</a>
+    <a class="item active" href="getting-started.html">Getting started</a>
+    <div class="sec">Reference</div>
+    <a class="item" href="api.html">HTTP API</a>
+    <a class="item" href="architecture.html">Architecture</a>
+    <div class="sec">On this page</div>
+    <a class="item sub" href="#requirements">Requirements</a>
+    <a class="item sub" href="#run">Run it</a>
+    <a class="item sub" href="#first-pool">Create your first pool</a>
+    <a class="item sub" href="#scripts">Scripts &amp; env</a>
+    <a class="item sub" href="#sandbox">Sandbox</a>
+  </nav>
+</aside>
+<main>
+<div class="page">
+  <div class="crumb">Docs · Getting started</div>
+  <h1>Getting started</h1>
+  <p class="lead">From clone to a working pooled proxy in under five minutes.</p>
+
+  <h2 id="requirements">Requirements</h2>
+  <ul>
+    <li><b>Node.js ≥ 22</b> — the app uses the built-in <code>node:sqlite</code> module and native <code>fetch</code>.</li>
+    <li>API keys for whichever provider you want to pool.</li>
+    <li>That's it — there are no runtime npm dependencies.</li>
+  </ul>
+
+  <h2 id="run">Run it</h2>
+  <pre><code>npm install     # dev deps only (tsx, typescript)
+npm run dev     # starts http://localhost:3000 with reload</code></pre>
+  <p>Verify it's up:</p>
+  <pre><code>curl http://localhost:3000/health
+# ok
+
+curl http://localhost:3000/api/db/ping
+# {"ok":true,"path":"…/data/pool-anything.db","items":0}</code></pre>
+
+  <h2 id="first-pool">Create your first pool</h2>
+  <ol>
+    <li>Open <a href="http://localhost:3000/">http://localhost:3000</a> and <b>search a provider</b> (e.g. “groq”) in the search box.</li>
+    <li>Click it. The setup dialog creates a pool for that provider automatically.</li>
+    <li><b>Paste an API key</b> into the input and press Enter (or click Gather). Repeat for every key you own — key 1, key 2, …</li>
+    <li>Press <b>Done</b>. Your pool now shows up on the <b>Pools</b> page and in the <b>API key manager</b>, where you can view, edit or remove individual keys.</li>
+    <li>Send a request through the pool — see the <a href="api.html#proxy">proxy endpoint</a>:</li>
+  </ol>
+  <pre><code>curl -X POST http://localhost:3000/api/pools/1/proxy \
+  -H 'content-type: application/json' \
+  -d '{"path":"/openai/v1/models","method":"GET"}'</code></pre>
+  <div class="note"><b>Tip:</b> every proxy call rotates to the next key and returns <code>key_id</code> / <code>label</code>, so you can watch keys take turns. Add <code>"tokens": N</code> to record usage against that key.</div>
+
+  <h2 id="scripts">Scripts &amp; environment</h2>
+  <table>
+    <tr><th>Script</th><th>What it does</th></tr>
+    <tr><td><code>npm run dev</code></td><td>Start the main server on <code>:3000</code> with file watching.</td></tr>
+    <tr><td><code>npm start</code></td><td>Start the main server once (no watch).</td></tr>
+    <tr><td><code>npm run build</code></td><td>Type-check and compile to <code>dist/</code>.</td></tr>
+    <tr><td><code>npm run start:dist</code></td><td>Run the compiled output (<code>node dist/server.js</code>).</td></tr>
+    <tr><td><code>npm run db:init</code></td><td>Initialize the local database (<code>-- --seed</code> inserts a sample row).</td></tr>
+    <tr><td><code>npm run sandbox</code></td><td>Start the sandbox server on <code>127.0.0.1:4000</code> with watching.</td></tr>
+    <tr><td><code>npm run sandbox:start</code></td><td>Start the sandbox once.</td></tr>
+  </table>
+  <div class="kv"><code>PORT</code><span>Main server port (default <code>3000</code>).</span></div>
+  <div class="kv"><code>SANDBOX_PORT</code><span>Sandbox server port (default <code>4000</code>).</span></div>
+  <div class="kv"><code>LOCAL_DB_PATH</code><span>Override the SQLite file location (default <code>data/pool-anything.db</code>).</span></div>
+
+  <h2 id="sandbox">Sandbox</h2>
+  <p>The sandbox is a stripped-down copy of the API bound to <code>127.0.0.1</code> for testing pools without touching the main UI:</p>
+  <pre><code>npm run sandbox
+open http://127.0.0.1:4000/ui</code></pre>
+  <p>It shares the same database and endpoints — pick a provider tab, gather keys, then use <b>Next (rotate)</b>, <b>Usage</b> and <b>Send via pool</b> to exercise rotation.</p>
+
+  <div class="note"><b>Production build:</b> run <code>npm run build</code> then <code>npm run start:dist</code> from the project root — the server reads <code>data/providers.json</code>, <code>public/logos/</code> and <code>src/logo.png</code> relative to the working directory.</div>
+
+  <footer>
+    <span><a href="index.html">← Overview</a></span>
+    <span><a href="api.html">HTTP API →</a></span>
+  </footer>
+</div>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>pool-anything — Docs</title>
+<meta name="description" content="Pool API keys from any provider, rotate them round-robin, track usage, and proxy requests through one endpoint." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="dot">⧉</span> pool-anything</a>
+  <nav>
+    <div class="sec">Start here</div>
+    <a class="item active" href="index.html">Overview</a>
+    <a class="item" href="getting-started.html">Getting started</a>
+    <div class="sec">Reference</div>
+    <a class="item" href="api.html">HTTP API</a>
+    <a class="item" href="architecture.html">Architecture</a>
+    <div class="sec">On this page</div>
+    <a class="item sub" href="#what">What it is</a>
+    <a class="item sub" href="#how">How it works</a>
+    <a class="item sub" href="#features">Features</a>
+  </nav>
+</aside>
+<main>
+<div class="page">
+  <div class="crumb">Docs</div>
+  <h1>pool-anything</h1>
+  <p class="lead">Gather API keys from any provider into a pool, rotate them round-robin, track usage against each key's quota, and send every request through a single proxy endpoint.</p>
+
+  <h2 id="what">What it is</h2>
+  <p>Most API providers give you <b>per-key rate limits</b> — requests per minute, tokens per day, credits per month. One key runs out; ten keys give you ten times the headroom. But juggling keys in your app is messy: you need storage, rotation logic, failure handling, and visibility into who used what.</p>
+  <p><b>pool-anything</b> is a small self-hosted service that does exactly this and nothing else:</p>
+  <ul>
+    <li><b>Pool</b> — collect N API keys for the same provider under one named pool.</li>
+    <li><b>Rotate</b> — hand out keys round-robin so load and quota consumption spread evenly.</li>
+    <li><b>Proxy</b> — forward your request to the provider with the right key injected (header or query param), and report which key served it.</li>
+    <li><b>Track</b> — record usage per key so you can see consumption against quota at a glance.</li>
+  </ul>
+  <p>It ships with a registry of <b>36 preconfigured providers</b> (Groq, OpenRouter, Gemini, OpenAI, Anthropic, Cohere, ElevenLabs, Tavily, Mapbox, Supabase and more), a web UI for managing pools and keys, and a JSON API for everything else. Zero runtime dependencies — Node.js built-ins only, with SQLite as a local Cloudflare D1 stand-in.</p>
+
+  <h2 id="how">How it works</h2>
+  <div class="cards">
+    <a class="card" href="getting-started.html"><b>1 · Gather</b><span>Search a provider in the UI, paste one or more API keys into its pool.</span></a>
+    <a class="card" href="api.html#proxy"><b>2 · Proxy</b><span>POST to <code>/api/pools/:id/proxy</code> with a path and body. The next key is picked automatically.</span></a>
+    <a class="card" href="architecture.html#rotation"><b>3 · Rotate</b><span>A cursor advances on every call, so keys take turns evenly. Usage is recorded per key.</span></a>
+  </div>
+  <pre><code># one request, whatever key's turn it is
+curl -X POST http://localhost:3000/api/pools/1/proxy \
+  -H 'content-type: application/json' \
+  -d '{"path":"/chat/completions","method":"POST",
+       "body":{"model":"llama-3.3-70b","messages":[{"role":"user","content":"hi"}]},
+       "tokens":24}'</code></pre>
+  <p>The response tells you the upstream status, the body (truncated to 4000 chars), and exactly which key served the request:</p>
+  <pre><code>{ "key_id": 3, "label": "key 2", "masked": "gsk_…ab", "status": 200, "body": "{…}" }</code></pre>
+
+  <h2 id="features">Features</h2>
+  <table>
+    <tr><th>Feature</th><th>Details</th></tr>
+    <tr><td>Provider registry</td><td>36 providers with base URL, auth style, required headers, free-tier quota notes and logos — editable in <code>data/providers.json</code>.</td></tr>
+    <tr><td>Round-robin rotation</td><td>Persistent per-pool cursor; <code>GET /next</code> or let the proxy rotate for you.</td></tr>
+    <tr><td>Auth injection</td><td>Header keys (<code>Authorization: Bearer …</code>, <code>x-api-key</code>, <code>xi-api-key</code>…) and query-param keys (<code>?access_token=</code>, <code>?key=</code>, <code>?appid=</code>).</td></tr>
+    <tr><td>Usage tracking</td><td>Record tokens per request; per-key and per-pool totals with quota math.</td></tr>
+    <tr><td>Web UI</td><td>Provider search, pool setup dialog, pools overview, full key manager (view / edit / remove).</td></tr>
+    <tr><td>Sandbox</td><td>A second, localhost-only server (<code>:4000</code>) with a minimal UI for exercising pools safely.</td></tr>
+    <tr><td>Zero deps</td><td>No npm runtime dependencies. TypeScript + <code>node:sqlite</code> + built-in <code>fetch</code>.</td></tr>
+    <tr><td>Custom providers</td><td>Anything not in the registry: give it a base URL and key header and pool it.</td></tr>
+  </table>
+
+  <div class="note"><b>Not for production key custody.</b> Keys are stored in a local SQLite file and returned in full by the single-key endpoints. Run pool-anything on a machine you trust, like any other secrets tool.</div>
+
+  <footer>
+    <span>pool-anything docs</span>
+    <span>Hosted on Cloudflare Pages</span>
+  </footer>
+</div>
+</main>
+</div>
+</body>
+</html>
