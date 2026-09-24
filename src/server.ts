@@ -134,6 +134,7 @@ const page = `<!doctype html>
   </div>
   <nav class="sb-nav">
     <a class="mi" href="/"><span class="ic">⌂</span><span class="lbl">Home</span></a>
+    <a class="mi" href="/pools"><span class="ic">≋</span><span class="lbl">Pools</span></a>
     <a class="mi" href="/keys"><span class="ic">⚿</span><span class="lbl">API key manager</span></a>
   </nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
@@ -387,6 +388,63 @@ document.getElementById('create').onclick=async()=>{
 init();
 </script></body></html>`;
 
+const poolsPage = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Pools — pool-anything</title>
+<link rel="icon" type="image/png" href="/logo.png" />
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#fafafa;color:#111}
+main{max-width:720px;margin:0 auto;padding:32px 16px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:22px;margin:0;flex:1}.card{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:14px;animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.chead{display:flex;align-items:center;gap:10px}.chead img{width:24px;height:24px}
+.chead b{font-size:15px}.pill{margin-left:auto;font-size:11px;font-weight:600;background:#f0f0f0;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.row{display:flex;gap:8px;align-items:center}
+ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+li{background:#f5f5f5;border-radius:8px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:center}
+li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+li small{color:#737373}
+a.back{font-size:13px;color:#737373}a.manage{font-size:13px}
+.empty{color:#737373;font-size:14px;text-align:center;padding:24px 0}
+</style></head><body><main>
+<div class="row"><a href="/"><img src="/logo.png" alt="pool-anything" width="28" height="28"/></a><h1>Pools</h1></div>
+<a class="back" href="/">← pool search</a>
+<div id="pools" style="display:flex;flex-direction:column;gap:12px"></div>
+</main><script>
+async function j(r){const t=await r.text();try{return JSON.parse(t)}catch{return t}}
+async function init(){
+  const provs=await j(await fetch('/api/providers'));
+  const pools=await j(await fetch('/api/pools'));
+  const box=document.getElementById('pools');box.innerHTML='';
+  let shown=0;
+  for(const [i,p] of pools.entries()){
+    const ks=await j(await fetch('/api/pools/'+p.id+'/keys'));
+    if(!ks.length) continue;
+    shown++;
+    const us=await j(await fetch('/api/pools/'+p.id+'/usage'));
+    const prov=provs.find(x=>x.id===p.provider)||{name:p.provider,quota:'',logoFile:p.provider+'.svg'};
+    const card=document.createElement('div');card.className='card';
+    card.style.animationDelay=Math.min(i*40,320)+'ms';
+    card.innerHTML='<div class="chead"><img alt=""/><b></b><span class="pill"></span></div><ul></ul><div class="row" style="margin-top:10px"><a class="manage" href="/keys">Manage keys →</a></div>';
+    const img=card.querySelector('img');img.src='/logos/'+(prov.logoFile||p.provider+'.svg');img.onerror=()=>img.remove();
+    card.querySelector('b').textContent=prov.name+' · '+p.name;
+    card.querySelector('.pill').textContent=ks.length+' key(s) · used '+(us.used||0);
+    const ul=card.querySelector('ul');
+    ks.forEach(k=>{
+      const li=document.createElement('li');
+      li.innerHTML='<span></span><small></small>';
+      li.querySelector('span').textContent=k.label+' · '+k.masked;
+      li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0);
+      ul.appendChild(li);
+    });
+    box.appendChild(card);
+  }
+  if(!shown) box.innerHTML='<div class="empty">No pools with keys yet — search above and gather some.</div>';
+}
+init();
+</script></body></html>`;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   try {
@@ -547,6 +605,11 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/keys") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(keysPage);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/pools") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(poolsPage);
     return;
   }
   if (req.method === "GET" && url.pathname === "/api/db/ping") {
