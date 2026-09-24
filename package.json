@@ -8,6 +8,8 @@
     "start": "tsx src/server.ts",
     "build": "tsc",
     "db:init": "tsx src/db/init.ts",
+    "sandbox": "tsx watch src/sandbox/server.ts",
+    "sandbox:start": "tsx src/sandbox/server.ts",
     "start:dist": "node dist/server.js"
   },
   "dependencies": {},

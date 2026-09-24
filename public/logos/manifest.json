@@ -1,0 +1,187 @@
+{
+  "anyscale": {
+    "file": "public/logos/anyscale.svg",
+    "bytes": 652,
+    "source": "lobehub icons-static-svg"
+  },
+  "appwrite": {
+    "file": "public/logos/appwrite.svg",
+    "bytes": 509,
+    "source": "simple-icons SVG"
+  },
+  "brave": {
+    "file": "public/logos/brave.svg",
+    "bytes": 2614,
+    "source": "lobehub icons-static-svg"
+  },
+  "cartesia": {
+    "file": "public/logos/cartesia.svg",
+    "bytes": 968,
+    "source": "official site SVG"
+  },
+  "claude": {
+    "file": "public/logos/claude.svg",
+    "bytes": 1701,
+    "source": "lobehub icons-static-svg"
+  },
+  "cloudflare": {
+    "file": "public/logos/cloudflare.svg",
+    "bytes": 1083,
+    "source": "lobehub icons-static-svg"
+  },
+  "cohere-command": {
+    "file": "public/logos/cohere-command.svg",
+    "bytes": 726,
+    "source": "lobehub icons-static-svg"
+  },
+  "cohere": {
+    "file": "public/logos/cohere.svg",
+    "bytes": 724,
+    "source": "lobehub icons-static-svg"
+  },
+  "deepgram": {
+    "file": "public/logos/deepgram.svg",
+    "bytes": 438,
+    "source": "simple-icons SVG"
+  },
+  "elevenlabs": {
+    "file": "public/logos/elevenlabs.svg",
+    "bytes": 236,
+    "source": "lobehub icons-static-svg"
+  },
+  "finnhub": {
+    "file": "public/logos/finnhub.png",
+    "bytes": 99070,
+    "source": "official site PNG/ICO"
+  },
+  "fireworks": {
+    "file": "public/logos/fireworks.svg",
+    "bytes": 597,
+    "source": "lobehub icons-static-svg"
+  },
+  "gemini": {
+    "file": "public/logos/gemini.svg",
+    "bytes": 651,
+    "source": "lobehub icons-static-svg"
+  },
+  "google": {
+    "file": "public/logos/google.svg",
+    "bytes": 900,
+    "source": "lobehub icons-static-svg"
+  },
+  "googlemaps": {
+    "file": "public/logos/googlemaps.svg",
+    "bytes": 1039,
+    "source": "simple-icons SVG"
+  },
+  "groq": {
+    "file": "public/logos/groq.svg",
+    "bytes": 568,
+    "source": "lobehub icons-static-svg"
+  },
+  "huggingface": {
+    "file": "public/logos/huggingface.svg",
+    "bytes": 4589,
+    "source": "lobehub icons-static-svg"
+  },
+  "mailgun": {
+    "file": "public/logos/mailgun.svg",
+    "bytes": 780,
+    "source": "simple-icons SVG"
+  },
+  "mapbox": {
+    "file": "public/logos/mapbox.svg",
+    "bytes": 437,
+    "source": "simple-icons SVG"
+  },
+  "mistral": {
+    "file": "public/logos/mistral.svg",
+    "bytes": 418,
+    "source": "lobehub icons-static-svg"
+  },
+  "neon": {
+    "file": "public/logos/neon.svg",
+    "bytes": 208,
+    "source": "simple-icons SVG"
+  },
+  "openai": {
+    "file": "public/logos/openai.svg",
+    "bytes": 1687,
+    "source": "lobehub icons-static-svg"
+  },
+  "openrouter": {
+    "file": "public/logos/openrouter.svg",
+    "bytes": 382,
+    "source": "lobehub icons-static-svg"
+  },
+  "openweather": {
+    "file": "public/logos/openweather.png",
+    "bytes": 17136,
+    "source": "official site PNG/ICO"
+  },
+  "perplexity": {
+    "file": "public/logos/perplexity.svg",
+    "bytes": 608,
+    "source": "lobehub icons-static-svg"
+  },
+  "postmark": {
+    "file": "public/logos/postmark.svg",
+    "bytes": 3699,
+    "source": "official site SVG"
+  },
+  "replicate": {
+    "file": "public/logos/replicate.svg",
+    "bytes": 313,
+    "source": "lobehub icons-static-svg"
+  },
+  "resend": {
+    "file": "public/logos/resend.svg",
+    "bytes": 359,
+    "source": "simple-icons SVG"
+  },
+  "scrapingbee": {
+    "file": "public/logos/scrapingbee.svg",
+    "bytes": 7363,
+    "source": "official site SVG"
+  },
+  "sendgrid": {
+    "file": "public/logos/sendgrid.svg",
+    "bytes": 420,
+    "source": "simple-icons SVG"
+  },
+  "serper": {
+    "file": "public/logos/serper.png",
+    "bytes": 2798,
+    "source": "official site PNG/ICO"
+  },
+  "supabase": {
+    "file": "public/logos/supabase.svg",
+    "bytes": 318,
+    "source": "simple-icons SVG"
+  },
+  "tavily": {
+    "file": "public/logos/tavily.svg",
+    "bytes": 897,
+    "source": "lobehub icons-static-svg"
+  },
+  "together": {
+    "file": "public/logos/together.svg",
+    "bytes": 577,
+    "source": "lobehub icons-static-svg"
+  },
+  "turso": {
+    "file": "public/logos/turso.svg",
+    "bytes": 937,
+    "source": "simple-icons SVG"
+  },
+  "twilio": {
+    "file": "public/logos/twilio.svg",
+    "bytes": 923,
+    "source": "simple-icons SVG"
+  },
+  "upstash": {
+    "file": "public/logos/upstash.svg",
+    "bytes": 829,
+    "source": "simple-icons SVG"
+  }
+}
