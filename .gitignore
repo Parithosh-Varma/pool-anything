@@ -9,3 +9,8 @@ build/
 # OS / Editor
 .DS_Store
 *.log
+# Local-only sqlite (D1 stand-in, never commit the binary)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
