@@ -2,8 +2,32 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { dbPing } from "./db/index.js";
+import { sdb, PROVIDERS, mask, getPool, nextKey, nextKeyRaw, recordUsage, poolSummary, poolTarget } from "./pool/index.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
+
+function readJson(req: import("node:http").IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let s = "";
+    req.on("data", (c) => {
+      s += c;
+      if (s.length > 1_000_000) reject(new Error("too large"));
+    });
+    req.on("end", () => {
+      if (!s) return resolve({});
+      try {
+        resolve(JSON.parse(s));
+      } catch {
+        reject(new Error("bad json"));
+      }
+    });
+  });
+}
+
+function send(res: import("node:http").ServerResponse, code: number, body: unknown) {
+  res.writeHead(code, { "content-type": "application/json" });
+  res.end(JSON.stringify(body));
+}
 
 const page = `<!doctype html>
 <html lang="en">
@@ -75,7 +99,23 @@ const page = `<!doctype html>
   .search-box input { flex:1; min-width:0; border:0; outline:0; background:transparent; font-size:16px; padding:0 16px; }
   .kbd { display:flex; gap:4px; padding-right:10px; }
   .kbd kbd { height:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-family:inherit; background:#fff; color:#525252; border:1px solid #e5e5e5; border-radius:4px; }
-  #results { width:100%; font-size:14px; color:var(--subtle); min-height:20px; text-align:center; }
+  #results { width:100%; display:flex; flex-direction:column; gap:8px; }
+  .prov { display:flex; align-items:center; gap:10px; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 14px; cursor:pointer; font-size:14px; text-align:left; }
+  .prov:hover { background:#f5f5f5; }
+  .prov img { width:22px; height:22px; }
+  .prov small { color:var(--subtle); margin-left:auto; }
+  dialog { border:1px solid var(--line); border-radius:16px; padding:20px; max-width:460px; width:calc(100vw - 32px); font-family:inherit; }
+  dialog::backdrop { background:rgba(0,0,0,.3); }
+  dialog h2 { margin:0 0 4px; font-size:18px; }
+  dialog p.hint { margin:0 0 8px; font-size:13px; color:var(--subtle); }
+  .skeys { margin:12px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .skeys li { background:#f5f5f5; border-radius:8px; padding:8px 10px; font-size:13px; display:flex; gap:8px; align-items:center; }
+  .skeys li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .srow { display:flex; gap:8px; margin-top:8px; }
+  .srow input { flex:1; min-width:0; border:1px solid var(--line); border-radius:8px; height:36px; padding:0 10px; font-size:14px; }
+  .srow button { border:1px solid var(--line); background:#111; color:#fff; border-radius:8px; height:36px; padding:0 14px; font-size:14px; cursor:pointer; }
+  .srow button.ghost { background:#fff; color:#111; }
+  .serr { color:#b00; font-size:13px; min-height:18px; }
 </style>
 </head>
 <body>
@@ -111,6 +151,14 @@ const page = `<!doctype html>
     <div id="results"></div>
   </div>
 </main>
+<dialog id="setup"><form method="dialog" style="margin:0">
+  <h2 id="sTitle"></h2>
+  <p class="hint" id="sHint"></p>
+  <div class="serr" id="serr"></div>
+  <ul class="skeys" id="skeys"></ul>
+  <div id="sslots" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+  <div class="srow"><button id="smore" class="ghost" value="default">＋ key slot</button><button id="sdone" class="ghost" value="cancel">Done</button></div>
+</form></dialog>
 </div>
 </div>
 <script>
@@ -155,34 +203,90 @@ const page = `<!doctype html>
   });
   const input = document.getElementById('search');
   const results = document.getElementById('results');
+  const dlg = document.getElementById('setup');
+  let providers = [], pool = null, keyTotal = 0;
+  async function j(r) { const t = await r.text(); try { return JSON.parse(t); } catch { return t; } }
+  async function loadProviders() {
+    providers = await j(await fetch('/api/providers'));
+    renderProviders('');
+  }
+  function renderProviders(f) {
+    f = (f || '').toLowerCase();
+    results.innerHTML = '';
+    providers.filter(p => p.name.toLowerCase().includes(f) || p.id.includes(f)).forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'prov'; b.type = 'button';
+      const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + p.id + '.svg';
+      img.onerror = () => img.remove(); b.appendChild(img);
+      const n = document.createElement('span'); n.textContent = p.name; b.appendChild(n);
+      const q = document.createElement('small'); q.textContent = p.quota; b.appendChild(q);
+      b.onclick = () => openSetup(p);
+      results.appendChild(b);
+    });
+  }
+  async function openSetup(p) {
+    document.getElementById('sTitle').textContent = 'Pool ' + p.name;
+    document.getElementById('sHint').textContent = p.quota + ' · ' + p.hint;
+    document.getElementById('serr').textContent = '';
+    const pools = await j(await fetch('/api/pools'));
+    pool = pools.find(x => x.provider === p.id);
+    if (!pool) pool = await j(await fetch('/api/pools', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: p.id, name: p.name + ' pool' }) }));
+    document.getElementById('sslots').innerHTML = '';
+    await refreshKeys();
+    dlg.showModal();
+  }
+  async function refreshKeys() {
+    const ks = await j(await fetch('/api/pools/' + pool.id + '/keys'));
+    const ul = document.getElementById('skeys'); ul.innerHTML = '';
+    ks.forEach(k => {
+      const li = document.createElement('li');
+      const s = document.createElement('span'); s.textContent = k.label + ' · ' + k.masked + (k.info ? ' · ' + k.info : ''); li.appendChild(s);
+      const d = document.createElement('button'); d.textContent = 'Remove'; d.className = 'ghost'; d.type = 'button';
+      d.onclick = async (e) => { e.preventDefault(); await fetch('/api/pools/' + pool.id + '/keys/' + k.id, { method: 'DELETE' }); refreshKeys(); };
+      li.appendChild(d); ul.appendChild(li);
+    });
+    keyTotal = ks.length;
+    if (!document.querySelector('#sslots .slot')) addSlot();
+  }
+  function addSlot() {
+    const n = keyTotal + document.querySelectorAll('#sslots .slot').length + 1;
+    const box = document.getElementById('sslots');
+    const form = document.createElement('form'); form.className = 'slot'; form.style.cssText = 'display:flex;gap:8px';
+    form.innerHTML = '<input placeholder="key ' + n + ' — paste API key, hit Enter" type="password" autocomplete="off" style="flex:1"/><button type="submit">Gather</button>';
+    const inp = form.querySelector('input');
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      document.getElementById('serr').textContent = '';
+      const api_key = inp.value.trim();
+      if (!api_key) { document.getElementById('serr').textContent = 'Paste an API key first.'; return; }
+      const r = await j(await fetch('/api/pools/' + pool.id + '/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ label: 'key ' + n, api_key }) }));
+      if (r.error) { document.getElementById('serr').textContent = r.error; return; }
+      form.remove(); refreshKeys();
+    };
+    box.appendChild(form); inp.focus();
+  }
+  document.getElementById('smore').onclick = (e) => { e.preventDefault(); addSlot(); };
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); }
   });
   let t;
   input.addEventListener('input', () => {
     clearTimeout(t);
-    t = setTimeout(async () => {
-      const q = input.value.trim();
-      if (!q) { results.textContent = ''; return; }
-      results.textContent = 'Searching for "' + q + '"…';
-      try {
-        const r = await fetch('/api/search?q=' + encodeURIComponent(q));
-        const data = await r.json();
-        results.textContent = data.message;
-      } catch { results.textContent = ''; }
-    }, 200);
+    t = setTimeout(() => renderProviders(input.value.trim()), 150);
   });
+  loadProviders();
 </script>
 </body>
 </html>`;
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
-  if (req.method === "GET" && url.pathname === "/") {
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(page);
-    return;
-  }
+  try {
+    if (req.method === "GET" && url.pathname === "/") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(page);
+      return;
+    }
   if (req.method === "GET" && (url.pathname === "/logo.png" || url.pathname === "/favicon.ico" || url.pathname === "/favicon.png")) {
     try {
       const p = path.join(process.cwd(), "src", "logo.png");
@@ -195,10 +299,134 @@ const server = http.createServer((req, res) => {
     }
     return;
   }
-  if (req.method === "GET" && url.pathname === "/api/search") {
-    const q = url.searchParams.get("q") ?? "";
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ query: q, message: q ? `No results for "${q}" yet.` : "Type to search." }));
+  if (req.method === "GET" && url.pathname === "/api/providers") {
+    send(res, 200, PROVIDERS);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/api/pools") {
+    send(res, 200, sdb.prepare("SELECT * FROM pools ORDER BY id DESC").all());
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/api/pools") {
+    const b = (await readJson(req)) as { provider?: string; name?: string; base_url?: string; key_header?: string; key_prefix?: string };
+    if (!b.provider || !b.name) return send(res, 400, { error: "provider + name required" });
+    const r = sdb
+      .prepare("INSERT INTO pools (provider, name, base_url, key_header, key_prefix) VALUES (?, ?, ?, ?, ?)")
+      .run(b.provider, b.name, b.base_url ?? "", b.key_header ?? "", b.key_prefix ?? "");
+    send(res, 200, sdb.prepare("SELECT * FROM pools WHERE id = ?").get(r.lastInsertRowid));
+    return;
+  }
+  const poolM = url.pathname.match(/^\/api\/pools\/(\d+)(\/next|\/consume|\/usage|\/proxy)?$/);
+  if (poolM && !url.pathname.includes("/keys")) {
+    const poolId = Number(poolM[1]);
+    if (req.method === "GET" && !poolM[2]) {
+      const s = poolSummary(poolId);
+      if (!s) return send(res, 404, { error: "pool not found" });
+      send(res, 200, s);
+      return;
+    }
+    if (req.method === "DELETE" && !poolM[2]) {
+      sdb.prepare("DELETE FROM usage WHERE pool_id = ?").run(poolId);
+      sdb.prepare("DELETE FROM pool_keys WHERE pool_id = ?").run(poolId);
+      const r = sdb.prepare("DELETE FROM pools WHERE id = ?").run(poolId);
+      if (r.changes === 0) return send(res, 404, { error: "pool not found" });
+      send(res, 200, { ok: true });
+      return;
+    }
+    if (req.method === "GET" && poolM[2] === "/next") {
+      const sel = nextKey(poolId);
+      if ("error" in sel) return send(res, sel.error === "pool not found" ? 404 : 400, sel);
+      send(res, 200, sel);
+      return;
+    }
+    if (req.method === "POST" && poolM[2] === "/consume") {
+      const b = (await readJson(req)) as { tokens?: number };
+      const tok = b.tokens;
+      if (!Number.isInteger(tok) || (tok as number) <= 0)
+        return send(res, 400, { error: "tokens must be a positive integer" });
+      const sel = recordUsage(poolId, tok as number);
+      if ("error" in sel) return send(res, sel.error === "pool not found" ? 404 : 400, sel);
+      send(res, 200, sel);
+      return;
+    }
+    if (req.method === "GET" && poolM[2] === "/usage") {
+      const s = poolSummary(poolId);
+      if (!s) return send(res, 404, { error: "pool not found" });
+      send(res, 200, { pool_id: s.id, used: s.used, quota: s.quota, remaining: s.remaining, perKey: s.perKey });
+      return;
+    }
+    if (req.method === "POST" && poolM[2] === "/proxy") {
+      const b = (await readJson(req)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number };
+      const pool = getPool(poolId);
+      if (!pool) return send(res, 404, { error: "pool not found" });
+      const target = poolTarget(pool);
+      if (!target.baseUrl) return send(res, 400, { error: "pool has no base_url (set it for custom providers)" });
+      const sel = nextKeyRaw(poolId);
+      if ("error" in sel) return send(res, 400, sel);
+      const fwdPath = (b.path || "/").startsWith("/") ? b.path || "/" : "/" + b.path;
+      let upstream: Response;
+      try {
+        upstream = await fetch(target.baseUrl + fwdPath, {
+          method: b.method || "POST",
+          headers: { "content-type": "application/json", ...target.extraHeaders, ...(b.headers ?? {}), [target.keyHeader]: target.keyPrefix + sel.api_key },
+          body: b.body === undefined ? undefined : JSON.stringify(b.body),
+        });
+      } catch (e) {
+        return send(res, 502, { error: "upstream unreachable", detail: (e as Error).message, key_id: sel.key_id, label: sel.label });
+      }
+      const text = await upstream.text();
+      const tok = b.tokens;
+      if (Number.isInteger(tok) && (tok as number) > 0) {
+        sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, sel.key_id, tok as number);
+      }
+      send(res, 200, { key_id: sel.key_id, label: sel.label, masked: sel.masked, status: upstream.status, body: text.slice(0, 4000) });
+      return;
+    }
+  }
+  const keyM = url.pathname.match(/^\/api\/pools\/(\d+)\/keys(?:\/(\d+))?$/);
+  if (keyM) {
+    const poolId = Number(keyM[1]);
+    if (req.method === "GET" && !keyM[2]) {
+      const rows = sdb
+        .prepare("SELECT id, label, api_key, info, created_at FROM pool_keys WHERE pool_id = ? ORDER BY id")
+        .all(poolId) as { id: number; label: string; api_key: string; info: string; created_at: string }[];
+      send(res, 200, rows.map((k) => ({ id: k.id, label: k.label, masked: mask(k.api_key), info: k.info, created_at: k.created_at })));
+      return;
+    }
+    if (req.method === "POST" && !keyM[2]) {
+      if (!getPool(poolId)) return send(res, 404, { error: "pool not found" });
+      const b = (await readJson(req)) as { label?: string; api_key?: string; info?: string };
+      if (!b.label || !b.api_key) return send(res, 400, { error: "label + api_key required" });
+      const r = sdb
+        .prepare("INSERT INTO pool_keys (pool_id, label, api_key, info) VALUES (?, ?, ?, ?)")
+        .run(poolId, b.label, b.api_key, b.info ?? "");
+      send(res, 200, { id: r.lastInsertRowid });
+      return;
+    }
+    if (req.method === "DELETE" && keyM[2]) {
+      sdb.prepare("DELETE FROM pool_keys WHERE id = ? AND pool_id = ?").run(Number(keyM[2]), poolId);
+      send(res, 200, { ok: true });
+      return;
+    }
+  }
+  if (req.method === "GET" && url.pathname.startsWith("/logos/")) {
+    const name = url.pathname.slice("/logos/".length);
+    if (!/^[a-z0-9-]+\.(svg|png)$/.test(name)) {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("not found\n");
+      return;
+    }
+    try {
+      const buf = fs.readFileSync(path.join(process.cwd(), "public", "logos", name));
+      res.writeHead(200, {
+        "content-type": name.endsWith(".png") ? "image/png" : "image/svg+xml",
+        "cache-control": "public, max-age=3600",
+      });
+      res.end(buf);
+    } catch {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("not found\n");
+    }
     return;
   }
   if (req.method === "GET" && url.pathname === "/api/db/ping") {
@@ -213,6 +441,9 @@ const server = http.createServer((req, res) => {
   }
   res.writeHead(404, { "content-type": "text/plain" });
   res.end("not found\n");
+  } catch (e) {
+    send(res, 400, { error: (e as Error).message });
+  }
 });
 
 server.listen(PORT, () => {
