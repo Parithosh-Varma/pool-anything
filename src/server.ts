@@ -105,6 +105,24 @@ const page = `<!doctype html>
   .prov img { width:22px; height:22px; }
   .prov small { color:var(--subtle); margin-left:auto; }
   @keyframes fadeSlide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  dialog { border:1px solid var(--line); border-radius:16px; padding:0; max-width:480px; width:calc(100vw - 32px); font-family:inherit; overflow:hidden; }
+  dialog::backdrop { background:rgba(0,0,0,.3); }
+  .p-head { display:flex; align-items:center; gap:10px; padding:16px 20px 12px; border-bottom:1px solid var(--line); }
+  .p-head img { width:28px; height:28px; }
+  .p-head b { font-size:16px; }
+  .pill { margin-left:auto; font-size:11px; font-weight:600; background:#f0f0f0; border-radius:999px; padding:3px 10px; white-space:nowrap; }
+  .p-body { padding:12px 20px 16px; display:flex; flex-direction:column; gap:8px; }
+  .p-note { font-size:12px; color:var(--subtle); }
+  .krow { display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:10px; padding:8px 10px; font-size:13px; animation:fadeSlide .25s ease both; }
+  .krow .meta { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .krow .use { font-size:11px; color:var(--subtle); }
+  .krow button, .p-foot button { border:1px solid var(--line); background:#fff; color:#111; border-radius:8px; height:32px; padding:0 12px; font-size:13px; cursor:pointer; }
+  .slotrow { display:flex; gap:8px; }
+  .slotrow input { flex:1; min-width:0; border:1px solid var(--line); border-radius:10px; height:38px; padding:0 12px; font-size:14px; }
+  .slotrow button { border:0; background:#111; color:#fff; border-radius:10px; height:38px; padding:0 16px; font-size:14px; cursor:pointer; }
+  .p-foot { display:flex; align-items:center; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--subtle); }
+  .p-foot button { margin-left:auto; }
+  .perr { color:#b00; font-size:13px; min-height:18px; }
 </style>
 </head>
 <body>
@@ -140,6 +158,17 @@ const page = `<!doctype html>
     <div id="results"></div>
   </div>
 </main>
+<dialog id="setup">
+  <div class="p-head"><img id="pLogo" alt="" /><b id="pName"></b><span class="pill" id="pQuota"></span></div>
+  <div class="p-body">
+    <div class="p-note" id="pHint"></div>
+    <div class="perr" id="perr"></div>
+    <div id="krows" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="pslots" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div><button id="pmore" type="button" style="border:0;background:none;cursor:pointer;font-size:13px;color:var(--subtle)">＋ key slot</button></div>
+  </div>
+  <div class="p-foot"><span id="pUse"></span><button id="pdone" type="button">Done</button></div>
+</dialog>
 </div>
 </div>
 <script>
@@ -206,15 +235,63 @@ const page = `<!doctype html>
     });
   }
   function showProvider(p) {
-    results.innerHTML = '';
-    const b = document.createElement('button');
-    b.className = 'prov'; b.type = 'button';
-    const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + (p.logoFile || p.id + '.svg');
-    img.onerror = () => img.remove(); b.appendChild(img);
-    const n = document.createElement('span'); n.textContent = p.name + ' · ' + p.quota + (p.hint ? ' · ' + p.hint : ''); b.appendChild(n);
-    b.onclick = () => renderProviders(input.value.trim());
-    results.appendChild(b);
+    openPanel(p);
   }
+  const dlg = document.getElementById('setup');
+  let pool = null, keyTotal = 0, usageMap = {};
+  async function openPanel(p) {
+    document.getElementById('pLogo').src = '/logos/' + (p.logoFile || p.id + '.svg');
+    document.getElementById('pLogo').onerror = function () { this.remove(); };
+    document.getElementById('pName').textContent = p.name;
+    document.getElementById('pQuota').textContent = p.quota;
+    document.getElementById('pHint').textContent = p.hint + (p.poolable === false ? ' · control-plane only, not poolable for data' : '');
+    document.getElementById('perr').textContent = '';
+    const pools = await j(await fetch('/api/pools'));
+    pool = pools.find(x => x.provider === p.id);
+    if (!pool) pool = await j(await fetch('/api/pools', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: p.id, name: p.name + ' pool' }) }));
+    document.getElementById('pslots').innerHTML = '';
+    await refreshPanel();
+    dlg.showModal();
+  }
+  async function refreshPanel() {
+    const [ks, us] = await Promise.all([
+      j(await fetch('/api/pools/' + pool.id + '/keys')),
+      j(await fetch('/api/pools/' + pool.id + '/usage')),
+    ]);
+    usageMap = {};
+    (us.perKey || []).forEach(k => { usageMap[k.id] = k.used; });
+    document.getElementById('pUse').textContent = us.quota ? us.used + ' / ' + (us.quota * ks.length) + ' used' : us.used + ' used';
+    const box = document.getElementById('krows'); box.innerHTML = '';
+    ks.forEach((k, i) => {
+      const row = document.createElement('div');
+      row.className = 'krow'; row.style.animationDelay = Math.min(i * 40, 300) + 'ms';
+      const m = document.createElement('span'); m.className = 'meta'; m.textContent = k.label + ' · ' + k.masked; row.appendChild(m);
+      const u = document.createElement('span'); u.className = 'use'; u.textContent = (usageMap[k.id] || 0) + ' used'; row.appendChild(u);
+      const d = document.createElement('button'); d.textContent = 'Remove'; d.type = 'button';
+      d.onclick = async () => { await fetch('/api/pools/' + pool.id + '/keys/' + k.id, { method: 'DELETE' }); refreshPanel(); };
+      row.appendChild(d); box.appendChild(row);
+    });
+    keyTotal = ks.length;
+    if (!document.querySelector('#pslots .slotrow')) addSlot();
+  }
+  function addSlot() {
+    const n = keyTotal + document.querySelectorAll('#pslots .slotrow').length + 1;
+    const form = document.createElement('form'); form.className = 'slotrow';
+    form.innerHTML = '<input placeholder="key ' + n + ' — paste API key, hit Enter" type="password" autocomplete="off"/><button type="submit">Gather</button>';
+    const inp = form.querySelector('input');
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      document.getElementById('perr').textContent = '';
+      const api_key = inp.value.trim();
+      if (!api_key) { document.getElementById('perr').textContent = 'Paste an API key first.'; return; }
+      const r = await j(await fetch('/api/pools/' + pool.id + '/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ label: 'key ' + n, api_key }) }));
+      if (r.error) { document.getElementById('perr').textContent = r.error; return; }
+      form.remove(); refreshPanel();
+    };
+    document.getElementById('pslots').appendChild(form); inp.focus();
+  }
+  document.getElementById('pmore').onclick = () => addSlot();
+  document.getElementById('pdone').onclick = () => dlg.close();
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); }
   });
