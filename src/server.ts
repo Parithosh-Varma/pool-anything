@@ -133,6 +133,8 @@ const page = `<!doctype html>
     <button class="sb-acct" type="button"><span title="Demgufever@gmail.com's Account">Demgufever@gmail.com's Account</span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M181.66,170.34a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-48-48a8,8,0,0,1,11.32-11.32L128,212.69l42.34-42.35A8,8,0,0,1,181.66,170.34Zm-96-84.68L128,43.31l42.34,42.35a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,85.66,85.66Z"></path></svg></button>
   </div>
   <nav class="sb-nav">
+    <a class="mi" href="/"><span class="ic">⌂</span><span class="lbl">Home</span></a>
+    <a class="mi" href="/keys"><span class="ic">⚿</span><span class="lbl">API key manager</span></a>
   </nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
 </aside>
@@ -173,6 +175,9 @@ const page = `<!doctype html>
 </div>
 <script>
   const shell = document.getElementById('shell');
+  document.querySelectorAll('.sb-nav .mi').forEach(a => {
+    if (a.getAttribute('href') === location.pathname) a.classList.add('active');
+  });
   const collapseBtn = document.getElementById('collapseBtn');
   const finishCollapse = (apply) => {
     shell.classList.add('closing');
@@ -326,7 +331,7 @@ li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 li small{color:#737373}.err{color:#b00;font-size:13px;min-height:18px}
 a.back{font-size:13px;color:#737373}
 </style></head><body><main>
-<h1>API key manager</h1>
+<div class="row" style="align-items:center;margin:0"><a href="/"><img src="/logo.png" alt="pool-anything" width="28" height="28"/></a><h1 style="flex:1">API key manager</h1></div>
 <a class="back" href="/">← pool search</a>
 <div class="err" id="err"></div>
 <div class="card"><div class="row"><select id="prov"></select><input id="pname" placeholder="Pool name"/><button id="create">New pool</button></div></div>
