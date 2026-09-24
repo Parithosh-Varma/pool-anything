@@ -1,4 +1,6 @@
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { sdb, PROVIDERS, mask, getPool, nextKey, nextKeyRaw, recordUsage, poolSummary, poolTarget } from "./db.js";
 
 const PORT = Number(process.env.SANDBOX_PORT ?? 4000);
@@ -46,9 +48,12 @@ li button{min-height:28px;font-size:12px}
 pre{background:#111;color:#eee;border-radius:8px;padding:12px;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 .badge{font-size:12px;color:#737373}
 .err{color:#b00;font-size:13px;min-height:18px}
+.tabimg{width:18px;height:18px;vertical-align:-3px}
 </style></head><body><main>
 <h1><span id="pname">cartesia</span> pool <span class="badge" id="sel">…</span></h1>
-<div class="row"><button id="tab-cartesia" type="button">Cartesia</button><button id="tab-groq" class="ghost" type="button">Groq</button></div>
+<div class="row"><input id="q" placeholder="Type to pool… e.g. groq" autocomplete="off"/></div>
+<div class="row" id="provlist" style="gap:8px"></div>
+<div class="row"><button id="tab-cartesia" type="button"><img class="tabimg" src="/logos/cartesia.svg" alt="" onerror="this.remove()"/> Cartesia</button><button id="tab-groq" class="ghost" type="button"><img class="tabimg" src="/logos/groq.svg" alt="" onerror="this.remove()"/> Groq</button></div>
 <div class="err" id="err"></div>
 <div class="card"><h2>Gather keys</h2>
 <ul id="keys"></ul>
@@ -60,7 +65,7 @@ pre{background:#111;color:#eee;border-radius:8px;padding:12px;font-size:12px;ove
 <div class="row"><button id="send">Send via pool</button></div></div>
 <pre id="out">create or pick a pool…</pre>
 </main><script>
-let pid=null,keyTotal=0,prov='cartesia';
+let pid=null,keyTotal=0,prov='cartesia',provs=[];
 const out=t=>document.getElementById('out').textContent=typeof t==='string'?t:JSON.stringify(t,null,2);
 const err=t=>document.getElementById('err').textContent=t||'';
 async function j(r){const t=await r.text();try{return JSON.parse(t)}catch{return t}}
@@ -80,7 +85,23 @@ async function pick(p){
 async function init(){
   document.getElementById('tab-cartesia').onclick=()=>pick('cartesia');
   document.getElementById('tab-groq').onclick=()=>pick('groq');
+  provs=await j(await fetch('/api/providers'));
+  renderProv('');
+  document.getElementById('q').addEventListener('input',e=>renderProv(e.target.value));
   pick('cartesia');
+}
+function renderProv(f){
+  f=(f||'').toLowerCase();
+  const box=document.getElementById('provlist');box.innerHTML='';
+  provs.filter(p=>p.name.toLowerCase().includes(f)||p.id.includes(f)).forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.className=prov===p.id?'':'ghost';
+    b.style.cssText='display:flex;align-items:center;gap:8px';
+    const img=document.createElement('img');img.className='tabimg';img.alt='';img.src='/logos/'+p.id+'.svg';
+    img.onerror=()=>img.remove();b.appendChild(img);
+    const t=document.createElement('span');t.textContent=p.name+' · '+p.quota;b.appendChild(t);
+    b.onclick=()=>{pick(p.id);renderProv(document.getElementById('q').value);};
+    box.appendChild(b);
+  });
 }
 async function keys(){
   const ks=await j(await fetch('/api/pools/'+pid+'/keys'));
@@ -137,6 +158,26 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/ui") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(ui);
+      return;
+    }
+    if (req.method === "GET" && url.pathname.startsWith("/logos/")) {
+      const name = url.pathname.slice("/logos/".length);
+      if (!/^[a-z0-9-]+\.(svg|png)$/.test(name)) {
+        res.writeHead(404, { "content-type": "text/plain" });
+        res.end("not found\n");
+        return;
+      }
+      try {
+        const buf = fs.readFileSync(path.join(process.cwd(), "public", "logos", name));
+        res.writeHead(200, {
+          "content-type": name.endsWith(".png") ? "image/png" : "image/svg+xml",
+          "cache-control": "public, max-age=3600",
+        });
+        res.end(buf);
+      } catch {
+        res.writeHead(404, { "content-type": "text/plain" });
+        res.end("not found\n");
+      }
       return;
     }
     if (req.method === "GET" && url.pathname === "/health") {
