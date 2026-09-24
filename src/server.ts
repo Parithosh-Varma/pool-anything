@@ -105,7 +105,7 @@ const page = `<!doctype html>
   .prov img { width:22px; height:22px; }
   .prov small { color:var(--subtle); margin-left:auto; }
   @keyframes fadeSlide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-  dialog { border:1px solid var(--line); border-radius:16px; padding:0; max-width:480px; width:calc(100vw - 32px); font-family:inherit; overflow:hidden; }
+  dialog { border:1px solid var(--line); border-radius:16px; padding:0; max-width:640px; width:calc(100vw - 48px); font-family:inherit; overflow:hidden; }
   dialog::backdrop { background:rgba(0,0,0,.3); }
   .p-head { display:flex; align-items:center; gap:10px; padding:16px 20px 12px; border-bottom:1px solid var(--line); }
   .p-head img { width:28px; height:28px; }
