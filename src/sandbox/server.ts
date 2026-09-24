@@ -298,6 +298,32 @@ const server = http.createServer(async (req, res) => {
         send(res, 200, { id: r.lastInsertRowid });
         return;
       }
+      if (req.method === "GET" && m[2]) {
+        const row = sdb
+          .prepare("SELECT id, label, api_key, info, created_at FROM pool_keys WHERE id = ? AND pool_id = ?")
+          .get(Number(m[2]), poolId) as { id: number; label: string; api_key: string; info: string; created_at: string } | undefined;
+        if (!row) return send(res, 404, { error: "key not found" });
+        send(res, 200, { ...row, masked: mask(row.api_key) });
+        return;
+      }
+      if (req.method === "PATCH" && m[2]) {
+        const b = (await readJson(req)) as { label?: string; api_key?: string; info?: string };
+        const cur = sdb
+          .prepare("SELECT id FROM pool_keys WHERE id = ? AND pool_id = ?")
+          .get(Number(m[2]), poolId) as { id: number } | undefined;
+        if (!cur) return send(res, 404, { error: "key not found" });
+        if (b.label !== undefined) sdb.prepare("UPDATE pool_keys SET label = ? WHERE id = ?").run(String(b.label).slice(0, 80), Number(m[2]));
+        if (b.api_key !== undefined) {
+          if (!String(b.api_key).trim()) return send(res, 400, { error: "api_key must not be empty" });
+          sdb.prepare("UPDATE pool_keys SET api_key = ? WHERE id = ?").run(String(b.api_key), Number(m[2]));
+        }
+        if (b.info !== undefined) sdb.prepare("UPDATE pool_keys SET info = ? WHERE id = ?").run(String(b.info).slice(0, 200), Number(m[2]));
+        const row = sdb
+          .prepare("SELECT id, label, api_key, info, created_at FROM pool_keys WHERE id = ?")
+          .get(Number(m[2])) as { id: number; label: string; api_key: string; info: string; created_at: string };
+        send(res, 200, { id: row.id, label: row.label, masked: mask(row.api_key), info: row.info });
+        return;
+      }
       if (req.method === "DELETE" && m[2]) {
         sdb.prepare("DELETE FROM pool_keys WHERE id = ? AND pool_id = ?").run(Number(m[2]), poolId);
         send(res, 200, { ok: true });

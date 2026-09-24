@@ -124,30 +124,6 @@ const page = `<!doctype html>
   .p-foot { display:flex; align-items:center; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--subtle); }
   .p-foot button { margin-left:auto; }
   .perr { color:#b00; font-size:13px; min-height:18px; }
-  main.with-pg { padding-top:28px; }
-  .pg-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; }
-  .pg-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .pg-lbl { font-size:13px; color:var(--subtle); font-weight:500; }
-  .pg-card select, .pg-card input, .pg-card textarea { font-family:inherit; font-size:14px; border:1px solid var(--line); border-radius:10px; background:#fff; color:#111; padding:8px 10px; min-height:38px; outline:none; }
-  .pg-card select { min-width:180px; }
-  .pg-card input:focus, .pg-card textarea:focus, .pg-card select:focus { border-color:#a3a3a3; }
-  .pg-card textarea { width:100%; resize:vertical; }
-  .pg-send { border:0; background:#111; color:#fff; border-radius:10px; height:38px; padding:0 16px; font-size:14px; cursor:pointer; }
-  .pg-send:hover { background:#333; }
-  .pg-send:disabled { opacity:.5; cursor:default; }
-  .ghostbtn { border:1px solid var(--line); background:#fff; color:#111; border-radius:10px; height:38px; padding:0 14px; font-size:14px; cursor:pointer; }
-  .ghostbtn:hover { background:#f5f5f5; }
-  .pg-status { font-size:12px; font-weight:600; border-radius:999px; padding:3px 10px; background:#f0f0f0; white-space:nowrap; }
-  .pg-status.ok { background:#dcfce7; color:#166534; }
-  .pg-status.bad { background:#fee2e2; color:#991b1b; }
-  .pg-out { background:#111; color:#eee; border-radius:12px; padding:14px; font-size:12.5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; white-space:pre-wrap; word-break:break-word; max-height:360px; min-height:96px; margin:0; }
-  .pg-krow { display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:10px; padding:8px 10px; font-size:13px; }
-  .pg-krow .meta { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pg-krow .use { font-size:11px; color:var(--subtle); }
-  .pg-krow.used { outline:2px solid #111; }
-  .pg-krow .last { font-size:10.5px; font-weight:700; color:#166534; white-space:nowrap; }
-  .pg-title { font-size:14px; font-weight:600; }
-  .pg-more summary { cursor:pointer; }
 </style>
 </head>
 <body>
@@ -173,8 +149,8 @@ const page = `<!doctype html>
     <button type="button" aria-label="User menu">☺</button>
   </div>
 </header>
-<main id="mainEl">
-  <div class="wrap" id="view-home">
+<main>
+  <div class="wrap">
     <div class="hero-row"><img class="hero-logo" src="/logo.png" alt="pool-anything logo" width="40" height="40" /><h1>What do you want to pool</h1></div>
     <div class="search-card">
       <div class="search-box">
@@ -185,55 +161,6 @@ const page = `<!doctype html>
     </div>
     <div id="results"></div>
   </div>
-  <section id="view-playground" class="wrap" hidden>
-    <div class="hero-row"><h1>Proxy playground</h1></div>
-    <p class="p-note" style="text-align:center;margin:-14px 0 0">Each send rotates to the next key in the pool — watch the highlight move.</p>
-
-    <div class="pg-card">
-      <div class="pg-row">
-        <span class="pg-lbl">Pool</span>
-        <select id="pgPool" aria-label="Pool"></select>
-        <button class="ghostbtn" id="pgRefresh" type="button">Refresh</button>
-      </div>
-      <div class="p-note" id="pgMeta">loading…</div>
-    </div>
-
-    <div class="pg-card">
-      <div class="pg-row">
-        <select id="pgMethod" aria-label="Method" style="min-width:104px">
-          <option>GET</option><option selected>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
-        </select>
-        <input id="pgPath" placeholder="/path — appended to the provider base URL" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false" />
-        <button class="pg-send" id="pgSend" type="button">Send via pool</button>
-      </div>
-      <textarea id="pgBody" rows="6" placeholder='body JSON, e.g. {"messages":[{"role":"user","content":"hi"}]}' spellcheck="false"></textarea>
-      <details class="pg-more">
-        <summary class="pg-lbl">Advanced — extra headers JSON · tokens to record</summary>
-        <div class="pg-row" style="margin-top:8px">
-          <input id="pgHeaders" placeholder='{"x-custom":"v"}' style="flex:1;min-width:160px" autocomplete="off" spellcheck="false" />
-          <input id="pgTokens" placeholder="tokens (optional)" style="max-width:160px" inputmode="numeric" autocomplete="off" />
-        </div>
-      </details>
-      <div class="perr" id="pgErr"></div>
-    </div>
-
-    <div class="pg-card">
-      <div class="pg-row" style="justify-content:space-between">
-        <b class="pg-title">Response</b>
-        <span class="pg-status" id="pgStatus">—</span>
-      </div>
-      <div class="p-note" id="pgKeyUsed"></div>
-      <pre class="pg-out" id="pgOut">send a request to see the response…</pre>
-    </div>
-
-    <div class="pg-card">
-      <div class="pg-row" style="justify-content:space-between">
-        <b class="pg-title">Pool rotation</b>
-        <span class="p-note" id="pgQuota"></span>
-      </div>
-      <div id="pgKeys" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-  </section>
 </main>
 <dialog id="setup">
   <div class="p-head"><img id="pLogo" alt="" /><b id="pName"></b><span class="pill" id="pQuota"></span></div>
@@ -351,9 +278,38 @@ const page = `<!doctype html>
       row.className = 'krow'; row.style.animationDelay = Math.min(i * 40, 300) + 'ms';
       const m = document.createElement('span'); m.className = 'meta'; m.textContent = k.label + ' · ' + k.masked; row.appendChild(m);
       const u = document.createElement('span'); u.className = 'use'; u.textContent = (usageMap[k.id] || 0) + ' used'; row.appendChild(u);
+      const v = document.createElement('button'); v.textContent = 'View'; v.type = 'button';
+      v.onclick = async () => {
+        if (v.dataset.open) {
+          delete v.dataset.open; v.textContent = 'View';
+          m.textContent = k.label + ' · ' + k.masked; return;
+        }
+        const full = await j(await fetch('/api/pools/' + pool.id + '/keys/' + k.id));
+        if (full.error) { document.getElementById('perr').textContent = full.error; return; }
+        v.dataset.open = '1'; v.textContent = 'Hide';
+        m.textContent = k.label + ' · ' + full.api_key;
+      };
+      const e = document.createElement('button'); e.textContent = 'Edit'; e.type = 'button';
+      e.onclick = async () => {
+        const full = await j(await fetch('/api/pools/' + pool.id + '/keys/' + k.id));
+        if (full.error) { document.getElementById('perr').textContent = full.error; return; }
+        row.innerHTML = '';
+        const f = document.createElement('div'); f.style.cssText = 'display:flex;gap:6px;flex:1;flex-wrap:wrap';
+        f.innerHTML = '<input value="' + full.label.replace(/"/g, '&quot;') + '" style="flex:1;min-width:70px"/><input value="' + full.api_key.replace(/"/g, '&quot;') + '" type="password" style="flex:2;min-width:110px"/>';
+        const [il, ik] = f.querySelectorAll('input');
+        const sv = document.createElement('button'); sv.textContent = 'Save'; sv.type = 'button';
+        sv.onclick = async () => {
+          const r = await j(await fetch('/api/pools/' + pool.id + '/keys/' + k.id, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ label: il.value, api_key: ik.value }) }));
+          if (r.error) { document.getElementById('perr').textContent = r.error; return; }
+          refreshPanel();
+        };
+        const c = document.createElement('button'); c.textContent = 'Cancel'; c.type = 'button';
+        c.onclick = () => refreshPanel();
+        row.appendChild(f); row.appendChild(sv); row.appendChild(c);
+      };
       const d = document.createElement('button'); d.textContent = 'Remove'; d.type = 'button';
       d.onclick = async () => { await fetch('/api/pools/' + pool.id + '/keys/' + k.id, { method: 'DELETE' }); refreshPanel(); };
-      row.appendChild(d); box.appendChild(row);
+      row.appendChild(v); row.appendChild(e); row.appendChild(d); box.appendChild(row);
     });
     keyTotal = ks.length;
     if (!document.querySelector('#pslots .slotrow')) addSlot();
@@ -515,9 +471,38 @@ async function refresh(){
       li.innerHTML='<span></span><small></small>';
       li.querySelector('span').textContent=k.label+' · '+k.masked;
       li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0);
+      const v=document.createElement('button');v.textContent='View';v.className='ghost sm';
+      v.onclick=async()=>{
+        if(v.dataset.open){
+          delete v.dataset.open;v.textContent='View';
+          li.querySelector('span').textContent=k.label+' · '+k.masked;return;
+        }
+        const full=await j(await fetch('/api/pools/'+p.id+'/keys/'+k.id));
+        if(full.error){err(full.error);return;}
+        v.dataset.open='1';v.textContent='Hide';
+        li.querySelector('span').textContent=k.label+' · '+full.api_key;
+      };
+      const e=document.createElement('button');e.textContent='Edit';e.className='ghost sm';
+      e.onclick=async()=>{
+        const full=await j(await fetch('/api/pools/'+p.id+'/keys/'+k.id));
+        if(full.error){err(full.error);return;}
+        li.innerHTML='';
+        const f=document.createElement('div');f.style.cssText='display:flex;gap:6px;flex:1;flex-wrap:wrap';
+        f.innerHTML='<input value="'+full.label.replace(/"/g,'&quot;')+'" style="flex:1;min-width:80px"/><input value="'+full.api_key.replace(/"/g,'&quot;')+'" type="password" style="flex:2;min-width:120px"/><input value="'+(full.info||'').replace(/"/g,'&quot;')+'" placeholder="info" style="flex:1;min-width:80px"/>';
+        const [il,ik,ii]=f.querySelectorAll('input');
+        const sv=document.createElement('button');sv.textContent='Save';sv.className='sm';
+        sv.onclick=async()=>{
+          const r=await j(await fetch('/api/pools/'+p.id+'/keys/'+k.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({label:il.value,api_key:ik.value,info:ii.value})}));
+          if(r.error){err(r.error);return;}
+          refresh();
+        };
+        const c=document.createElement('button');c.textContent='Cancel';c.className='ghost sm';
+        c.onclick=()=>refresh();
+        li.appendChild(f);li.appendChild(sv);li.appendChild(c);
+      };
       const d=document.createElement('button');d.textContent='Remove';d.className='ghost sm';
       d.onclick=async()=>{await fetch('/api/pools/'+p.id+'/keys/'+k.id,{method:'DELETE'});refresh();};
-      li.appendChild(d);ul.appendChild(li);
+      li.appendChild(v);li.appendChild(e);li.appendChild(d);ul.appendChild(li);
     });
     const [inp,gather,del]=card.querySelectorAll('input,button');
     gather.onclick=async()=>{
@@ -729,6 +714,32 @@ const server = http.createServer(async (req, res) => {
         .prepare("INSERT INTO pool_keys (pool_id, label, api_key, info) VALUES (?, ?, ?, ?)")
         .run(poolId, b.label, b.api_key, b.info ?? "");
       send(res, 200, { id: r.lastInsertRowid });
+      return;
+    }
+    if (req.method === "GET" && keyM[2]) {
+      const row = sdb
+        .prepare("SELECT id, label, api_key, info, created_at FROM pool_keys WHERE id = ? AND pool_id = ?")
+        .get(Number(keyM[2]), poolId) as { id: number; label: string; api_key: string; info: string; created_at: string } | undefined;
+      if (!row) return send(res, 404, { error: "key not found" });
+      send(res, 200, { ...row, masked: mask(row.api_key) });
+      return;
+    }
+    if (req.method === "PATCH" && keyM[2]) {
+      const b = (await readJson(req)) as { label?: string; api_key?: string; info?: string };
+      const cur = sdb
+        .prepare("SELECT id FROM pool_keys WHERE id = ? AND pool_id = ?")
+        .get(Number(keyM[2]), poolId) as { id: number } | undefined;
+      if (!cur) return send(res, 404, { error: "key not found" });
+      if (b.label !== undefined) sdb.prepare("UPDATE pool_keys SET label = ? WHERE id = ?").run(String(b.label).slice(0, 80), Number(keyM[2]));
+      if (b.api_key !== undefined) {
+        if (!String(b.api_key).trim()) return send(res, 400, { error: "api_key must not be empty" });
+        sdb.prepare("UPDATE pool_keys SET api_key = ? WHERE id = ?").run(String(b.api_key), Number(keyM[2]));
+      }
+      if (b.info !== undefined) sdb.prepare("UPDATE pool_keys SET info = ? WHERE id = ?").run(String(b.info).slice(0, 200), Number(keyM[2]));
+      const row = sdb
+        .prepare("SELECT id, label, api_key, info, created_at FROM pool_keys WHERE id = ?")
+        .get(Number(keyM[2])) as { id: number; label: string; api_key: string; info: string; created_at: string };
+      send(res, 200, { id: row.id, label: row.label, masked: mask(row.api_key), info: row.info });
       return;
     }
     if (req.method === "DELETE" && keyM[2]) {
