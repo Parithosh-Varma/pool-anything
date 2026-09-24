@@ -105,18 +105,6 @@ const page = `<!doctype html>
   .prov img { width:22px; height:22px; }
   .prov small { color:var(--subtle); margin-left:auto; }
   @keyframes fadeSlide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-  dialog { border:1px solid var(--line); border-radius:16px; padding:20px; max-width:460px; width:calc(100vw - 32px); font-family:inherit; }
-  dialog::backdrop { background:rgba(0,0,0,.3); }
-  dialog h2 { margin:0 0 4px; font-size:18px; }
-  dialog p.hint { margin:0 0 8px; font-size:13px; color:var(--subtle); }
-  .skeys { margin:12px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
-  .skeys li { background:#f5f5f5; border-radius:8px; padding:8px 10px; font-size:13px; display:flex; gap:8px; align-items:center; }
-  .skeys li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .srow { display:flex; gap:8px; margin-top:8px; }
-  .srow input { flex:1; min-width:0; border:1px solid var(--line); border-radius:8px; height:36px; padding:0 10px; font-size:14px; }
-  .srow button { border:1px solid var(--line); background:#111; color:#fff; border-radius:8px; height:36px; padding:0 14px; font-size:14px; cursor:pointer; }
-  .srow button.ghost { background:#fff; color:#111; }
-  .serr { color:#b00; font-size:13px; min-height:18px; }
 </style>
 </head>
 <body>
@@ -152,14 +140,6 @@ const page = `<!doctype html>
     <div id="results"></div>
   </div>
 </main>
-<dialog id="setup"><form method="dialog" style="margin:0">
-  <h2 id="sTitle"></h2>
-  <p class="hint" id="sHint"></p>
-  <div class="serr" id="serr"></div>
-  <ul class="skeys" id="skeys"></ul>
-  <div id="sslots" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
-  <div class="srow"><button id="smore" class="ghost" value="default">＋ key slot</button><button id="sdone" class="ghost" value="cancel">Done</button></div>
-</form></dialog>
 </div>
 </div>
 <script>
@@ -204,12 +184,10 @@ const page = `<!doctype html>
   });
   const input = document.getElementById('search');
   const results = document.getElementById('results');
-  const dlg = document.getElementById('setup');
-  let providers = [], pool = null, keyTotal = 0;
+  let providers = [];
   async function j(r) { const t = await r.text(); try { return JSON.parse(t); } catch { return t; } }
   async function loadProviders() {
     providers = await j(await fetch('/api/providers'));
-    renderProviders('');
   }
   function renderProviders(f) {
     f = (f || '').toLowerCase();
@@ -223,52 +201,20 @@ const page = `<!doctype html>
       img.onerror = () => img.remove(); b.appendChild(img);
       const n = document.createElement('span'); n.textContent = p.name; b.appendChild(n);
       const q = document.createElement('small'); q.textContent = p.quota; b.appendChild(q);
-      b.onclick = () => openSetup(p);
+      b.onclick = () => showProvider(p);
       results.appendChild(b);
     });
   }
-  async function openSetup(p) {
-    document.getElementById('sTitle').textContent = 'Pool ' + p.name;
-    document.getElementById('sHint').textContent = p.quota + ' · ' + p.hint;
-    document.getElementById('serr').textContent = '';
-    const pools = await j(await fetch('/api/pools'));
-    pool = pools.find(x => x.provider === p.id);
-    if (!pool) pool = await j(await fetch('/api/pools', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: p.id, name: p.name + ' pool' }) }));
-    document.getElementById('sslots').innerHTML = '';
-    await refreshKeys();
-    dlg.showModal();
+  function showProvider(p) {
+    results.innerHTML = '';
+    const b = document.createElement('button');
+    b.className = 'prov'; b.type = 'button';
+    const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + (p.logoFile || p.id + '.svg');
+    img.onerror = () => img.remove(); b.appendChild(img);
+    const n = document.createElement('span'); n.textContent = p.name + ' · ' + p.quota + (p.hint ? ' · ' + p.hint : ''); b.appendChild(n);
+    b.onclick = () => renderProviders(input.value.trim());
+    results.appendChild(b);
   }
-  async function refreshKeys() {
-    const ks = await j(await fetch('/api/pools/' + pool.id + '/keys'));
-    const ul = document.getElementById('skeys'); ul.innerHTML = '';
-    ks.forEach(k => {
-      const li = document.createElement('li');
-      const s = document.createElement('span'); s.textContent = k.label + ' · ' + k.masked + (k.info ? ' · ' + k.info : ''); li.appendChild(s);
-      const d = document.createElement('button'); d.textContent = 'Remove'; d.className = 'ghost'; d.type = 'button';
-      d.onclick = async (e) => { e.preventDefault(); await fetch('/api/pools/' + pool.id + '/keys/' + k.id, { method: 'DELETE' }); refreshKeys(); };
-      li.appendChild(d); ul.appendChild(li);
-    });
-    keyTotal = ks.length;
-    if (!document.querySelector('#sslots .slot')) addSlot();
-  }
-  function addSlot() {
-    const n = keyTotal + document.querySelectorAll('#sslots .slot').length + 1;
-    const box = document.getElementById('sslots');
-    const form = document.createElement('form'); form.className = 'slot'; form.style.cssText = 'display:flex;gap:8px';
-    form.innerHTML = '<input placeholder="key ' + n + ' — paste API key, hit Enter" type="password" autocomplete="off" style="flex:1"/><button type="submit">Gather</button>';
-    const inp = form.querySelector('input');
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      document.getElementById('serr').textContent = '';
-      const api_key = inp.value.trim();
-      if (!api_key) { document.getElementById('serr').textContent = 'Paste an API key first.'; return; }
-      const r = await j(await fetch('/api/pools/' + pool.id + '/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ label: 'key ' + n, api_key }) }));
-      if (r.error) { document.getElementById('serr').textContent = r.error; return; }
-      form.remove(); refreshKeys();
-    };
-    box.appendChild(form); inp.focus();
-  }
-  document.getElementById('smore').onclick = (e) => { e.preventDefault(); addSlot(); };
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); }
   });
