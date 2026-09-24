@@ -88,8 +88,8 @@ const page = `<!doctype html>
   .shell.closing .lbl, .shell.closing .sb-acct, .shell.closing .mi .chev, .shell.closing .sec, .shell.closing .sub { opacity:0; }
   .content { flex:1; min-width:0; display:flex; flex-direction:column; }
   @media (max-width:720px) { .shell { --sbw:57px; } .lbl { display:none; } }
-  main { min-height:calc(100vh - 56px); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; }
-  .wrap { width:100%; max-width:640px; margin:0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
+  main { min-height:calc(100vh - 56px); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:16vh 16px 24px; }
+  .wrap { width:100%; max-width:640px; margin:0 auto; display:flex; flex-direction:column; align-items:stretch; gap:24px; }
   h1 { font-size:30px; font-weight:600; margin:0; text-align:center; }
   .hero-logo { width:40px; height:40px; object-fit:contain; flex-shrink:0; }
   .hero-row { display:flex; align-items:center; justify-content:center; gap:4px; }
