@@ -305,6 +305,83 @@ const page = `<!doctype html>
 </body>
 </html>`;
 
+const keysPage = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>API key manager — pool-anything</title>
+<link rel="icon" type="image/png" href="/logo.png" />
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#fafafa;color:#111}
+main{max-width:720px;margin:0 auto;padding:32px 16px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:22px;margin:0}.card{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:14px}
+.chead{display:flex;align-items:center;gap:10px}.chead img{width:24px;height:24px}
+.chead b{font-size:15px}.pill{margin-left:auto;font-size:11px;font-weight:600;background:#f0f0f0;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+input,select{border:1px solid #e5e5e5;border-radius:8px;min-height:36px;padding:0 10px;font-size:14px;flex:1;min-width:140px}
+button{border:1px solid #e5e5e5;background:#111;color:#fff;border-radius:8px;min-height:36px;padding:0 14px;font-size:14px;cursor:pointer}
+button.ghost{background:#fff;color:#111}button.sm{min-height:28px;font-size:12px}
+ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+li{background:#f5f5f5;border-radius:8px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:center}
+li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+li small{color:#737373}.err{color:#b00;font-size:13px;min-height:18px}
+a.back{font-size:13px;color:#737373}
+</style></head><body><main>
+<h1>API key manager</h1>
+<a class="back" href="/">← pool search</a>
+<div class="err" id="err"></div>
+<div class="card"><div class="row"><select id="prov"></select><input id="pname" placeholder="Pool name"/><button id="create">New pool</button></div></div>
+<div id="pools" style="display:flex;flex-direction:column;gap:12px"></div>
+</main><script>
+let provs=[];
+const err=t=>document.getElementById('err').textContent=t||'';
+async function j(r){const t=await r.text();try{return JSON.parse(t)}catch{return t}}
+async function init(){
+  provs=await j(await fetch('/api/providers'));
+  document.getElementById('prov').innerHTML=provs.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
+  refresh();
+}
+async function refresh(){
+  err('');
+  const pools=await j(await fetch('/api/pools'));
+  const box=document.getElementById('pools');box.innerHTML='';
+  for(const p of pools){
+    const prov=provs.find(x=>x.id===p.provider)||{name:p.provider,quota:'',logoFile:p.provider+'.svg'};
+    const [ks,us]=await Promise.all([j(await fetch('/api/pools/'+p.id+'/keys')),j(await fetch('/api/pools/'+p.id+'/usage'))]);
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML='<div class="chead"><img alt=""/><b></b><span class="pill"></span></div><ul></ul><div class="row"><input placeholder="key '+(ks.length+1)+' — paste API key"/><button>Gather</button><button class="ghost sm">Delete pool</button></div>';
+    const img=card.querySelector('img');img.src='/logos/'+(prov.logoFile||p.provider+'.svg');img.onerror=()=>img.remove();
+    card.querySelector('b').textContent=prov.name+' · #'+p.id;
+    card.querySelector('.pill').textContent='used '+(us.used||0)+(us.quota?' / '+(us.quota*ks.length):'');
+    const ul=card.querySelector('ul');
+    ks.forEach(k=>{
+      const li=document.createElement('li');
+      li.innerHTML='<span></span><small></small>';
+      li.querySelector('span').textContent=k.label+' · '+k.masked;
+      li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0);
+      const d=document.createElement('button');d.textContent='Remove';d.className='ghost sm';
+      d.onclick=async()=>{await fetch('/api/pools/'+p.id+'/keys/'+k.id,{method:'DELETE'});refresh();};
+      li.appendChild(d);ul.appendChild(li);
+    });
+    const [inp,gather,del]=card.querySelectorAll('input,button');
+    gather.onclick=async()=>{
+      const api_key=inp.value.trim();if(!api_key){err('Paste an API key first.');return;}
+      await j(await fetch('/api/pools/'+p.id+'/keys',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label:'key '+(ks.length+1),api_key})}));
+      refresh();
+    };
+    del.onclick=async()=>{await fetch('/api/pools/'+p.id,{method:'DELETE'});refresh();};
+    box.appendChild(card);
+  }
+}
+document.getElementById('create').onclick=async()=>{
+  err('');
+  const provider=document.getElementById('prov').value,name=document.getElementById('pname').value||'pool';
+  const p=await j(await fetch('/api/pools',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({provider,name})}));
+  if(p.error){err(p.error);return;}
+  document.getElementById('pname').value='';refresh();
+};
+init();
+</script></body></html>`;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   try {
@@ -460,6 +537,11 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("not found\n");
     }
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/keys") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(keysPage);
     return;
   }
   if (req.method === "GET" && url.pathname === "/api/db/ping") {
