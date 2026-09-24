@@ -87,7 +87,7 @@ const page = `<!doctype html>
   .shell .lbl, .shell .sb-acct, .shell .mi .chev, .shell .sec, .shell .sub { opacity:1; transition:opacity 150ms ease; }
   .shell.closing .lbl, .shell.closing .sb-acct, .shell.closing .mi .chev, .shell.closing .sec, .shell.closing .sub { opacity:0; }
   .content { flex:1; min-width:0; display:flex; flex-direction:column; animation:pageIn .3s ease both; }
-  @keyframes pageIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  @keyframes pageIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
   @media (max-width:720px) { .shell { --sbw:57px; } .lbl { display:none; } }
   main { min-height:calc(100vh - 56px); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:16vh 16px 24px; }
   .wrap { width:100%; max-width:640px; margin:0 auto; display:flex; flex-direction:column; align-items:stretch; gap:24px; }
@@ -105,7 +105,7 @@ const page = `<!doctype html>
   .prov:hover { background:#f5f5f5; }
   .prov img { width:22px; height:22px; }
   .prov small { color:var(--subtle); margin-left:auto; }
-  @keyframes fadeSlide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
   dialog { border:1px solid var(--line); border-radius:16px; padding:0; max-width:640px; width:calc(100vw - 48px); font-family:inherit; overflow:hidden; }
   dialog::backdrop { background:rgba(0,0,0,.3); }
   .p-head { display:flex; align-items:center; gap:10px; padding:16px 20px 12px; border-bottom:1px solid var(--line); }
@@ -124,6 +124,30 @@ const page = `<!doctype html>
   .p-foot { display:flex; align-items:center; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--subtle); }
   .p-foot button { margin-left:auto; }
   .perr { color:#b00; font-size:13px; min-height:18px; }
+  main.with-pg { padding-top:28px; }
+  .pg-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .pg-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pg-lbl { font-size:13px; color:var(--subtle); font-weight:500; }
+  .pg-card select, .pg-card input, .pg-card textarea { font-family:inherit; font-size:14px; border:1px solid var(--line); border-radius:10px; background:#fff; color:#111; padding:8px 10px; min-height:38px; outline:none; }
+  .pg-card select { min-width:180px; }
+  .pg-card input:focus, .pg-card textarea:focus, .pg-card select:focus { border-color:#a3a3a3; }
+  .pg-card textarea { width:100%; resize:vertical; }
+  .pg-send { border:0; background:#111; color:#fff; border-radius:10px; height:38px; padding:0 16px; font-size:14px; cursor:pointer; }
+  .pg-send:hover { background:#333; }
+  .pg-send:disabled { opacity:.5; cursor:default; }
+  .ghostbtn { border:1px solid var(--line); background:#fff; color:#111; border-radius:10px; height:38px; padding:0 14px; font-size:14px; cursor:pointer; }
+  .ghostbtn:hover { background:#f5f5f5; }
+  .pg-status { font-size:12px; font-weight:600; border-radius:999px; padding:3px 10px; background:#f0f0f0; white-space:nowrap; }
+  .pg-status.ok { background:#dcfce7; color:#166534; }
+  .pg-status.bad { background:#fee2e2; color:#991b1b; }
+  .pg-out { background:#111; color:#eee; border-radius:12px; padding:14px; font-size:12.5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; white-space:pre-wrap; word-break:break-word; max-height:360px; min-height:96px; margin:0; }
+  .pg-krow { display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:10px; padding:8px 10px; font-size:13px; }
+  .pg-krow .meta { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pg-krow .use { font-size:11px; color:var(--subtle); }
+  .pg-krow.used { outline:2px solid #111; }
+  .pg-krow .last { font-size:10.5px; font-weight:700; color:#166534; white-space:nowrap; }
+  .pg-title { font-size:14px; font-weight:600; }
+  .pg-more summary { cursor:pointer; }
 </style>
 </head>
 <body>
@@ -149,8 +173,8 @@ const page = `<!doctype html>
     <button type="button" aria-label="User menu">☺</button>
   </div>
 </header>
-<main>
-  <div class="wrap">
+<main id="mainEl">
+  <div class="wrap" id="view-home">
     <div class="hero-row"><img class="hero-logo" src="/logo.png" alt="pool-anything logo" width="40" height="40" /><h1>What do you want to pool</h1></div>
     <div class="search-card">
       <div class="search-box">
@@ -161,6 +185,55 @@ const page = `<!doctype html>
     </div>
     <div id="results"></div>
   </div>
+  <section id="view-playground" class="wrap" hidden>
+    <div class="hero-row"><h1>Proxy playground</h1></div>
+    <p class="p-note" style="text-align:center;margin:-14px 0 0">Each send rotates to the next key in the pool — watch the highlight move.</p>
+
+    <div class="pg-card">
+      <div class="pg-row">
+        <span class="pg-lbl">Pool</span>
+        <select id="pgPool" aria-label="Pool"></select>
+        <button class="ghostbtn" id="pgRefresh" type="button">Refresh</button>
+      </div>
+      <div class="p-note" id="pgMeta">loading…</div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-row">
+        <select id="pgMethod" aria-label="Method" style="min-width:104px">
+          <option>GET</option><option selected>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+        </select>
+        <input id="pgPath" placeholder="/path — appended to the provider base URL" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false" />
+        <button class="pg-send" id="pgSend" type="button">Send via pool</button>
+      </div>
+      <textarea id="pgBody" rows="6" placeholder='body JSON, e.g. {"messages":[{"role":"user","content":"hi"}]}' spellcheck="false"></textarea>
+      <details class="pg-more">
+        <summary class="pg-lbl">Advanced — extra headers JSON · tokens to record</summary>
+        <div class="pg-row" style="margin-top:8px">
+          <input id="pgHeaders" placeholder='{"x-custom":"v"}' style="flex:1;min-width:160px" autocomplete="off" spellcheck="false" />
+          <input id="pgTokens" placeholder="tokens (optional)" style="max-width:160px" inputmode="numeric" autocomplete="off" />
+        </div>
+      </details>
+      <div class="perr" id="pgErr"></div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-row" style="justify-content:space-between">
+        <b class="pg-title">Response</b>
+        <span class="pg-status" id="pgStatus">—</span>
+      </div>
+      <div class="p-note" id="pgKeyUsed"></div>
+      <pre class="pg-out" id="pgOut">send a request to see the response…</pre>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-row" style="justify-content:space-between">
+        <b class="pg-title">Pool rotation</b>
+        <span class="p-note" id="pgQuota"></span>
+      </div>
+      <div id="pgKeys" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </section>
 </main>
 <dialog id="setup">
   <div class="p-head"><img id="pLogo" alt="" /><b id="pName"></b><span class="pill" id="pQuota"></span></div>
@@ -367,7 +440,7 @@ const shellCss = `
   .shell.peeking { --sbw:260px; }
   .shell .lbl { opacity:1; transition:opacity 150ms ease; }
   .shell.closing .lbl { opacity:0; }
-  @keyframes pageIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  @keyframes pageIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
   .content { animation:pageIn .3s ease both; }
   @media (max-width:720px) { .shell { --sbw:57px; } .lbl { display:none; } }`;
 
@@ -535,7 +608,7 @@ return `<!doctype html>
 *{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#fafafa;color:#111}
 main{max-width:720px;margin:0 auto;padding:32px 16px;display:flex;flex-direction:column;gap:12px}
 h1{font-size:22px;margin:0;flex:1}.card{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:14px;animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both}
-@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .chead{display:flex;align-items:center;gap:10px}.chead img{width:24px;height:24px}
 .chead b{font-size:15px}.pill{margin-left:auto;font-size:11px;font-weight:600;background:#f0f0f0;border-radius:999px;padding:3px 10px;white-space:nowrap}
 .row{display:flex;gap:8px;align-items:center}
