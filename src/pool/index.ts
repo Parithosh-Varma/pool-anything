@@ -23,6 +23,9 @@ sdb.exec(`
     label TEXT NOT NULL,
     api_key TEXT NOT NULL,
     info TEXT NOT NULL DEFAULT '',
+    cooldown_until INTEGER NOT NULL DEFAULT 0,
+    latency_ms REAL,
+    consec_fail INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS usage (
@@ -141,38 +144,12 @@ try {
 try {
   sdb.exec(`ALTER TABLE pools ADD COLUMN key_prefix TEXT NOT NULL DEFAULT ''`);
 } catch {}
-
-export function nextKey(poolId: number) {
-  const sel = nextKeyRaw(poolId);
-  if ("error" in sel) return sel;
-  const { api_key: _raw, ...masked } = sel;
-  return masked;
+for (const col of ["cooldown_until INTEGER NOT NULL DEFAULT 0", "latency_ms REAL", "consec_fail INTEGER NOT NULL DEFAULT 0"]) {
+  try {
+    sdb.exec(`ALTER TABLE pool_keys ADD COLUMN ${col}`);
+  } catch {}
 }
 
-export function nextKeyRaw(poolId: number) {
-  const pool = getPool(poolId);
-  if (!pool) return { error: "pool not found" } as const;
-  const keys = sdb
-    .prepare("SELECT id, label, api_key, info FROM pool_keys WHERE pool_id = ? ORDER BY id")
-    .all(poolId) as { id: number; label: string; api_key: string; info: string }[];
-  if (keys.length === 0) return { error: "pool has no keys" } as const;
-  const pick = keys[pool.cursor % keys.length];
-  sdb.prepare("UPDATE pools SET cursor = cursor + 1 WHERE id = ?").run(poolId);
-  return { key_id: pick.id, label: pick.label, api_key: pick.api_key, masked: mask(pick.api_key), info: pick.info };
-}
-
-export function recordUsage(poolId: number, tokens: number) {
-  const sel = nextKey(poolId);
-  if ("error" in sel) return sel;
-  sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, sel.key_id, tokens);
-  return { ...sel, tokens };
-}
-
-export function poolTarget(pool: { provider: string; base_url: string; key_header: string; key_prefix: string }) {
-  const p = PROVIDERS.find((x) => x.id === pool.provider);
-  const baseUrl = pool.base_url || p?.baseUrl || "";
-  return { baseUrl, keyHeader: pool.key_header || p?.keyHeader || "X-API-Key", keyPrefix: pool.key_prefix || p?.keyPrefix || "", extraHeaders: p?.extraHeaders ?? {} };
-}
 export function firstPoolWithKeys(provider: string) {
   const pools = sdb.prepare("SELECT * FROM pools WHERE provider = ? ORDER BY id").all(provider) as {
     id: number; provider: string; name: string; cursor: number; base_url: string; key_header: string; key_prefix: string; created_at: string

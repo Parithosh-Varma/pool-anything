@@ -14,3 +14,6 @@ data/*.db
 data/*.db-journal
 data/*.db-wal
 data/*.db-shm
+# Test databases
+tests/**/tmp-*.db
+tests/**/tmp-*.db-journal

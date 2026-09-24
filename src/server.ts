@@ -2,7 +2,9 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { dbPing } from "./db/index.js";
-import { sdb, PROVIDERS, mask, getPool, nextKey, nextKeyRaw, recordUsage, poolSummary, poolTarget } from "./pool/index.js";
+import { sdb, PROVIDERS, mask, getPool, poolSummary } from "./pool/index.js";
+import { nextKey, recordUsage } from "./pool/rotation.js";
+import { forward } from "./proxy/forward.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -125,30 +127,6 @@ const page = `<!doctype html>
   .p-foot { display:flex; align-items:center; gap:8px; padding:12px 20px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--subtle); }
   .p-foot button { margin-left:auto; }
   .perr { color:#b00; font-size:13px; min-height:18px; }
-  main.with-pg { padding-top:28px; }
-  .pg-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; }
-  .pg-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .pg-lbl { font-size:13px; color:var(--subtle); font-weight:500; }
-  .pg-card select, .pg-card input, .pg-card textarea { font-family:inherit; font-size:14px; border:1px solid var(--line); border-radius:10px; background:#fff; color:#111; padding:8px 10px; min-height:38px; outline:none; }
-  .pg-card select { min-width:180px; }
-  .pg-card input:focus, .pg-card textarea:focus, .pg-card select:focus { border-color:#a3a3a3; }
-  .pg-card textarea { width:100%; resize:vertical; }
-  .pg-send { border:0; background:#111; color:#fff; border-radius:10px; height:38px; padding:0 16px; font-size:14px; cursor:pointer; }
-  .pg-send:hover { background:#333; }
-  .pg-send:disabled { opacity:.5; cursor:default; }
-  .ghostbtn { border:1px solid var(--line); background:#fff; color:#111; border-radius:10px; height:38px; padding:0 14px; font-size:14px; cursor:pointer; }
-  .ghostbtn:hover { background:#f5f5f5; }
-  .pg-status { font-size:12px; font-weight:600; border-radius:999px; padding:3px 10px; background:#f0f0f0; white-space:nowrap; }
-  .pg-status.ok { background:#dcfce7; color:#166534; }
-  .pg-status.bad { background:#fee2e2; color:#991b1b; }
-  .pg-out { background:#111; color:#eee; border-radius:12px; padding:14px; font-size:12.5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; white-space:pre-wrap; word-break:break-word; max-height:360px; min-height:96px; margin:0; }
-  .pg-krow { display:flex; align-items:center; gap:8px; background:#f5f5f5; border-radius:10px; padding:8px 10px; font-size:13px; }
-  .pg-krow .meta { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pg-krow .use { font-size:11px; color:var(--subtle); }
-  .pg-krow.used { outline:2px solid #111; }
-  .pg-krow .last { font-size:10.5px; font-weight:700; color:#166534; white-space:nowrap; }
-  .pg-title { font-size:14px; font-weight:600; }
-  .pg-more summary { cursor:pointer; }
 </style>
 </head>
 <body>
@@ -165,6 +143,20 @@ const page = `<!doctype html>
   </nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
 </aside>
+<script>
+  (function () {
+    try {
+      var sh = document.getElementById('shell');
+      if (localStorage.getItem('sb-collapsed') !== '1') return;
+      sh.classList.add('collapsed');
+      var cb = document.getElementById('collapseBtn');
+      cb.setAttribute('aria-expanded', 'false');
+      cb.setAttribute('aria-label', 'Expand sidebar');
+      var sb = sh.querySelector('.sidebar');
+      if (sb && sb.matches(':hover')) sh.classList.add('peeking');
+    } catch (e) {}
+  })();
+</script>
 <div class="content">
 <header>
   <div></div>
@@ -174,8 +166,8 @@ const page = `<!doctype html>
     <button type="button" aria-label="User menu">☺</button>
   </div>
 </header>
-<main id="mainEl">
-  <div class="wrap" id="view-home">
+<main>
+  <div class="wrap">
     <div class="hero-row"><img class="hero-logo" src="/logo.png" alt="pool-anything logo" width="40" height="40" /><h1>What do you want to pool</h1></div>
     <div class="search-card">
       <div class="search-box">
@@ -186,55 +178,6 @@ const page = `<!doctype html>
     </div>
     <div id="results"></div>
   </div>
-  <section id="view-playground" class="wrap" hidden>
-    <div class="hero-row"><h1>Proxy playground</h1></div>
-    <p class="p-note" style="text-align:center;margin:-14px 0 0">Each send rotates to the next key in the pool — watch the highlight move.</p>
-
-    <div class="pg-card">
-      <div class="pg-row">
-        <span class="pg-lbl">Pool</span>
-        <select id="pgPool" aria-label="Pool"></select>
-        <button class="ghostbtn" id="pgRefresh" type="button">Refresh</button>
-      </div>
-      <div class="p-note" id="pgMeta">loading…</div>
-    </div>
-
-    <div class="pg-card">
-      <div class="pg-row">
-        <select id="pgMethod" aria-label="Method" style="min-width:104px">
-          <option>GET</option><option selected>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
-        </select>
-        <input id="pgPath" placeholder="/path — appended to the provider base URL" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false" />
-        <button class="pg-send" id="pgSend" type="button">Send via pool</button>
-      </div>
-      <textarea id="pgBody" rows="6" placeholder='body JSON, e.g. {"messages":[{"role":"user","content":"hi"}]}' spellcheck="false"></textarea>
-      <details class="pg-more">
-        <summary class="pg-lbl">Advanced — extra headers JSON · tokens to record</summary>
-        <div class="pg-row" style="margin-top:8px">
-          <input id="pgHeaders" placeholder='{"x-custom":"v"}' style="flex:1;min-width:160px" autocomplete="off" spellcheck="false" />
-          <input id="pgTokens" placeholder="tokens (optional)" style="max-width:160px" inputmode="numeric" autocomplete="off" />
-        </div>
-      </details>
-      <div class="perr" id="pgErr"></div>
-    </div>
-
-    <div class="pg-card">
-      <div class="pg-row" style="justify-content:space-between">
-        <b class="pg-title">Response</b>
-        <span class="pg-status" id="pgStatus">—</span>
-      </div>
-      <div class="p-note" id="pgKeyUsed"></div>
-      <pre class="pg-out" id="pgOut">send a request to see the response…</pre>
-    </div>
-
-    <div class="pg-card">
-      <div class="pg-row" style="justify-content:space-between">
-        <b class="pg-title">Pool rotation</b>
-        <span class="p-note" id="pgQuota"></span>
-      </div>
-      <div id="pgKeys" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-  </section>
 </main>
 <dialog id="setup">
   <div class="p-head"><img id="pLogo" alt="" /><b id="pName"></b><span class="pill" id="pQuota"></span></div>
@@ -283,6 +226,7 @@ const page = `<!doctype html>
     }
   });
   const sidebar = document.querySelector('.sidebar');
+  if (shell.classList.contains('collapsed') && sidebar.matches(':hover')) shell.classList.add('peeking');
   let peekTimer;
   sidebar.addEventListener('mouseenter', () => {
     if (!shell.classList.contains('collapsed')) return;
@@ -453,7 +397,20 @@ function shellNav(active: string): string {
   <div class="sb-header"><a class="sb-logo" aria-label="pool-anything home" href="/"><img src="/logo.png" alt="pool-anything" width="36" height="36" /></a></div>
   <nav class="sb-nav">${item("/", "⌂", "Home")}${item("/pools", "≋", "Pools")}${item("/keys", "⚿", "API key manager")}</nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
-</aside>`;
+</aside><script>
+  (function () {
+    try {
+      var sh = document.getElementById('shell');
+      if (localStorage.getItem('sb-collapsed') !== '1') return;
+      sh.classList.add('collapsed');
+      var cb = document.getElementById('collapseBtn');
+      cb.setAttribute('aria-expanded', 'false');
+      cb.setAttribute('aria-label', 'Expand sidebar');
+      var sb = sh.querySelector('.sidebar');
+      if (sb && sb.matches(':hover')) sh.classList.add('peeking');
+    } catch (e) {}
+  })();
+</script>`;
 }
 
 const shellJs = `<script>
@@ -478,6 +435,7 @@ const shellJs = `<script>
     }
   });
   const sidebar = document.querySelector('.sidebar');
+  if (shell.classList.contains('collapsed') && sidebar.matches(':hover')) shell.classList.add('peeking');
   let peekTimer;
   sidebar.addEventListener('mouseenter', () => {
     if (!shell.classList.contains('collapsed')) return;
@@ -517,7 +475,7 @@ ${shellCss}
 <div class="row" style="align-items:center;margin:0"><a href="/"><img src="/logo.png" alt="pool-anything" width="28" height="28"/></a><h1 style="flex:1">API key manager</h1></div>
 <a class="back" href="/">← pool search</a>
 <div class="err" id="err"></div>
-<div class="card"><div class="row"><select id="prov"></select><input id="pname" placeholder="Pool name"/><button id="create">New pool</button></div></div>
+<div class="card"><div class="row"><select id="prov"></select><input id="pname" placeholder="Pool name"/></div><div class="row"><input id="pbase" placeholder="base_url override (custom / self-host)"/><input id="phead" placeholder="key header (default X-API-Key)"/><input id="pprefix" placeholder="key prefix, e.g. Bearer "/></div><div class="row"><button id="create">New pool</button></div></div>
 <div id="pools" style="display:flex;flex-direction:column;gap:12px"></div>
 </main><script>
 let provs=[];
@@ -592,7 +550,8 @@ async function refresh(){
 document.getElementById('create').onclick=async()=>{
   err('');
   const provider=document.getElementById('prov').value,name=document.getElementById('pname').value||'pool';
-  const p=await j(await fetch('/api/pools',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({provider,name})}));
+  const base_url=document.getElementById('pbase').value.trim(),key_header=document.getElementById('phead').value.trim(),key_prefix=document.getElementById('pprefix').value;
+  const p=await j(await fetch('/api/pools',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({provider,name,base_url,key_header,key_prefix})}));
   if(p.error){err(p.error);return;}
   document.getElementById('pname').value='';refresh();
 };
@@ -738,36 +697,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && poolM[2] === "/proxy") {
       const b = (await readJson(req)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number };
-      const pool = getPool(poolId);
-      if (!pool) return send(res, 404, { error: "pool not found" });
-      const target = poolTarget(pool);
-      if (!target.baseUrl) return send(res, 400, { error: "pool has no base_url (set it for custom providers)" });
-      const sel = nextKeyRaw(poolId);
-      if ("error" in sel) return send(res, 400, sel);
-      let fwdPath: string = (b.path || "/").startsWith("/") ? b.path || "/" : "/" + b.path;
-      const fwdHeaders: Record<string, string> = { "content-type": "application/json", ...target.extraHeaders, ...(b.headers ?? {}) };
-      if (target.keyHeader.startsWith("query:")) {
-        const sep = fwdPath.includes("?") ? "&" : "?";
-        fwdPath += `${sep}${target.keyHeader.slice("query:".length)}=${encodeURIComponent(sel.api_key)}`;
-      } else {
-        fwdHeaders[target.keyHeader] = target.keyPrefix + sel.api_key;
-      }
-      let upstream: Response;
-      try {
-        upstream = await fetch(target.baseUrl + fwdPath, {
-          method: b.method || "POST",
-          headers: fwdHeaders,
-          body: b.body === undefined ? undefined : JSON.stringify(b.body),
-        });
-      } catch (e) {
-        return send(res, 502, { error: "upstream unreachable", detail: (e as Error).message, key_id: sel.key_id, label: sel.label });
-      }
-      const text = await upstream.text();
-      const tok = b.tokens;
-      if (Number.isInteger(tok) && (tok as number) > 0) {
-        sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, sel.key_id, tok as number);
-      }
-      send(res, 200, { key_id: sel.key_id, label: sel.label, masked: sel.masked, status: upstream.status, body: text.slice(0, 4000) });
+      const r = await forward(poolId, b);
+      if ("error" in r) return send(res, r.status === 200 ? 400 : r.status, r);
+      send(res, 200, { key_id: r.key_id, label: r.label, masked: r.masked, status: r.upstreamStatus, body: r.body, tried: r.tried });
       return;
     }
   }

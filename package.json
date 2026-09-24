@@ -1,15 +1,50 @@
 {
   "name": "pool-anything",
   "version": "0.1.0",
+  "description": "Gather free-tier API keys from any provider into one pool and rotate through them — round-robin key selection, usage/quota tracking, and a drop-in HTTP proxy with a built-in web UI. Zero dependencies, TypeScript + SQLite.",
+  "keywords": [
+    "api-key-pool",
+    "key-rotation",
+    "api-proxy",
+    "round-robin",
+    "free-tier",
+    "rate-limit",
+    "llm-gateway",
+    "api-gateway",
+    "usage-tracking",
+    "quota",
+    "sqlite",
+    "typescript",
+    "zero-dependency",
+    "groq",
+    "openrouter",
+    "gemini",
+    "anthropic",
+    "openai",
+    "self-hosted"
+  ],
+  "homepage": "https://github.com/Parithosh-Varma/pool-anything#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Parithosh-Varma/pool-anything.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Parithosh-Varma/pool-anything/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Parithosh Varma",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "db:init": "tsx src/db/init.ts",
-    "sandbox": "tsx watch src/sandbox/server.ts",
-    "sandbox:start": "tsx src/sandbox/server.ts",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
     "start:dist": "node dist/server.js"
   },
   "dependencies": {},
