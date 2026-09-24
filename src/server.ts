@@ -38,6 +38,7 @@ const page = `<!doctype html>
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
   :root { --line:#e5e5e5; --subtle:#737373; --bg:#fafafa; --card:#fff; }
+  html { scrollbar-gutter:stable; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:#111; }
   header { height:56px; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 16px; gap:8px; position:sticky; top:0; }
@@ -419,6 +420,7 @@ const page = `<!doctype html>
 </html>`;
 
 const shellCss = `
+  html { scrollbar-gutter:stable; }
   .shell { display:grid; grid-template-columns:var(--sbw,260px) 1fr; min-height:100vh; transition:grid-template-columns 250ms cubic-bezier(0.77,0,0.175,1); }
   .shell.collapsed { --sbw:57px; }
   .sidebar { background:#fff; border-right:1px solid #e5e5e5; display:flex; flex-direction:column; min-height:100vh; height:100vh; position:sticky; top:0; overflow:hidden; white-space:nowrap; }
