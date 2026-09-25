@@ -8,341 +8,678 @@
 <link rel="icon" type="image/png" href="/logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --porcelain: #EAF3FC;
-    --card: #F7FBFE;
-    --ink: #0B2A52;
-    --ink-soft: #47617F;
-    --teal: #1273E6;
-    --teal-deep: #0B4DA8;
-    --copper: #0E9BEB;
-    --mist: #9DB9D4;
-    --line: #C3D5E9;
+    --cream: #ffffff;
+    --cream-2: #f5f5f4;
+    --card: #ffffff;
+    --ink: #141413;
+    --ink-soft: #30302e;
+    --ink-faint: #5e5d59;
+    --line: #e8e6dc;
+    --line-soft: #efede4;
+    --line-strong: #d1cfc5;
+    --dark: #141413;
+    --dark-2: #1e1e1c;
+    --accent: #d97757;
+    --accent-soft: #ebc9b7;
+    --blue: #2F6FED;
+    --green: #1F7A4D;
     --radius: 14px;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; scroll-padding-top: 70px; }
   body {
     margin: 0;
-    background: var(--porcelain);
+    background: var(--cream);
     color: var(--ink);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     font-size: 15px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
-  ::selection { background: var(--teal); color: #fff; }
-  a { color: var(--teal-deep); }
-  :focus-visible { outline: 2px solid var(--copper); outline-offset: 3px; border-radius: 4px; }
+  ::selection { background: var(--ink); color: #fff; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+  h1, h2, h3.serif {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.08;
+  }
 
+  /* ── top nav ── */
   .bar {
-    position: sticky; top: 0; z-index: 20;
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 22px;
-    background: rgba(234,243,252,.92);
-    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px 28px;
+    background: rgba(255,255,255,.9);
+    backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
   }
-  .bar .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; }
-  .bar .mark img { width: 26px; height: 26px; }
-  .bar nav { margin-left: auto; display: flex; gap: 4px; align-items: center; }
-  .bar nav a {
-    font-size: 13.5px; text-decoration: none; color: var(--ink-soft);
-    padding: 7px 12px; border-radius: 999px;
+  .mark { display: flex; align-items: center; gap: 9px; text-decoration: none; font-weight: 600; font-size: 14.5px; }
+  .mark img { width: 24px; height: 24px; }
+  .bar nav.main { display: flex; gap: 2px; margin: 0 auto; }
+  .bar nav.main a { font-size: 13.5px; text-decoration: none; color: var(--ink-soft); padding: 7px 13px; border-radius: 999px; }
+  .bar nav.main a:hover { background: var(--cream-2); color: var(--ink); }
+  .bar .side { display: flex; align-items: center; gap: 28px; margin-left: auto; }
+  .bar .side a.link { font-size: 13.5px; text-decoration: none; color: var(--ink-soft); }
+  .btn-dark {
+    appearance: none; border: 1px solid var(--ink); border-radius: 8px;
+    background: var(--ink); color: #fff;
+    padding: 9px 16px; font-size: 13.5px; font-weight: 500; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    white-space: nowrap;
   }
-  .bar nav a:hover { background: #D8E7F7; color: var(--ink); }
-  .bar nav a.cta { background: var(--ink); color: #fff; font-weight: 500; }
-  .bar nav a.cta:hover { background: var(--teal-deep); }
-
-  .page { max-width: 1080px; margin: 0 auto; padding: 0 22px 80px; }
-
-  .hero {
-    display: grid; grid-template-columns: 1.05fr .95fr;
-    gap: 36px; align-items: start;
-    padding: 64px 0 28px;
-  }
-  .hero h1 {
-    font-family: "Bricolage Grotesque", "Inter", sans-serif;
-    font-weight: 700;
-    font-size: clamp(38px, 5.4vw, 62px);
-    line-height: 1.02;
-    letter-spacing: -0.02em;
-    margin: 0 0 16px;
-    max-width: 12ch;
-  }
-  .hero h1 em { font-style: normal; color: var(--teal-deep); }
-  .lede { font-size: 16.5px; color: var(--ink-soft); max-width: 46ch; margin: 0 0 22px; }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
-  .btn {
-    appearance: none; border: 1px solid var(--ink); border-radius: 999px;
-    padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+  .btn-dark:hover { background: #000; }
+  .btn-light {
+    appearance: none; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--ink);
+    padding: 9px 16px; font-size: 13.5px; font-weight: 500; cursor: pointer;
     text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
   }
-  .btn.solid { background: var(--ink); color: #fff; }
-  .btn.solid:hover { background: var(--teal-deep); border-color: var(--teal-deep); }
-  .btn.ghost { background: transparent; color: var(--ink); }
-  .btn.ghost:hover { background: #D8E7F7; }
-  .install {
-    display: flex; align-items: center; gap: 10px;
-    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
-    background: var(--ink); color: #D5E7F8;
-    border-radius: 10px; padding: 10px 12px; max-width: 440px;
-  }
-  .install code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .install button {
-    margin-left: auto; flex-shrink: 0;
-    border: 1px solid #2A4E80; background: transparent; color: #fff;
-    border-radius: 7px; font-size: 12px; padding: 5px 10px; cursor: pointer;
-  }
-  .install button:hover { background: #14315C; }
-  .fine { font-size: 12.5px; color: var(--ink-soft); margin-top: 10px; }
+  .btn-light:hover { border-color: var(--ink); }
 
-  /* rotation instrument */
-  .well {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: 0 1px 0 rgba(11,42,82,.08);
+  .page { max-width: 1180px; margin: 0 auto; padding: 0 28px 0; }
+
+  /* ── hero ── */
+  .hero {
+    display: grid; grid-template-columns: 0.92fr 1.08fr;
+    gap: 48px; align-items: center;
+    padding: 68px 0 30px;
   }
-  .well-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-  .well-top b { font-size: 14px; }
-  .well-top span { font-size: 12.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
-  .dial-wrap { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: center; }
-  .dial { position: relative; width: 210px; height: 210px; }
+  .hero h1 { font-size: clamp(40px, 4.6vw, 58px); margin: 0 0 14px; }
+  .hero .lede { font-size: 16px; color: var(--ink-soft); max-width: 44ch; margin: 0 0 22px; }
+  .hero-cta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .install-pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    background: var(--dark); color: #f5f4ed;
+    border-radius: 8px; padding: 9px 8px 9px 14px; max-width: 420px;
+  }
+  .install-pill code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .install-pill button {
+    border: 1px solid #3A3833; background: #26251F; color: #fff;
+    border-radius: 6px; font-size: 12px; padding: 5px 10px; cursor: pointer; font-family: "Inter", sans-serif;
+  }
+  .hero-meta { font-size: 12.5px; color: var(--ink-faint); }
+  .hero-meta a { color: var(--ink-soft); }
+  .other-ways { margin-top: 14px; font-size: 12.5px; color: var(--ink-faint); }
+  .other-ways span { display: block; margin-bottom: 6px; }
+  .other-ways a { color: var(--ink-soft); text-decoration: none; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 11px; margin: 0 4px 6px 0; display: inline-block; font-size: 12.5px; }
+  .other-ways a:hover { border-color: var(--ink); color: var(--ink); }
+
+  .hero-visual { position: relative; min-height: 380px; }
+  .win {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(31,30,28,.1);
+  }
+  .win-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); font-size: 12px; color: var(--ink-soft); }
+  .dot { width: 9px; height: 9px; border-radius: 99px; background: #d6d3c8; }
+  .win-body { padding: 14px 16px; font-family: "IBM Plex Mono", monospace; font-size: 12.3px; line-height: 1.65; }
+  .win-back { position: absolute; top: 0; left: 40px; right: 0; }
+  .win-front { position: absolute; top: 120px; left: 0; right: 80px; border-color: var(--ink); }
+  .win-front .win-body { background: var(--dark); color: #E8E2D2; border-radius: 0 0 12px 12px; }
+  .tok-k { color: #8AB4FF; } .tok-s { color: #E8C47A; } .tok-c { color: #97948a; } .tok-g { color: #7BD88F; }
+  .cursor-blink { display: inline-block; width: 7px; height: 14px; background: #E8C47A; vertical-align: -2px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* logo strips — monochrome wordmarks like the reference */
+  .logo-strip { display: flex; gap: 12px; justify-content: center; padding: 26px 0 8px; flex-wrap: wrap; }
+  .logo-strip span {
+    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--card); display: grid; place-items: center; color: #4A463D;
+  }
+  .logo-strip span img { width: 20px; height: 20px; display: block; }
+
+  /* trusted */
+  .trusted { padding: 18px 0 54px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+  .trusted .row { display: flex; gap: 40px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .trusted .wm { display: flex; align-items: center; gap: 8px; color: #4A463D; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; opacity: .85; }
+  .trusted .wm img { width: 22px; height: 22px; display: block; }
+
+  /* section scaffold */
+  section.block { padding: 64px 0; border-bottom: 1px solid var(--line); }
+  .eyebrow { display: flex; justify-content: center; margin-bottom: 12px; }
+  .eyebrow span { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); display: grid; place-items: center; font-size: 17px; }
+  .center { text-align: center; }
+  .center h2 { font-size: clamp(28px, 3.2vw, 40px); margin: 0 0 10px; }
+  .center .sub { color: var(--ink-soft); font-size: 15px; max-width: 62ch; margin: 0 auto 18px; }
+  .tabs { display: inline-flex; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin-bottom: 26px; }
+  .tabs button, .tabs a { border: 0; background: transparent; border-radius: 999px; padding: 7px 16px; font-size: 13px; cursor: pointer; color: var(--ink-soft); text-decoration: none; }
+  .tabs .on { background: var(--ink); color: #fff; }
+
+  /* pricing */
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 940px; margin: 0 auto; }
+  .plan { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; text-align: left; }
+  .plan.featured { border-color: var(--ink); box-shadow: 0 8px 30px rgba(31,30,28,.08); }
+  .plan h3 { font-family: "Inter", sans-serif; font-size: 14px; font-weight: 600; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+  .plan .price { font-family: "Source Serif 4", serif; font-size: 30px; margin: 8px 0 2px; }
+  .plan .price small { font-family: "Inter", sans-serif; font-size: 13px; color: var(--ink-soft); }
+  .plan p { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 14px; min-height: 42px; }
+  .plan ul { list-style: none; margin: 0 0 18px; padding: 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 7px; }
+  .plan ul li::before { content: "✓ "; color: var(--ink); }
+  .plan .btn-dark { width: 100%; justify-content: center; }
+
+  /* changelog split */
+  .split2 { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 40px; align-items: start; max-width: 1020px; margin: 0 auto; }
+  .split2 h2 { font-size: clamp(26px, 2.6vw, 34px); margin: 0 0 10px; }
+  .split2 .sub { color: var(--ink-soft); font-size: 14.5px; margin: 0 0 16px; }
+  .change { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .change h4 { margin: 0 0 4px; font-size: 14px; }
+  .change p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .change .tag { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11px; background: var(--cream-2); border-radius: 999px; padding: 2px 9px; margin-bottom: 8px; }
+
+  /* dark capability */
+  .dark-panel { background: var(--dark); color: #f5f4ed; border-radius: 20px; padding: 34px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 30px; max-width: 1020px; margin: 26px auto 0; }
+  .term { background: #0C0B0A; border: 1px solid #2E2C27; border-radius: 12px; overflow: hidden; }
+  .term-bar { display: flex; gap: 6px; padding: 10px 14px; border-bottom: 1px solid #2E2C27; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: #97948a; }
+  .term-body { padding: 16px; font-family: "IBM Plex Mono", monospace; font-size: 12.2px; line-height: 1.7; color: #d6d3c8; min-height: 280px; }
+  .cap-list { display: flex; flex-direction: column; gap: 18px; justify-content: center; }
+  .cap h4 { margin: 0 0 4px; font-size: 14.5px; color: #fff; }
+  .cap p { margin: 0; font-size: 13.5px; color: #A8A396; }
+  .cap { border-left: 2px solid #3A3833; padding-left: 16px; }
+  .cap.hot { border-color: #E8C47A; }
+
+  /* rotation well (live demo) */
+  .well {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px; max-width: 1020px; margin: 18px auto 0;
+  }
+  .well-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .well-top b { font-size: 14px; } .well-top span { font-size: 12.5px; color: var(--ink-soft); }
+  .dial-wrap { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: center; }
+  .dial { position: relative; width: 210px; height: 210px; margin: 0 auto; }
   .dial svg { width: 100%; height: 100%; display: block; }
   .dial .cursor-dot { transition: transform .45s cubic-bezier(.3,1.4,.4,1); }
   .key-ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
   .key-ledger li {
     display: grid; grid-template-columns: 1fr auto; gap: 2px 10px;
     background: #fff; border: 1px solid var(--line); border-radius: 10px;
-    padding: 8px 11px; font-size: 13px;
-    transition: border-color .3s, background .3s;
+    padding: 8px 11px; font-size: 13px; transition: border-color .3s, background .3s;
   }
-  .key-ledger li.lit { border-color: var(--teal); background: #E3EFFD; }
+  .key-ledger li.lit { border-color: var(--ink); background: #F6F3EA; }
   .key-ledger .mask { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
-  .key-ledger .use { font-size: 11.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
-  .meter { grid-column: 1 / -1; height: 4px; background: #DFEAF6; border-radius: 99px; overflow: hidden; }
-  .meter i { display: block; height: 100%; width: 0%; background: var(--teal); border-radius: 99px; transition: width .45s ease; }
-  li.lit .meter i { background: var(--copper); }
-  .well-foot { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+  .key-ledger .use { font-size: 12px; color: var(--ink-soft); }
+  .meter { grid-column: 1 / -1; height: 4px; background: #f5f4ed; border-radius: 99px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0%; background: var(--ink); border-radius: 99px; transition: width .45s ease; }
+  .well-foot { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
   .well-foot p { margin: 0; font-size: 12.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
-
-  /* pipe diagram */
-  .pipe {
-    margin: 34px 0;
-    border: 1px solid var(--line); border-radius: 18px;
-    background: var(--ink); color: #DCEBF8;
-    padding: 22px;
-    overflow: hidden;
-  }
-  .pipe h2 {
-    font-family: "Bricolage Grotesque", sans-serif;
-    font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em;
-  }
-  .pipe p { margin: 0 0 16px; color: #8FA9C7; font-size: 14px; max-width: 62ch; }
-  .flow { display: grid; grid-template-columns: auto 1fr auto 1fr auto; gap: 10px; align-items: center; }
-  .node {
-    background: #14315C; border: 1px solid #2A4E80; border-radius: 12px;
-    padding: 10px 14px; font-size: 13px; text-align: center; white-space: nowrap;
-  }
-  .node b { display: block; font-size: 13px; }
-  .node small { color: #8FA9C7; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
-  .node.pool { background: var(--teal); border-color: var(--teal); color: #fff; }
-  .node.pool small { color: #CFE6FB; }
-  .conduit { height: 2px; background-image: linear-gradient(90deg, #2E5A8C 55%, transparent 45%); background-size: 12px 2px; position: relative; }
-  .conduit::after {
-    content: ""; position: absolute; top: -3px; left: 0; width: 8px; height: 8px;
-    border-radius: 99px; background: var(--copper);
-    animation: travel 2.6s linear infinite;
-  }
-  .conduit.c2::after { animation-delay: 1.3s; }
-  @keyframes travel { from { left: 0; opacity: 1; } to { left: calc(100% - 8px); opacity: 1; } }
-  .keys3 { display: flex; flex-direction: column; gap: 6px; }
-  .keys3 .node { padding: 7px 14px; }
-
-  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
-  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
-  .panel h2 { font-family: "Bricolage Grotesque", sans-serif; font-size: 19px; margin: 0 0 8px; }
-  .panel p { margin: 0 0 12px; font-size: 14px; color: var(--ink-soft); }
-  pre {
-    margin: 0; background: var(--ink); color: #D5E7F8;
-    border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6;
-    font-family: "IBM Plex Mono", monospace; overflow-x: auto;
-  }
-  pre .k { color: #5FC6F5; } pre .s { color: #A8DCFF; } pre .c { color: #7E96B5; }
   .log { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 12px; }
   .log li { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; display: flex; gap: 8px; }
-  .log li b { color: var(--teal-deep); font-weight: 500; }
+  .log li b { font-weight: 500; }
 
-  .providers { margin: 26px 0; border-top: 1px solid var(--line); padding-top: 18px; }
-  .providers h2 { font-family: "Bricolage Grotesque", sans-serif; font-size: 19px; margin: 0 0 4px; }
-  .providers p { margin: 0 0 12px; font-size: 14px; color: var(--ink-soft); }
-  .strip { display: flex; gap: 8px; flex-wrap: wrap; }
-  .strip span {
-    font-family: "IBM Plex Mono", monospace; font-size: 12px;
-    background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+  /* where you code */
+  .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1020px; margin: 26px auto 0; }
+  .ide-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .ide-card .shot { height: 190px; padding: 16px; }
+  .ide-card .shot .mini { background: var(--dark); border-radius: 10px; height: 100%; padding: 12px; font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.7; color: #d6d3c8; overflow: hidden; }
+  .ide-card h4 { margin: 0; padding: 16px 18px 4px; font-size: 14.5px; }
+  .ide-card p { margin: 0; padding: 0 18px 16px; font-size: 13px; color: var(--ink-soft); }
+  .ide-card .meta { display: flex; gap: 6px; padding: 0 18px 18px; }
+  .ide-card .meta span { font-family: "IBM Plex Mono", monospace; font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--ink-soft); }
+  .band-orange { height: 6px; background: #D96C3F; } .band-green { height: 6px; background: #2E9E63; } .band-blue { height: 6px; background: #5B8DEF; }
+
+  .slack-bar {
+    max-width: 1020px; margin: 18px auto 0;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; display: flex; align-items: center; gap: 12px; font-size: 13.5px;
   }
+  .slack-bar .pill-act { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .slack-bar a { font-size: 13px; color: var(--ink-soft); }
 
-  .start {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
-    background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 22px;
-  }
-  .start h2 { font-family: "Bricolage Grotesque", sans-serif; font-size: 20px; margin: 0 0 8px; }
-  .start ol { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 8px; }
-  .start ol code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: #E6F0FA; padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+  /* quotes */
+  .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1020px; margin: 26px auto 0; text-align: left; }
+  .quote .logo { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .quote blockquote { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+  .quote cite { display: block; margin-top: 8px; font-style: normal; font-size: 12.5px; color: var(--ink-faint); }
 
-  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; font-size: 12.5px; color: var(--ink-soft); }
-  footer span { margin-left: auto; font-family: "IBM Plex Mono", monospace; }
+  /* integrations */
+  .integ { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px; max-width: 1020px; margin: 26px auto 0; align-items: center; }
+  .logo-grid { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .logo-grid span { border: 1px solid var(--line-soft); border-radius: 10px; padding: 12px 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--ink-soft); background: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .logo-grid span img { width: 22px; height: 22px; display: block; flex-shrink: 0; }
+  .integ h3 { font-size: 24px; margin: 0 0 8px; }
+  .integ p { color: var(--ink-soft); font-size: 14px; margin: 0 0 14px; }
 
-  @media (max-width: 880px) {
-    .hero { grid-template-columns: 1fr; padding-top: 40px; }
+  /* faq */
+  .faq { max-width: 720px; margin: 22px auto 0; text-align: left; }
+  .faq details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+  .faq summary { padding: 15px 18px; cursor: pointer; font-size: 14px; font-weight: 500; list-style: none; display: flex; gap: 10px; align-items: center; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; margin-left: auto; color: var(--ink-faint); font-size: 18px; font-weight: 400; }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { padding: 0 18px 16px; margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+
+  /* rundown */
+  .rundown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 1020px; margin: 26px auto 0; }
+  .run-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; text-align: left; text-decoration: none; display: block; }
+  .run-card:hover { border-color: var(--line-strong); box-shadow: 0 8px 24px rgba(20,20,19,.06); }
+  .run-card .src { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-faint); background: var(--cream-2); border-radius: 999px; padding: 2px 9px; margin-bottom: 10px; }
+  .run-card h4 { margin: 0 0 6px; font-size: 14px; }
+  .run-card p { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+  .run-card span.more { font-size: 13px; font-weight: 500; }
+
+  /* pipe diagram */
+  .flow { display: grid; grid-template-columns: auto 1fr auto 1fr auto; gap: 10px; align-items: center; max-width: 1020px; margin: 22px auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .node { background: var(--cream-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 13px; text-align: center; white-space: nowrap; }
+  .node b { display: block; } .node small { color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .node.pool { background: var(--ink); color: #fff; border-color: var(--ink); } .node.pool small { color: #C9C2B0; }
+  .conduit { height: 2px; background-image: linear-gradient(90deg, #B9B09A 55%, transparent 45%); background-size: 12px 2px; position: relative; }
+  .conduit::after { content: ""; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; border-radius: 99px; background: var(--accent); animation: travel 2.6s linear infinite; }
+  .conduit.c2::after { animation-delay: 1.3s; }
+  @keyframes travel { from { left: 0; } to { left: calc(100% - 8px); } }
+
+  .start2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1020px; margin: 26px auto 0; }
+  .start2 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .start2 h3 { font-family: "Source Serif 4", serif; font-size: 22px; margin: 0 0 8px; font-weight: 400; }
+  .start2 ol { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 8px; }
+  .start2 ol code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: var(--cream-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+  pre.code { margin: 0; background: var(--dark); color: #d6d3c8; border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6; font-family: "IBM Plex Mono", monospace; overflow-x: auto; }
+
+  /* dark footer cta */
+  .footer-dark { background: var(--dark); color: #f5f4ed; margin-top: 0; }
+  .footer-dark .inner { max-width: 1180px; margin: 0 auto; padding: 64px 28px 30px; }
+  .cta-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; padding-bottom: 48px; border-bottom: 1px solid #2E2C27; }
+  .cta-grid h2 { font-size: clamp(28px, 3vw, 40px); margin: 0 0 12px; color: #fff; }
+  .cta-grid p { color: #A8A396; font-size: 14.5px; margin: 0 0 18px; }
+  .news { background: var(--dark-2); border: 1px solid #2E2C27; border-radius: 14px; padding: 20px; }
+  .news h4 { margin: 0 0 4px; font-size: 14px; color: #fff; }
+  .news p { font-size: 13px; margin: 0 0 12px; }
+  .news form { display: flex; gap: 8px; }
+  .news input { flex: 1; background: #0C0B0A; border: 1px solid #3A3833; border-radius: 8px; padding: 10px 12px; color: #fff; font-size: 13px; }
+  .news button { background: #f5f4ed; color: var(--ink); border: 0; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .foot-cols { display: grid; grid-template-columns: 1.2fr repeat(4, 1fr); gap: 24px; padding: 36px 0; }
+  .foot-cols h5 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #97948a; margin: 0 0 12px; }
+  .foot-cols a { display: block; font-size: 13.5px; color: #C9C2B0; text-decoration: none; margin-bottom: 8px; }
+  .foot-cols a:hover { color: #fff; }
+  .foot-base { display: flex; gap: 14px; align-items: center; padding-top: 20px; border-top: 1px solid #2E2C27; font-size: 12.5px; color: #97948a; font-family: "IBM Plex Mono", monospace; }
+  .foot-base .social { margin-left: auto; display: flex; gap: 10px; }
+
+  @media (max-width: 960px) {
+    .bar nav.main { display: none; }
+    .hero { grid-template-columns: 1fr; padding-top: 44px; }
+    .hero-visual { min-height: 420px; }
+    .win-back { left: 0; } .win-front { right: 0; }
+    .plans, .cards3, .quotes, .rundown { grid-template-columns: 1fr; }
+    .split2, .integ, .dark-panel, .cta-grid, .start2 { grid-template-columns: 1fr; }
     .dial-wrap { grid-template-columns: 1fr; }
-    .dial { margin: 0 auto; }
     .flow { grid-template-columns: 1fr; }
-    .conduit { height: 18px; width: 2px; margin: 0 auto; background-image: linear-gradient(180deg, #2E5A8C 55%, transparent 45%); background-size: 2px 12px; }
+    .conduit { height: 18px; width: 2px; margin: 0 auto; background-image: linear-gradient(180deg, #B9B09A 55%, transparent 45%); background-size: 2px 12px; }
     .conduit::after { animation-name: travelY; }
     @keyframes travelY { from { top: 0; left: -3px; } to { top: calc(100% - 8px); left: -3px; } }
-    .split, .start { grid-template-columns: 1fr; }
-    .bar nav a.hide-m { display: none; }
+    .foot-cols { grid-template-columns: 1fr 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .conduit::after { animation: none; }
-    .dial .cursor-dot { transition: none; }
+    .conduit::after, .cursor-blink { animation: none; }
     * { transition: none !important; }
   }
+
+  /* scroll reveal */
+  .rv { opacity: 0; transform: translateY(12px); transition: opacity .6s ease, transform .6s ease; }
+  .rv.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } }
 </style>
 </head>
 <body>
 
 <header class="bar">
   <a class="mark" href="#top"><img src="/logo.png" alt="" onerror="this.remove()" />pool-anything</a>
-  <nav>
-    <a class="hide-m" href="#how">How it pools</a>
-    <a class="hide-m" href="#demo">Rotation</a>
-    <a class="hide-m" href="#start">Run it</a>
-    <a href="docs.html">Docs</a>
-    <a class="cta" href="#start">Start pooling</a>
+  <nav class="main" aria-label="Primary">
+    <a href="#start">Product</a>
+    <a href="docs.html">Developers</a>
+    <a href="#rundown">Enterprise</a>
+    <a href="#faq">Pricing</a>
+    <a href="docs.html#security">Contact Sales</a>
   </nav>
+  <div class="side">
+    <a class="link" href="docs.html">Docs</a>
+    <a class="btn-dark" href="#start">Start pooling</a>
+  </div>
 </header>
 
 <div class="page" id="top">
+
+  <!-- HERO -->
   <section class="hero">
     <div>
-      <h1>One endpoint. <em>Every free key</em> taking turns.</h1>
-      <p class="lede">Most providers hand you a small free tier. Pool-anything gathers N keys for the same provider into a single pool, then round-robins through them, tracks usage per key, and forwards requests with the right header. Zero dependencies, SQLite, self-hosted.</p>
-      <div class="actions">
-        <a class="btn solid" href="#start">Start pooling locally</a>
-        <button class="btn ghost" id="fireTop" type="button">Fire a request</button>
+      <h1>pool-anything</h1>
+      <p class="lede">One endpoint. Every free key taking turns. Gather N keys into a single pool — every request takes the next key, usage is tracked per key, all on SQLite with zero dependencies.</p>
+      <div class="hero-cta">
+        <a class="btn-dark" href="#start">Start pooling locally</a>
+        <button class="btn-light" id="fireTop" type="button">Fire a request</button>
       </div>
-      <div class="install">
-        <code id="installCmd">npm install &amp;&amp; npm run dev — open :3000</code>
+      <div class="install-pill">
+        <code id="installCmd">npm install &amp;&amp; npm run dev — :3000</code>
         <button type="button" id="copyBtn">Copy</button>
       </div>
-      <p class="fine">37 providers preconfigured. Custom providers are one JSON row. Keys stay in local SQLite, masked everywhere except one view.</p>
+      <p class="hero-meta">36 providers preconfigured · custom is one JSON row · keys stay local and masked. <a href="docs.html">Read the docs →</a></p>
+      <p class="other-ways"><span>Other ways to pool:</span><a href="#run">Terminal</a><a href="#run">Your app</a><a href="docs.html#proxy">Proxy API</a><a href="#demo">Live demo</a><a href="docs.html">Docs</a></p>
+    </div>
+    <div class="hero-visual" aria-hidden="false">
+      <div class="win win-back">
+        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">pool-anything — pools</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px">36 providers</span></div>
+        <div style="display:grid;grid-template-columns:150px 1fr;min-height:230px">
+          <div style="border-right:1px solid var(--line-soft);padding:12px;font-size:12px;color:var(--ink-soft);display:flex;flex-direction:column;gap:9px">
+            <span style="display:flex;align-items:center;gap:7px;color:var(--ink);font-weight:600"><img src="logos/pool-anything.svg" alt="" width="16" height="16" onerror="this.remove()" />Pools</span>
+            <span style="display:flex;align-items:center;gap:7px"><img src="logos/groq.svg" alt="" width="16" height="16" onerror="this.remove()" />groq · 5 keys</span>
+            <span style="display:flex;align-items:center;gap:7px"><img src="logos/openrouter.svg" alt="" width="16" height="16" onerror="this.remove()" />openrouter · 3</span>
+            <span style="display:flex;align-items:center;gap:7px"><img src="logos/gemini.svg" alt="" width="16" height="16" onerror="this.remove()" />gemini · 4</span>
+            <span style="display:flex;align-items:center;gap:7px"><img src="logos/mistral.svg" alt="" width="16" height="16" onerror="this.remove()" />mistral · 2</span>
+            <span style="margin-top:auto;font-family:'IBM Plex Mono',monospace;font-size:11px">cursor → key 3</span>
+          </div>
+          <div class="win-body"><span class="tok-c"># pick the next key, inject auth, forward</span><br /><span class="tok-k">POST</span> /api/pools/<span class="tok-s">1</span>/proxy<br />{ <span class="tok-s">"path"</span>: <span class="tok-s">"/chat/completions"</span>,<br />&nbsp;&nbsp;<span class="tok-s">"tokens"</span>: <span class="tok-s">25</span> }<br /><br /><span class="tok-g">{ "key_id": 3, "status": 200,</span><br /><span class="tok-g">&nbsp;&nbsp;"masked": "gsk_…c4" }</span></div>
+        </div>
+      </div>
+      <div class="win win-front">
+        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">rotation — cursor % keys.length</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px" id="heroCount">live demo ↓</span></div>
+        <div class="win-body"><span class="tok-c">$ pool-anything proxy</span><br />via key <span class="tok-s">1</span> (gsk_…ab): <span class="tok-g">HTTP 200</span>, 25 tokens<br />via key <span class="tok-s">2</span> (gsk_…9f): <span class="tok-g">HTTP 200</span>, 25 tokens<br />via key <span class="tok-s">3</span> (gsk_…c4): <span class="tok-g">HTTP 200</span>, 25 tokens<br /><span class="cursor-blink"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="logo-strip" aria-hidden="true">
+    <span><img src="logos/groq.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/openrouter.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/gemini.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/mistral.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/cohere.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/together.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/fireworks.svg" alt="" onerror="this.parentElement.remove()" /></span><span><img src="logos/openai.svg" alt="" onerror="this.parentElement.remove()" /></span>
+  </div>
+
+  <div class="trusted" aria-label="Providers">
+    <div class="row">
+      <span class="wm"><img src="logos/groq.svg" alt="" onerror="this.remove()" />groq</span>
+      <span class="wm"><img src="logos/openrouter.svg" alt="" onerror="this.remove()" />openrouter</span>
+      <span class="wm"><img src="logos/gemini.svg" alt="" onerror="this.remove()" />gemini</span>
+      <span class="wm"><img src="logos/mistral.svg" alt="" onerror="this.remove()" />mistral</span>
+      <span class="wm"><img src="logos/cohere.svg" alt="" onerror="this.remove()" />cohere</span>
+      <span class="wm"><img src="logos/together.svg" alt="" onerror="this.remove()" />together</span>
+    </div>
+    <div class="row">
+      <span class="wm"><img src="logos/openai.svg" alt="" onerror="this.remove()" />openai</span>
+      <span class="wm"><img src="logos/claude.svg" alt="" onerror="this.remove()" />anthropic</span>
+      <span class="wm"><img src="logos/huggingface.svg" alt="" onerror="this.remove()" />huggingface</span>
+      <span class="wm"><img src="logos/replicate.svg" alt="" onerror="this.remove()" />replicate</span>
+      <span class="wm"><img src="logos/elevenlabs.svg" alt="" onerror="this.remove()" />elevenlabs</span>
+      <span class="wm"><img src="logos/fireworks.svg" alt="" onerror="this.remove()" />fireworks</span>
+    </div>
+  </div>
+
+  <!-- GET STARTED -->
+  <section class="block center" id="start">
+    <div class="eyebrow"><span>✦</span></div>
+    <h2>Get started with pool-anything</h2>
+    <p class="sub">Self-hosted, zero runtime dependencies. One pool per provider, as many keys as you own.</p>
+    <div class="tabs" role="tablist" aria-label="Audience"><button class="on" type="button" id="tabSolo" role="tab" aria-selected="true">Solo</button><button type="button" id="tabTeam" role="tab" aria-selected="false">Team &amp; self-hosted</button></div>
+    <div class="plans" id="plansSolo">
+      <div class="plan">
+        <h3>Starter</h3>
+        <div class="price">$0 <small>forever</small></div>
+        <p>For trying one provider with a handful of keys.</p>
+        <ul><li>1 pool, up to 5 keys</li><li>Round-robin + usage log</li><li>Local SQLite, masked lists</li></ul>
+        <a class="btn-dark" href="#run">Start pooling</a>
+      </div>
+      <div class="plan featured">
+        <h3>Pro <span style="font-size:11px;background:var(--ink);color:#fff;border-radius:99px;padding:2px 8px">popular</span></h3>
+        <div class="price">$0 <small>self-hosted</small></div>
+        <p>For stretching every free tier you own, daily.</p>
+        <ul><li>Up to 1000 pools, 100 keys each</li><li>Proxy + token tracking</li><li>Analytics dashboard</li></ul>
+        <a class="btn-dark" href="#run">Start pooling</a>
+      </div>
+      <div class="plan">
+        <h3>Scale</h3>
+        <div class="price">$0 <small>your infra</small></div>
+        <p>For pooling behind your own gate.</p>
+        <ul><li>Custom base_url + headers</li><li>Per-key audit trail</li><li>Bring your own auth</li></ul>
+        <a class="btn-dark" href="docs.html#security">Read security notes</a>
+      </div>
+    </div>
+    <div class="plans" id="plansTeam" hidden>
+      <div class="plan">
+        <h3>Team</h3>
+        <div class="price">$0 <small>self-hosted</small></div>
+        <p>One shared pool server per team, keys in one SQLite file.</p>
+        <ul><li>Shared pools + key manager</li><li>Per-key usage receipts</li><li>Run behind your own gate</li></ul>
+        <a class="btn-dark" href="docs.html#security">Security notes</a>
+      </div>
+      <div class="plan featured">
+        <h3>Enterprise habits <span style="font-size:11px;background:var(--ink);color:#fff;border-radius:99px;padding:2px 8px">popular</span></h3>
+        <div class="price">$0 <small>your infra</small></div>
+        <p>Convention-friendly defaults for larger setups.</p>
+        <ul><li>Audit-friendly usage tables</li><li>Custom providers as JSON</li><li>No external calls, ever</li></ul>
+        <a class="btn-dark" href="docs.html">Open docs</a>
+      </div>
+      <div class="plan">
+        <h3>Custom</h3>
+        <div class="price">$0 <small>open</small></div>
+        <p>Fork it, extend the proxy, add your provider.</p>
+        <ul><li>Zero runtime dependencies</li><li>TypeScript + SQLite</li><li>Apache-2.0 licensed</li></ul>
+        <a class="btn-dark" href="docs.html#layout">Project layout</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- LATEST -->
+  <section class="block">
+    <div class="split2">
+      <div>
+        <div class="eyebrow" style="justify-content:flex-start"><span>✎</span></div>
+        <h2 class="serif">Latest from<br />the pool</h2>
+        <p class="sub">Rotation, proxying, and tracking — small surface, well lit. Start with one pool and watch the cursor move.</p>
+        <a class="btn-light" href="docs.html">Open docs</a>
+      </div>
+      <div>
+        <div class="change"><span class="tag">proxy</span><h4>One POST does pick, inject, forward</h4><p>Send path, method, body. The pool adds the right key — header or query param — and reports which key served you.</p></div>
+        <div class="change"><span class="tag">rotation</span><h4>Cursor math you can audit</h4><p>Next key is <span style="font-family:'IBM Plex Mono',monospace">cursor % keys.length</span>. Every call returns key_id and label so turn-taking is visible.</p></div>
+        <div class="change"><span class="tag">usage</span><h4>Every request leaves a row</h4><p>Tokens per key, rolled up per pool. /usage shows used, quota, and remaining at a glance.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT IT CAN TAKE ON -->
+  <section class="block center" id="how">
+    <div class="eyebrow"><span>❖</span></div>
+    <h2>What one pool can take on</h2>
+    <p class="sub">Point your app at one place. The pool spreads load evenly so no single free key burns out first.</p>
+    <div class="tabs" role="tablist" aria-label="Jobs"><button class="on" type="button" id="takeT1" role="tab" aria-selected="true">Onboard keys</button><button type="button" id="takeT2" role="tab" aria-selected="false">Spread load</button><button type="button" id="takeT3" role="tab" aria-selected="false">Audit usage</button></div>
+    <div class="dark-panel" style="text-align:left">
+      <div class="term">
+        <div class="term-bar"><span>● ● ●</span><span style="margin-left:8px" id="takeTitle">pool-anything — onboard.log</span></div>
+        <div class="term-body" id="takeTerm"></div>
+      </div>
+      <div class="cap-list" id="takeCaps"></div>
     </div>
 
-    <div class="well" id="demo" aria-label="Live round-robin demonstration">
+    <div class="flow" id="demo" aria-label="Request flow">
+      <div class="node"><b>your app</b><small>POST /proxy</small></div>
+      <div class="conduit" aria-hidden="true"></div>
+      <div class="node pool"><b>pool-anything</b><small>pick, inject, forward</small></div>
+      <div class="conduit c2" aria-hidden="true"></div>
+      <div class="node"><b>keys 1–5</b><small>cursor % length</small></div>
+    </div>
+
+    <div class="well" aria-label="Live round-robin demonstration">
       <div class="well-top"><b>Rotation well</b><span id="reqCount">0 requests</span></div>
       <div class="dial-wrap">
         <div class="dial" aria-hidden="true">
           <svg viewBox="0 0 210 210" id="dialSvg">
-            <circle cx="105" cy="105" r="86" fill="none" stroke="#B9CDE4" stroke-width="1.5" stroke-dasharray="3 6"/>
-            <circle cx="105" cy="105" r="58" fill="none" stroke="#B9CDE4" stroke-width="1.5"/>
-            <circle cx="105" cy="105" r="6" fill="#0B2A52"/>
+            <circle cx="105" cy="105" r="86" fill="none" stroke="#d1cfc5" stroke-width="1.5" stroke-dasharray="3 6"/>
+            <circle cx="105" cy="105" r="58" fill="none" stroke="#d1cfc5" stroke-width="1.5"/>
+            <circle cx="105" cy="105" r="6" fill="#141413"/>
             <g id="slots"></g>
             <g id="cursor" class="cursor-dot">
-              <circle id="cursorDot" cx="105" cy="19" r="7" fill="#0E9BEB" stroke="#fff" stroke-width="2"/>
+              <circle id="cursorDot" cx="105" cy="19" r="7" fill="#d97757" stroke="#fff" stroke-width="2"/>
             </g>
           </svg>
         </div>
         <ul class="key-ledger" id="ledger"></ul>
       </div>
       <div class="well-foot">
-        <button class="btn solid" id="fireBtn" type="button">Fire a request</button>
+        <button class="btn-dark" id="fireBtn" type="button">Fire a request</button>
         <p id="lastUsed">cursor at key 1</p>
       </div>
+      <ul class="log" id="reqLog">
+        <li><b>#0</b><span>Press “Fire a request” to move the cursor and fill the ledger.</span></li>
+      </ul>
     </div>
   </section>
 
-  <section class="pipe" id="how">
-    <h2>Your app talks to one place. The pool does the turn-taking.</h2>
-    <p>Post to <span style="font-family:'IBM Plex Mono',monospace">/api/pools/:id/proxy</span> and pool-anything picks the next key, injects the auth header, forwards to the provider, and records usage. The cursor is just <span style="font-family:'IBM Plex Mono',monospace">cursor % keys.length</span>, so load spreads evenly.</p>
-    <div class="flow">
-      <div class="node"><b>your app</b><small>POST /proxy</small></div>
-      <div class="conduit" aria-hidden="true"></div>
-      <div class="node pool"><b>pool-anything</b><small>pick · inject · forward</small></div>
-      <div class="conduit c2" aria-hidden="true"></div>
-      <div class="keys3">
-        <div class="node"><b>key 1</b> <small>gsk_…ab · 12 used</small></div>
-        <div class="node"><b>key 2</b> <small>gsk_…9f · 12 used</small></div>
-        <div class="node"><b>key 3</b> <small>gsk_…c4 · 11 used</small></div>
+  <!-- WHERE YOU CODE -->
+  <section class="block center">
+    <div class="eyebrow"><span>▦</span></div>
+    <h2>Meets you where you call</h2>
+    <p class="sub">No SDK. Whatever sends HTTP can pool — curl, your app, or the built-in dashboard.</p>
+    <div class="cards3" style="text-align:left">
+      <div class="ide-card">
+        <div class="band-orange"></div>
+        <div class="shot" style="background:#F6EDE2"><div class="mini">$ curl -X POST localhost:3000/api/pools/1/proxy \<br />&nbsp;&nbsp;-d '{"path":"/models"}'<br /><br /><span style="color:#7BD88F">{ "key_id": 1, "status": 200 }</span></div></div>
+        <h4>Straight from the terminal</h4>
+        <p>Drop-in proxy call. The pool injects auth and counts tokens.</p>
+        <div class="meta"><span>curl</span><span>httpie</span><span>any lang</span></div>
+      </div>
+      <div class="ide-card">
+        <div class="band-green"></div>
+        <div class="shot" style="background:#E4EFE5"><div class="mini"><span style="color:#97948a"># your app — one base url</span><br />BASE = "http://localhost:3000/api/pools/1"<br />POST(f"{BASE}/proxy", json={"path": ...,<br />&nbsp;&nbsp;"body": {...}, "tokens": 25})</div></div>
+        <h4>Integrate with your app</h4>
+        <p>One endpoint per provider. Add keys without redeploying.</p>
+        <div class="meta"><span>python</span><span>node</span><span>go</span></div>
+      </div>
+      <div class="ide-card">
+        <div class="band-blue"></div>
+        <div class="shot" style="background:#E4EAF6"><div class="mini"><span style="color:#97948a"># analytics dashboard</span><br />pools ··········· <span style="color:#7BD88F">3</span><br />keys pooled ····· <span style="color:#7BD88F">14</span><br />tokens tracked ·· <span style="color:#7BD88F">48.2k</span></div></div>
+        <h4>Watch it in the UI</h4>
+        <p>Search providers, gather keys, inspect usage per key and pool.</p>
+        <div class="meta"><span>:3000</span><span>/pools</span><span>/keys</span></div>
+      </div>
+    </div>
+    <div class="slack-bar">
+      <span>◍</span><span><b>Kick off rotations from anywhere</b> — point CI, cron, or a chat hook at /proxy and keys take turns.</span>
+      <span class="pill-act"><a class="btn-light" href="docs.html#proxy">Proxy docs</a><a href="docs.html#api">Learn more →</a></span>
+    </div>
+  </section>
+
+  <!-- QUOTES -->
+  <section class="block center">
+    <h2>What builders are saying</h2>
+    <p class="sub">For anyone with more API keys than patience.</p>
+    <div class="quotes">
+      <div class="quote"><div class="logo"><span style="width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:inline-grid;place-items:center;font-size:12px">⌁</span> indie-hacker</div><blockquote>“I had five free keys gathering dust. Now they take turns through one endpoint and my side project stays under every rate limit.”</blockquote><cite>— Solo builder, evening deploys</cite></div>
+      <div class="quote"><div class="logo"><span style="width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:inline-grid;place-items:center;font-size:12px">⬣</span> prototype-team</div><blockquote>“We stopped hand-rotating keys in scripts. The per-key usage rollup alone saved us a weekend of quota debugging.”</blockquote><cite>— Two-person team, hackathon veterans</cite></div>
+      <div class="quote"><div class="logo"><span style="width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:inline-grid;place-items:center;font-size:12px">⌂</span> homelab</div><blockquote>“SQLite, zero deps, runs on a tiny box next to everything else. The proxy responses tell me exactly which key served.”</blockquote><cite>— Self-hoster, uptime enthusiast</cite></div>
+    </div>
+  </section>
+
+  <!-- INTEGRATIONS -->
+  <section class="block">
+    <div class="integ">
+      <div class="logo-grid" aria-label="Providers">
+        <span><img src="logos/groq.svg" alt="" onerror="this.remove()" />groq</span><span><img src="logos/openrouter.svg" alt="" onerror="this.remove()" />openrouter</span><span><img src="logos/gemini.svg" alt="" onerror="this.remove()" />gemini</span>
+        <span><img src="logos/mistral.svg" alt="" onerror="this.remove()" />mistral</span><span><img src="logos/cohere.svg" alt="" onerror="this.remove()" />cohere</span><span><img src="logos/fireworks.svg" alt="" onerror="this.remove()" />fireworks</span>
+        <span><img src="logos/together.svg" alt="" onerror="this.remove()" />together</span><span><img src="logos/openai.svg" alt="" onerror="this.remove()" />openai</span><span><img src="logos/claude.svg" alt="" onerror="this.remove()" />anthropic</span>
+        <span><img src="logos/huggingface.svg" alt="" onerror="this.remove()" />huggingface</span><span><img src="logos/replicate.svg" alt="" onerror="this.remove()" />replicate</span><span><img src="logos/elevenlabs.svg" alt="" onerror="this.remove()" />elevenlabs</span>
+      </div>
+      <div>
+        <h3 class="serif">Connects with your favorite providers</h3>
+        <p>Groq, OpenRouter, Gemini, and 33 more preconfigured. Anything else fits the custom row — base URL, header, prefix.</p>
+        <a class="btn-light" href="docs.html#registry">Browse the registry</a>
       </div>
     </div>
   </section>
 
-  <div class="split">
-    <section class="panel">
-      <h2>Drop-in proxy call</h2>
-      <p>No SDK. Send the path, method, and body — the pool adds the key and counts the tokens you declare.</p>
-<pre><span class="c"># rotate + proxy in one call</span>
-curl -X POST localhost:3000/api/pools/1/proxy \
-  -H <span class="s">'content-type: application/json'</span> \
-  -d <span class="s">'{"path": "/chat/completions",
-      "method": "POST",
-      "body": {"model": "llama-3.3-70b",
-               "messages": [{"role":"user",
-                             "content":"hi"}]},
-      "tokens": 25}'</span>
-
-<span class="k">{ "key_id": 3, "status": 200,
-  "masked": "gsk_…c4" }</span></pre>
-    </section>
-    <section class="panel">
-      <h2>What each request leaves behind</h2>
-      <p>Every proxied call appends a usage row. <span style="font-family:'IBM Plex Mono',monospace">/usage</span> rolls it up per key and per pool against quota.</p>
-      <ul class="log" id="reqLog">
-        <li><b>·</b><span>press “Fire a request” — watch the cursor move and the ledger fill here</span></li>
-      </ul>
-    </section>
-  </div>
-
-  <section class="providers">
-    <h2>Preconfigured, plus bring-your-own</h2>
-    <p>Groq, OpenRouter, Gemini, Mistral, Cohere, and thirty-two more. Anything else fits the custom row: base URL, header name, prefix.</p>
-    <div class="strip">
-      <span>groq · 30/min</span><span>openrouter · :free</span><span>gemini · 15/min</span><span>mistral · trial</span><span>cohere · trial</span><span>fireworks · $1</span><span>together · $1</span><span>openai · payg</span><span>anthropic · $5</span><span>huggingface · hourly</span><span>replicate · trial</span><span>elevenlabs · 10k/mo</span><span>resend · 3k/mo</span><span>tavily · 1k/mo</span><span>openweather · 1k/day</span><span>+ custom</span>
+  <!-- RUN IT -->
+  <section class="block center" id="run">
+    <div class="eyebrow"><span>⚙</span></div>
+    <h2>Run it on your machine</h2>
+    <p class="sub">Five minutes, start to pooled.</p>
+    <div class="start2" style="text-align:left">
+      <div class="panel">
+        <h3>Three steps</h3>
+        <ol>
+          <li><code>npm install</code>, then <code>npm run dev</code>, open <code>http://localhost:3000</code>.</li>
+          <li>Search a provider, paste keys, hit <code>Gather</code>.</li>
+          <li>Send traffic through <code>/api/pools/:id/proxy</code> or watch the dashboard.</li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3>Drop-in call</h3>
+        <pre class="code">curl -X POST localhost:3000/api/pools/1/proxy \
+  -H 'content-type: application/json' \
+  -d '{"path": "/chat/completions",
+       "method": "POST",
+       "body": {"model": "llama-3.3-70b"},
+       "tokens": 25}'</pre>
+      </div>
     </div>
   </section>
 
-  <section class="start" id="start">
-    <div>
-      <h2>Run it on your machine</h2>
-      <ol>
-        <li>Install dependencies with <code>npm install</code>.</li>
-        <li>Start with <code>npm run dev</code> and open <code>http://localhost:3000</code>.</li>
-        <li>Search a provider, paste keys, hit <code>Gather</code>. Your pool is live.</li>
-        <li>Send traffic through <code>/api/pools/:id/proxy</code> or the Playground.</li>
-      </ol>
-    </div>
-    <div>
-      <h2>Good to know before you expose it</h2>
-      <ol>
-        <li>Keys live in <code>data/pool-anything.db</code>, which stays out of version control.</li>
-        <li>List endpoints return masked keys. Raw keys need the single-key view.</li>
-        <li>There is no auth built in — keep it on localhost or behind your own gate.</li>
-      </ol>
+  <!-- FAQ -->
+  <section class="block center" id="faq">
+    <div class="eyebrow"><span>?</span></div>
+    <h2>FAQ</h2>
+    <div class="faq">
+      <details open><summary>How do I get started with pool-anything?</summary><p>Install, run the dev server, open :3000, search your provider, paste keys, and send one request through /proxy. The docs walk the whole loop.</p></details>
+      <details><summary>What kind of keys can I pool?</summary><p>Any provider in the 36-row registry, plus custom via base_url, key header, and prefix. Each pool holds keys for one provider.</p></details>
+      <details><summary>How does rotation work with my existing code?</summary><p>Point your HTTP client at /api/pools/:id/proxy instead of the upstream. The pool picks cursor % keys.length, injects the key, forwards, and records usage.</p></details>
+      <details><summary>Is it a proxy or a manager?</summary><p>Both. Manage keys in the UI or API key manager, then proxy live traffic through the same pools with per-key receipts.</p></details>
+      <details><summary>What are the system requirements?</summary><p>Node 22+ for built-in SQLite and fetch. No runtime npm dependencies, one local .db file.</p></details>
+      <details><summary>How much usage can it track?</summary><p>Every proxy or consume call appends a usage row with tokens. /usage rolls it up per key and pool with quota math where known.</p></details>
+      <details><summary>Does it work with custom endpoints?</summary><p>Yes — create a pool with your own base_url, key_header (or query:param), and key_prefix. Provider extras merge automatically.</p></details>
+      <details><summary>Where do keys live?</summary><p>In data/pool-anything.db on your machine, plaintext, gitignored. Lists return masked values only; keep the API on localhost or behind your gate.</p></details>
     </div>
   </section>
 
-  <footer>
-    <span>pool-anything · round-robin key pool · zero runtime deps</span>
-    <span id="year"></span>
-  </footer>
+  <!-- RUNDOWN -->
+  <section class="block center" id="rundown" style="border-bottom:0">
+    <div class="eyebrow"><span>✦</span></div>
+    <h2>Get the technical rundown</h2>
+    <p class="sub">Everything the pool does, endpoint by endpoint.</p>
+    <div class="rundown" style="text-align:left">
+      <a class="run-card" href="docs.html#overview"><span class="src">Docs</span><h4>What it does →</h4><p>Pool, rotate, proxy, track — the four jobs in one page.</p><span class="more">Overview</span></a>
+      <a class="run-card" href="docs.html#rotation"><span class="src">Docs</span><h4>Rotation, explained →</h4><p>Cursor math, /next and /consume, visible turn-taking.</p><span class="more">Rotation</span></a>
+      <a class="run-card" href="docs.html#proxy"><span class="src">Docs</span><h4>Proxy reference →</h4><p>Path, method, headers, token counting, error shapes.</p><span class="more">Proxy</span></a>
+      <a class="run-card" href="docs.html#run"><span class="src">Guide</span><h4>Run it locally →</h4><p>Install, health checks, first pool in five minutes.</p><span class="more">Quickstart</span></a>
+      <a class="run-card" href="docs.html#storage"><span class="src">Guide</span><h4>Storage &amp; schema →</h4><p>One SQLite file, three tables, computed totals.</p><span class="more">Under the hood</span></a>
+      <a class="run-card" href="docs.html#security"><span class="src">Guide</span><h4>Security notes →</h4><p>Masking, local-only defaults, caps and limits.</p><span class="more">For teams</span></a>
+    </div>
+  </section>
+
 </div>
+
+<!-- DARK FOOTER -->
+<footer class="footer-dark">
+  <div class="inner">
+    <div class="cta-grid">
+      <div>
+        <h2 class="serif">Pool what's free.<br />Ship what's next.</h2>
+        <p>One endpoint, every free key taking turns. Local-first, zero dependencies, yours to keep.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn-dark" style="background:#f5f4ed;color:var(--ink);border-color:#f5f4ed" href="#start">Start pooling</a>
+          <a class="btn-dark" style="background:transparent;border-color:#3A3833" href="docs.html">Read the docs</a>
+        </div>
+      </div>
+      <div class="news">
+        <h4>Get the pooling notes</h4>
+        <p>Release notes and provider additions. No spam, ever.</p>
+        <form onsubmit="return false"><input type="email" placeholder="you@example.com" aria-label="Email" /><button type="submit">Subscribe</button></form>
+        <p style="font-size:12px;margin:10px 0 0">Self-hosted means your keys never leave your disk.</p>
+      </div>
+    </div>
+    <div class="foot-cols">
+      <div>
+        <a class="mark" href="#top" style="color:#fff;margin-bottom:12px"><img src="/logo.png" alt="" onerror="this.remove()" />pool-anything</a>
+        <p style="font-size:13px;color:#97948a;max-width:28ch">A round-robin key pool with zero runtime deps.</p>
+      </div>
+      <div><h5>Product</h5><a href="#start">Get started</a><a href="#how">How it pools</a><a href="#demo">Live rotation</a><a href="#faq">FAQ</a></div>
+      <div><h5>Developers</h5><a href="docs.html#api">HTTP API</a><a href="docs.html#proxy">Proxy</a><a href="docs.html#rotation">Rotation</a><a href="docs.html#registry">Providers</a></div>
+      <div><h5>Guides</h5><a href="docs.html#run">Quickstart</a><a href="docs.html#storage">Storage</a><a href="docs.html#security">Security</a><a href="docs.html#layout">Project layout</a></div>
+      <div><h5>Repo</h5><a href="#run">Run locally</a><a href="docs.html">Docs</a><a href="#top">Back to top ↑</a></div>
+    </div>
+    <div class="foot-base">
+      <span>pool-anything · round-robin key pool</span>
+      <span id="year"></span>
+      <span class="social"><span>gh</span><span>x</span><span>dc</span></span>
+    </div>
+  </div>
+</footer>
 
 <script>
   (function () {
@@ -355,7 +692,6 @@ curl -X POST localhost:3000/api/pools/1/proxy \
       setTimeout(function(){ copy.textContent = 'Copy'; }, 1200);
     });
 
-    // rotation well
     var N = 5, cursor = 0, total = 0;
     var masks = ['gsk_…ab', 'gsk_…9f', 'gsk_…c4', 'gsk_…71', 'gsk_…e0'];
     var used = [12, 12, 11, 9, 8];
@@ -369,13 +705,12 @@ curl -X POST localhost:3000/api/pools/1/proxy \
       pts.push([x, y]);
       var c = document.createElementNS(NS, 'circle');
       c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', '13');
-      c.setAttribute('fill', '#fff'); c.setAttribute('stroke', '#1273E6'); c.setAttribute('stroke-width', '2');
-      c.setAttribute('id', 'slot' + i);
+      c.setAttribute('fill', '#fff'); c.setAttribute('stroke', '#141413'); c.setAttribute('stroke-width', '2');
       slots.appendChild(c);
       var t2 = document.createElementNS(NS, 'text');
       t2.setAttribute('x', x); t2.setAttribute('y', y + 4.5);
       t2.setAttribute('text-anchor', 'middle'); t2.setAttribute('font-size', '10');
-      t2.setAttribute('font-family', 'IBM Plex Mono, monospace'); t2.setAttribute('fill', '#0B2A52');
+      t2.setAttribute('font-family', 'IBM Plex Mono, monospace'); t2.setAttribute('fill', '#141413');
       t2.textContent = (i + 1);
       slots.appendChild(t2);
     }
@@ -385,7 +720,7 @@ curl -X POST localhost:3000/api/pools/1/proxy \
         var li = document.createElement('li');
         if (i === lit) li.className = 'lit';
         var left = document.createElement('span');
-        left.className = 'mask'; left.textContent = 'key ' + (i + 1) + ' · ' + masks[i];
+        left.className = 'mask'; left.textContent = 'key ' + (i + 1) + ' (' + masks[i] + ')';
         var right = document.createElement('span');
         right.className = 'use'; right.textContent = used[i] + ' used';
         var bar = document.createElement('span');
@@ -412,11 +747,11 @@ curl -X POST localhost:3000/api/pools/1/proxy \
       used[k] += 1; total += 1;
       renderLedger(k); moveCursor();
       document.getElementById('reqCount').textContent = total + (total === 1 ? ' request' : ' requests') + ' (demo)';
-      document.getElementById('lastUsed').textContent = 'cursor at key ' + (k + 1) + ' · ' + masks[k];
+      document.getElementById('lastUsed').textContent = 'cursor at key ' + (k + 1) + ', ' + masks[k];
       var li = document.createElement('li');
       var b = document.createElement('b'); b.textContent = '#' + total;
       var s = document.createElement('span');
-      s.textContent = 'via key ' + (k + 1) + ' (' + masks[k] + ') · HTTP 200 · 25 tokens';
+      s.textContent = 'via key ' + (k + 1) + ' (' + masks[k] + '): HTTP 200, 25 tokens';
       li.appendChild(b); li.appendChild(s);
       log.prepend(li);
       while (log.children.length > 5) log.removeChild(log.lastChild);
@@ -428,9 +763,57 @@ curl -X POST localhost:3000/api/pools/1/proxy \
       document.getElementById('demo').scrollIntoView({ behavior: 'smooth', block: 'center' });
       setTimeout(fire, 350);
     });
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setTimeout(fire, 900);
+    var tabTest = document.getElementById('tabTest'), tabShip = document.getElementById('tabShip');
+    function press(btn){ document.querySelectorAll('#how .tabs button').forEach(function(b){b.classList.remove('on')}); if(btn) btn.classList.add('on'); }
+    if (tabTest) tabTest.addEventListener('click', function(){ press(tabTest); });
+    if (tabShip) tabShip.addEventListener('click', function(){ press(tabShip); });
+
+    // pricing tabs: Solo / Team & self-hosted
+    var tabSolo = document.getElementById('tabSolo'), tabTeam = document.getElementById('tabTeam');
+    function showPlans(solo) {
+      document.getElementById('plansSolo').hidden = !solo;
+      document.getElementById('plansTeam').hidden = solo;
+      tabSolo.classList.toggle('on', solo); tabTeam.classList.toggle('on', !solo);
+      tabSolo.setAttribute('aria-selected', solo); tabTeam.setAttribute('aria-selected', !solo);
     }
+    if (tabSolo && tabTeam) {
+      tabSolo.addEventListener('click', function(){ showPlans(true); });
+      tabTeam.addEventListener('click', function(){ showPlans(false); });
+    }
+
+    // capability tabs: swap terminal + bullets
+    var TAKE = [
+      { title: 'pool-anything — onboard.log',
+        term: '<span class="tok-c"># gather keys under one provider</span><br />POST /api/pools <span class="tok-s">{"provider": "groq"}</span><br />POST /api/pools/1/keys <span class="tok-s">{"label": "key 1"}</span><br /><br /><span class="tok-g">{ "id": 7, "masked": "gsk_…e0" }</span> <span class="tok-c">— lists stay masked</span><br /><span class="cursor-blink"></span>',
+        caps: [['Key onboarding', 'Paste keys under one provider. Lists stay masked; only the single-key view reveals a value.'], ['Name and annotate', 'Labels plus free-form info per key, so you know whose key is whose.'], ['Edit without downtime', 'Rotate a value in place; the cursor keeps turning.'], ['Bring your own provider', 'Not in the registry? One pool with base_url, key header, and prefix fits anything.']] },
+      { title: 'pool-anything — proxy.log',
+        term: '<span class="tok-c"># rotate + proxy in one call</span><br />curl -X POST localhost:3000/api/pools/1/proxy \\<br />&nbsp;&nbsp;-d <span class="tok-s">\'{"path": "/chat/completions", "tokens": 25}\'</span><br /><br /><span class="tok-g">{ "key_id": 3, "status": 200,</span><br /><span class="tok-g">&nbsp;&nbsp;"masked": "gsk_…c4" }</span><br /><span class="cursor-blink"></span>',
+        caps: [['Turn free tiers into headroom', 'N keys share traffic round-robin. 30 req/min each becomes N×30 through one endpoint.'], ['Cursor math you can audit', 'Next key is cursor % keys.length; every response names the serving key.'], ['Header or query injection', 'Bearer, x-api-key, or ?key= — matched to the provider automatically.'], ['One endpoint per provider', 'Point your app at /proxy and stop hand-rotating keys in scripts.']] },
+      { title: 'pool-anything — usage.log',
+        term: '<span class="tok-c"># every request leaves a row</span><br />GET /api/pools/1/usage<br /><br /><span class="tok-g">{ "used": 1520, "keys": 3,</span><br /><span class="tok-g">&nbsp;&nbsp;"perKey": [{"id": 1, "used": 520}, …] }</span><br /><span class="cursor-blink"></span>',
+        caps: [['Per-key receipts', 'Every proxy call logs tokens against the serving key. Quotas stop being guesswork.'], ['Pool rollups', 'Used, quota, and remaining at a glance — plus per-key breakdowns.'], ['Cooling visibility', 'Keys in backoff are counted, not hidden.'], ['Computed on read', 'SUM() over usage rows — no counters to drift out of sync.']] }
+    ];
+    var takeBtns = [document.getElementById('takeT1'), document.getElementById('takeT2'), document.getElementById('takeT3')];
+    function showTake(i) {
+      takeBtns.forEach(function(b, j){ if(!b) return; b.classList.toggle('on', i===j); b.setAttribute('aria-selected', i===j); });
+      document.getElementById('takeTitle').textContent = TAKE[i].title;
+      document.getElementById('takeTerm').innerHTML = TAKE[i].term;
+      document.getElementById('takeCaps').innerHTML = TAKE[i].caps.map(function(c, j){
+        return '<div class="cap' + (j===0 ? ' hot' : '') + '"><h4>' + c[0] + '</h4><p>' + c[1] + '</p></div>';
+      }).join('');
+    }
+    takeBtns.forEach(function(b, i){ if(b) b.addEventListener('click', function(){ showTake(i); }); });
+    showTake(0);
+
+    // scroll reveal
+    try {
+      var io = new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { threshold: 0.12 });
+      document.querySelectorAll('section.block .plans, section.block .split2, .dark-panel, .cards3, .quotes, .integ, .faq, .rundown, .well, .flow').forEach(function(el){
+        el.classList.add('rv'); io.observe(el);
+      });
+    } catch (e) {}
   })();
 </script>
 </body>
