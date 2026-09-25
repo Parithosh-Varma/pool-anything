@@ -22,7 +22,7 @@ Most AI/API providers hand you a free tier: a rate limit, a daily quota, a handf
 - 📊 **Usage & quota tracking** — per-key and per-pool token counts in SQLite
 - 🌐 **Drop-in HTTP proxy** — point your client at pool-anything; it forwards with the right key, header, and auth scheme
 - 🔌 **36 providers preconfigured** — Groq, OpenRouter, Gemini, OpenAI, Anthropic, and more (plus any custom provider)
-- 🖥️ **Built-in web UI** — search providers, gather keys, watch rotation happen in the Playground
+- 🖥️ **Built-in web UI** — search providers, gather keys, watch usage on the Analytics dashboard
 - 🧰 **Zero runtime dependencies** — Node built-ins + TypeScript only, `node:sqlite` for storage
 
 ## Quick start
@@ -36,7 +36,7 @@ npm run dev
 
 Open **http://localhost:3000**, search for a provider (try `groq`), paste one or more API keys, and hit **Gather**. Your pool is live.
 
-Then proxy a request through it from the **Playground** tab, or straight from `curl`:
+Then proxy a request through it straight from `curl` (every proxy call reports the `key_id` that served it, so you can see keys take turns):
 
 ```bash
 # Pick the next key from pool 1 (round-robin)
@@ -88,8 +88,8 @@ All responses are JSON. `:id` is a pool ID.
 | `GET` | `/api/pools/:id` | Pool summary: key count, usage, quota, per-key breakdown |
 | `DELETE` | `/api/pools/:id` | Delete a pool and its keys + usage |
 | `GET` | `/api/pools/:id/next` | Rotate: return the next key (masked — never the raw key) |
-| `POST` | `/api/pools/:id/consume` | Record usage — `{ tokens: <positive int> }` |
-| `GET` | `/api/pools/:id/usage` | Usage rollup — `{ used, quota, remaining, perKey }` |
+| `POST` | `/api/pools/:id/consume` | Record usage — `{ tokens: <positive int ≤ 1000000>, key_id? }` (with `key_id`, bills that key without rotating) |
+| `GET` | `/api/pools/:id/usage` | Usage rollup — `{ used, usedInWindow, quota, quotaWindow, remaining, perKey }` (`used` is lifetime; `remaining`/`usedInWindow`/`perKey` are windowed for monthly quotas) |
 | `POST` | `/api/pools/:id/proxy` | Proxy a request through the pool (see below) |
 
 ### Keys
@@ -131,25 +131,30 @@ The response reports which key was used and the upstream status:
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Liveness check → `ok` |
-| `GET` | `/api/db/ping` | SQLite reachability + row counts |
+| `GET` | `/api/db/ping` | SQLite reachability → `{ ok: true }` |
+| `GET` | `/api/analytics` | Totals + 7-day deltas + 14-day daily series (drives the dashboard) |
 
 ## Web UI
 
 | Route | Page |
 | --- | --- |
-| `/` | Provider search + setup panel + **Playground** (`/#playground`) |
+| `/` | Provider search + setup panel + Analytics dashboard |
 | `/pools` | Pools holding keys, with usage |
 | `/keys` | API key manager — add, view, edit, remove keys |
+| `/analytics` | Analytics dashboard (totals, 7-day deltas, 14-day charts) |
+| `/docs` | Redirect → canonical docs on Cloudflare Pages |
 
-The Playground lets you send a proxied request, see the upstream response, and watch the "last used" key highlight as rotation advances.
+The home page also shows an Analytics dashboard driven by `GET /api/analytics`; the same dashboard lives on its own `/analytics` page.
 
 ## Configuration
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
+| `HOST` | `127.0.0.1` | Interface to bind (loopback by default; no auth, so keep it local) |
 | `PORT` | `3000` | Main server port |
-| `SANDBOX_PORT` | `4000` | Sandbox server port (binds `127.0.0.1` only) |
 | `LOCAL_DB_PATH` | `data/pool-anything.db` | SQLite database location |
+| `PROXY_TIMEOUT_MS` | `30000` | Per-attempt upstream timeout for `/proxy` |
+| `ALLOW_PRIVATE_UPSTREAM` | _(unset)_ | `1` disables SSRF protections — tests/loopback only, never in prod |
 
 Providers are defined in [`data/providers.json`](data/providers.json). See [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-provider) for the schema — adding a provider is a one-line JSON edit, no code changes.
 
@@ -157,10 +162,13 @@ Providers are defined in [`data/providers.json`](data/providers.json). See [CONT
 
 ```
 src/
-  server.ts          Main HTTP server + web UI (search, pools, keys, playground)
-  pool/index.ts      Pool logic: rotation, usage, quota, provider loading (SQLite)
+  server.ts          Main HTTP server + web UI (search, pools, keys, playground, analytics; /docs redirects out)
+  pool/index.ts      Pool logic: providers, quotas, usage, analytics (SQLite)
+  pool/rotation.ts   Round-robin rotation, cooldown, quota windows
+  proxy/forward.ts   Upstream forwarding + SSRF guard
+  upstream/index.ts  Auth injection (header / query param)
+  config/env.ts      PORT, HOST, DB path, timeouts
   db/                SQLite helpers + init script
-  sandbox/server.ts  Localhost-only sandbox server with its own UI
 data/
   providers.json     36 preconfigured providers
   pool-anything.db   SQLite database (git-ignored)
@@ -175,14 +183,14 @@ npm run typecheck    # tsc --noEmit
 npm run build        # compile to dist/
 npm run start:dist   # run the compiled output
 npm run db:init      # initialize the local database
-npm run sandbox      # sandbox server on http://127.0.0.1:4000
+npm test             # run the test suite
 ```
 
 ## Security notes
 
 - Keys are stored in a local SQLite file (`data/pool-anything.db`), which is **git-ignored** — never commit it.
 - List endpoints return **masked** keys (`gsk_…ab`); raw keys are only returned by the single-key `GET`.
-- The sandbox server binds to `127.0.0.1` only.
+- The server binds `127.0.0.1` by default; set `HOST` to another interface only behind your own auth layer.
 - pool-anything has **no authentication** — run it locally or behind your own auth layer, and don't expose it publicly with real keys inside.
 
 ## License
