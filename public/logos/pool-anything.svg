@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom animated pool-anything logo -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Pulse animation for pool nodes -->
+    <animateTransform 
+      attributeName="transform" 
+      type="scale" 
+      dur="2s" 
+      repeatCount="indefinite" 
+      values="1;1.25;1"
+      additive="sum"/>
+    <!-- Float animation for subtle movement -->
+    <animateTransform 
+      attributeName="transform" 
+      type="translate" 
+      dur="4s" 
+      repeatCount="indefinite" 
+      values="0,0; 0,-4; 0,0"
+      additive="sum"/>
+  </defs>
+  <!-- Background ring -->
+  <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+  <!-- Three pool nodes (representing keys/pools) -->
+  <g id="nodes" transform="translate(8,8)">
+    <!-- Node 1: left -->
+    <g transform="translate(10,20)">
+      <circle cx="0" cy="0" r="8" fill="none" stroke="currentColor" stroke-width="2">
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.3;1"
+          additive="sum"/>
+      </circle>
+      <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8">
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.2;1"
+          additive="sum"/>
+      </circle>
+    </g>
+    <!-- Node 2: center -->
+    <g transform="translate(28,20)">
+      <circle cx="0" cy="0" r="8" fill="none" stroke="currentColor" stroke-width="2">
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.3;1"
+          additive="sum"/>
+        <!-- Stagger the pulse start -->
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.3;1"
+          additive="sum" 
+          begin="0.3s"/>
+      </circle>
+      <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8">
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.2;1"
+          additive="sum" 
+          begin="0.3s"/>
+      </circle>
+    </g>
+    <!-- Node 3: right -->
+    <g transform="translate(46,20)">
+      <circle cx="0" cy="0" r="8" fill="none" stroke="currentColor" stroke-width="2">
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.3;1"
+          additive="sum" 
+          begin="0.6s"/>
+      </circle>
+      <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8">
+        <animateTransform 
+          attributeName="transform" 
+          type="scale" 
+          dur="2s" 
+          repeatCount="indefinite" 
+          values="1;1.2;1"
+          additive="sum" 
+          begin="0.6s"/>
+      </circle>
+    </g>
+  </g>
+  <!-- Connecting lines between nodes -->
+  <g id="connectors" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.6">
+    <line x1="18" y1="28" x2="30" y2="28"/>
+    <line x1="34" y1="28" x2="50" y2="28"/>
+  </g>
+  <!-- Project text label -->
+  <text x="32" y="58" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="currentColor" opacity="0.9">
+    pool-anything
+  </text>
+</svg>

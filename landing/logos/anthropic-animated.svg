@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom Anthropic tile - original pool-anything icon set -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="0 32 32" to="360 32 32" dur="14s" repeatCount="indefinite"/>
+    <circle cx="32" cy="32" r="21" stroke-dasharray="9 7"/>
+  </g>
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="360 32 32" to="0 32 32" dur="9s" repeatCount="indefinite"/>
+    <circle cx="32" cy="32" r="12" stroke-dasharray="4 6"/>
+  </g>
+  <circle cx="32" cy="32" r="4" fill="currentColor" stroke="none"/>
+</svg>

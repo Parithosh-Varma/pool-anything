@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom OpenRouter tile - original pool-anything icon set -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<g transform="rotate(15 32 32)"><rect x="14" y="14" width="26" height="26" rx="6"/></g><rect x="28" y="28" width="22" height="22" rx="6" fill="currentColor" stroke="none" opacity="0.85"/></svg>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom Groq tile - original pool-anything icon set -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<circle cx="32" cy="32" r="5" fill="currentColor" stroke="none"/><path d="M32 32L52.0 32.0"/><circle cx="52.0" cy="32.0" r="3.5" fill="currentColor" stroke="none"/><path d="M32 32L32.0 52.0"/><circle cx="32.0" cy="52.0" r="3.5" fill="currentColor" stroke="none"/><path d="M32 32L12.0 32.0"/><circle cx="12.0" cy="32.0" r="3.5" fill="currentColor" stroke="none"/><path d="M32 32L32.0 12.0"/><circle cx="32.0" cy="12.0" r="3.5" fill="currentColor" stroke="none"/></svg>

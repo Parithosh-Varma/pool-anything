@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom Cloudflare tile - original pool-anything icon set -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+<g transform="rotate(0 32 32)"><circle cx="32" cy="50" r="4" fill="currentColor" stroke="none"/><path d="M24.2 42.2A11 11 0 0 1 39.8 42.2"/><path d="M18.6 36.6A19 19 0 0 1 45.4 36.6"/><path d="M12.9 30.9A27 27 0 0 1 51.1 30.9"/></g></svg>

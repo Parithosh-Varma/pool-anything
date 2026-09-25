@@ -183,5 +183,15 @@
     "file": "public/logos/upstash.svg",
     "bytes": 829,
     "source": "simple-icons SVG"
+  },
+  "anthropic": {
+    "file": "public/logos/anthropic.svg",
+    "bytes": 368,
+    "source": "lobehub icons-static-svg"
+  },
+  "pool-anything": {
+    "file": "public/logos/pool-anything.svg",
+    "bytes": 3601,
+    "source": "custom designed"
   }
 }

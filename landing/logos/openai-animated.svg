@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom animated OpenAI icon - consistent with pool-anything design language -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Pulse animation -->
+    <animateTransform 
+      attributeName="transform" 
+      type="scale" 
+      dur="2s" 
+      repeatCount="indefinite" 
+      values="1;1.25;1"
+      additive="sum"/>
+    <!-- Wave animation -->
+    <animateTransform 
+      attributeName="transform" 
+      type="translateY" 
+      dur="3s" 
+      repeatCount="indefinite" 
+      values="0,0; -6,0; 0,0"
+      additive="sum"/>
+  </defs>
+  <!-- OpenAI's three-row pattern suggestion -->
+  <g>
+    <rect x="10" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="26" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="42" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+  </g>
+  <g transform="translate(0,24)">
+    <rect x="10" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="26" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="42" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+  </g>
+  <g transform="translate(0,44)">
+    <rect x="10" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="26" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="42" y="14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+  </g>
+  <!-- OpenAI wordmark -->
+  <text x="32" y="58" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="currentColor" opacity="0.9">
+    OAI
+  </text>
+</svg>

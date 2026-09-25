@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom animated Groq icon - consistent with pool-anything design language -->
+<svg viewBox="0 0 64 64" width="64" height="64" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Pulse animation -->
+    <animateTransform 
+      attributeName="transform" 
+      type="scale" 
+      dur="2s" 
+      repeatCount="indefinite" 
+      values="1;1.25;1"
+      additive="sum"/>
+  </defs>
+  <!-- Central diamond shape representing Groq's speed -->
+  <polygon points="32,8 54,24 32,40 10,24" fill="none" stroke="currentColor" stroke-width="2"/>
+  <!-- Inner pulsing node -->
+  <circle cx="32" cy="24" r="8">
+    <animateTransform 
+      attributeName="transform" 
+      type="scale" 
+      dur="2s" 
+      repeatCount="indefinite" 
+      values="1;1.4;1"
+      additive="sum"/>
+  </circle>
+  <!-- Accent bars -->
+  <rect x="28" y="12" width="8" height="4" fill="none" stroke="currentColor" stroke-width="2" rx="1">
+    <animateTransform 
+      attributeName="transform" 
+      type="translate" 
+      dur="2s" 
+      repeatCount="indefinite" 
+      values="0,0; -4,0; 0,0"
+      additive="sum" 
+      begin="0.5s"/>
+  </rect>
+  <rect x="28" y="36" width="8" height="4" fill="none" stroke="currentColor" stroke-width="2" rx="1">
+    <animateTransform 
+      attributeName="transform" 
+      type="translate" 
+      dur="2s" 
+      repeatCount="indefinite" 
+      values="0,0; 4,0; 0,0"
+      additive="sum" 
+      begin="0.5s"/>
+  </rect>
+  <!-- Groq wordmark -->
+  <text x="32" y="56" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="currentColor" opacity="0.9">
+    GROQ
+  </text>
+</svg>
