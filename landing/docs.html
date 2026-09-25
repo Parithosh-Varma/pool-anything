@@ -3,510 +3,981 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Docs — pool-anything</title>
-<meta name="description" content="How pool-anything gathers API keys into a pool, rotates them round-robin, proxies requests, and tracks usage. Setup, HTTP API reference, and architecture." />
+<title>Overview — pool-anything Docs</title>
+<meta name="description" content="pool-anything gathers API keys into a pool, rotates them round-robin, proxies requests, and tracks usage. Setup, HTTP API reference, and architecture." />
 <link rel="icon" type="image/png" href="/logo.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --porcelain: #EAF3FC;
-    --card: #F7FBFE;
-    --ink: #0B2A52;
-    --ink-soft: #47617F;
-    --teal: #1273E6;
-    --teal-deep: #0B4DA8;
-    --copper: #0E9BEB;
-    --mist: #9DB9D4;
-    --line: #C3D5E9;
-    --radius: 14px;
+    --paper: #FAF9F5;
+    --paper-2: #F4F2ED;
+    --card: #FFFFFF;
+    --ink: #1B1917;
+    --ink-soft: #57534E;
+    --ink-faint: #8A8680;
+    --line: #E8E3D9;
+    --line-soft: #EFEAE1;
+    --active-pill: #E9E5DB;
+    --accent: #C15F3C;
+    --accent-ink: #9A4A2E;
+    --code-bg: #F5F3EE;
+    --green-bg: #EBF6EC;
+    --green-line: #BFE3C4;
+    --green-ink: #1E6B32;
+    --radius: 8px;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  html { scroll-behavior: smooth; scroll-padding-top: 118px; }
   body {
-    margin: 0;
-    background: var(--porcelain);
-    color: var(--ink);
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14.5px; line-height: 1.65; -webkit-font-smoothing: antialiased;
   }
-  ::selection { background: var(--teal); color: #fff; }
-  a { color: var(--teal-deep); }
-  :focus-visible { outline: 2px solid var(--copper); outline-offset: 3px; border-radius: 4px; }
+  a { color: inherit; }
+  ::selection { background: #F0D9CC; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
-  /* top bar — same as the landing */
-  .bar {
-    position: sticky; top: 0; z-index: 20;
+  /* ---------- top chrome ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: var(--paper); border-bottom: 1px solid var(--line);
+  }
+  .topbar-row {
     display: flex; align-items: center; gap: 12px;
-    padding: 10px 22px;
-    background: rgba(234,243,252,.92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--line);
+    padding: 10px 20px; max-width: 1440px; margin: 0 auto;
   }
-  .bar .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 600; }
-  .bar .mark img { width: 26px; height: 26px; }
-  .bar nav { margin-left: auto; display: flex; gap: 4px; align-items: center; }
-  .bar nav a {
-    font-size: 13.5px; text-decoration: none; color: var(--ink-soft);
-    padding: 7px 12px; border-radius: 999px;
+  .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 15px; white-space: nowrap; }
+  .brand img { width: 22px; height: 22px; border-radius: 6px; }
+  .brand b { font-weight: 700; }
+  .brand span { font-weight: 400; }
+  .lang {
+    display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft);
+    border: 0; background: none; cursor: pointer; padding: 6px 8px; border-radius: 6px; white-space: nowrap;
   }
-  .bar nav a:hover { background: #D8E7F7; color: var(--ink); }
-  .bar nav a[aria-current="page"] { background: #D8E7F7; color: var(--ink); font-weight: 500; }
-  .bar nav a.cta { background: var(--ink); color: #fff; font-weight: 500; }
-  .bar nav a.cta:hover { background: var(--teal-deep); }
+  .lang:hover { background: var(--active-pill); color: var(--ink); }
+  .search {
+    flex: 1; max-width: 420px; margin: 0 auto; display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 10px; font-size: 13px; color: var(--ink-faint);
+  }
+  .search input {
+    border: 0; outline: 0; background: none; width: 100%; font-size: 13px; color: var(--ink);
+  }
+  .search kbd {
+    font-family: inherit; font-size: 11px; border: 1px solid var(--line); border-radius: 5px;
+    padding: 0 5px; background: var(--paper); color: var(--ink-faint);
+  }
+  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .dev-link { font-size: 13px; color: var(--ink-soft); text-decoration: none; white-space: nowrap; }
+  .dev-link:hover { color: var(--ink); text-decoration: underline; }
+  .open-btn {
+    font-size: 13px; font-weight: 600; background: var(--ink); color: #fff;
+    border: 1px solid var(--ink); border-radius: 8px; padding: 7px 12px; cursor: pointer;
+    text-decoration: none; white-space: nowrap;
+  }
+  .open-btn:hover { background: #000; }
+  .icon-btn {
+    border: 1px solid var(--line); background: var(--card); border-radius: 8px;
+    width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--ink-soft); font-size: 14px;
+  }
+  .menu-btn { display: none; }
 
-  .page { max-width: 1080px; margin: 0 auto; padding: 0 22px 80px; }
+  .tabs {
+    border-top: 1px solid var(--line-soft);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs-inner {
+    display: flex; gap: 2px; max-width: 1440px; margin: 0 auto; padding: 0 20px;
+  }
+  .tabs a {
+    font-size: 13px; color: var(--ink-soft); text-decoration: none;
+    padding: 10px 10px 9px; white-space: nowrap; border-bottom: 2px solid transparent;
+  }
+  .tabs a:hover { color: var(--ink); }
+  .tabs a.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
 
-  .doc-head { padding: 52px 0 26px; max-width: 40ch; }
-  .doc-head h1 {
-    font-family: "Bricolage Grotesque", "Inter", sans-serif;
-    font-weight: 700;
-    font-size: clamp(34px, 4.6vw, 52px);
-    line-height: 1.04;
-    letter-spacing: -0.02em;
-    margin: 0 0 12px;
+  :root {
+    --primary: #C15F3C;
+    --primary-ink: #9A4A2E;
+    --primary-soft: rgba(193, 95, 60, 0.1);
   }
-  .doc-head .lede { font-size: 16.5px; color: var(--ink-soft); margin: 0; }
-
-  .doc-grid {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    gap: 40px;
-    align-items: start;
+  /* ---------- layout ---------- */
+  .layout {
+    max-width: 1440px; margin: 0 auto; padding: 0 20px;
+    display: grid; grid-template-columns: 250px minmax(0, 1fr) 220px;
+    gap: 32px; align-items: start;
   }
-
-  /* index rail with the travelling cursor */
-  .rail { position: sticky; top: 76px; padding-left: 18px; }
-  .rail ul { list-style: none; margin: 0; padding: 0; position: relative; }
-  .rail ul::before {
-    content: ""; position: absolute; left: 0; top: 6px; bottom: 6px;
-    width: 1px; background: var(--line);
+  /* left nav — Mintlify-style scroll area + selecting */
+  .sidenav {
+    position: sticky; top: 118px; max-height: calc(100vh - 130px);
+    padding: 0; font-size: 13px;
   }
-  .rail .cursor {
-    position: absolute; left: -4.5px; top: 0; width: 10px; height: 10px;
-    border-radius: 99px; background: var(--copper); border: 2px solid var(--porcelain);
-    transition: transform .45s cubic-bezier(.3,1.4,.4,1);
+  .side-viewport {
+    max-height: calc(100vh - 130px); overflow-y: auto; overflow-x: hidden;
+    padding-bottom: 40px; padding-right: 14px; margin-right: -6px;
+    scrollbar-width: thin; scrollbar-color: transparent transparent;
   }
-  .rail a {
-    display: block; padding: 5px 0; font-size: 13.5px;
-    color: var(--ink-soft); text-decoration: none;
+  .side-viewport:hover, .side-viewport.scrolling { scrollbar-color: #D6D0C4 transparent; }
+  .side-viewport::-webkit-scrollbar { width: 4px; }
+  .side-viewport::-webkit-scrollbar-track { background: transparent; }
+  .side-viewport::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
+  .side-viewport:hover::-webkit-scrollbar-thumb, .side-viewport.scrolling::-webkit-scrollbar-thumb { background: #D6D0C4; }
+  .side-fade {
+    position: sticky; top: 0; height: 32px; pointer-events: none; z-index: 2;
+    background: linear-gradient(to bottom, var(--paper) 20%, transparent);
   }
-  .rail a:hover { color: var(--ink); }
-  .rail a.on { color: var(--ink); font-weight: 600; }
-  .rail .grp { font-size: 12.5px; color: var(--mist); margin: 16px 0 2px; }
-  .rail .grp:first-child { margin-top: 0; }
-
+  .sidebar-group-header {
+    display: flex; align-items: center; gap: 10px;
+    padding-left: 16px; margin-bottom: 10px;
+    font-weight: 600; font-size: 13px; color: var(--ink);
+  }
+  .sidebar-group-header h3 { font-size: inherit; font-weight: inherit; margin: 0; line-height: 1.5; }
+  #navigation-items > div + div { margin-top: 24px; }
+  @media (min-width: 1024px) { #navigation-items > div + div { margin-top: 32px; } }
+  .sidebar-group { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+  .side-item { position: relative; scroll-margin: 16px; }
+  .side-item:first-child { scroll-margin-top: 80px; }
+  .side-item > a, .nav-row > a {
+    display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0;
+    padding: 6px 0 6px 16px; border-radius: 12px 0 0 12px;
+    font-size: 13px; line-height: 1.45; text-align: left; cursor: pointer;
+    color: #57534E; text-decoration: none; background: none; border: 0; font-family: inherit;
+    outline-offset: -1px; word-break: break-word; hyphens: auto;
+  }
+  .side-item > a {
+    display: flex; width: 100%;
+    padding: 6px 12px 6px 16px; border-radius: 12px;
+  }
+  .side-item > a:hover, .nav-row:hover > a { background: rgba(87, 83, 78, 0.07); color: #1B1917; }
+  .side-item > a:focus-visible, .nav-row > a:focus-visible, .chev-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -1px; }
+  .side-item a .lbl, .nav-row > a .lbl { flex: 1; min-width: 0; }
+  /* selecting: active row */
+  .side-item[data-active="true"] > a {
+    background: var(--primary-soft); color: var(--primary);
+    text-shadow: -0.2px 0 0 currentColor, 0.2px 0 0 currentColor;
+  }
+  .side-item[data-active="true"] > a:hover { background: var(--primary-soft); color: var(--primary); }
+  .side-item[data-active="true"] > .nav-row { background: var(--primary-soft); }
+  .side-item[data-active="true"] > .nav-row > a { color: var(--primary); text-shadow: -0.2px 0 0 currentColor, 0.2px 0 0 currentColor; }
+  /* expandable parent: label navigates, chevron only toggles */
+  .nav-row { display: flex; align-items: stretch; border-radius: 12px; }
+  .nav-row > a { border-radius: 12px 0 0 12px; }
+  .nav-row:hover { background: rgba(87, 83, 78, 0.07); }
+  .nav-row:hover > a { background: none; }
+  .nav-row > a:hover { color: #1B1917; }
+  .chev-btn {
+    flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; padding-right: 8px; border: 0; background: none; border-radius: 0 12px 12px 0;
+    cursor: pointer; color: #A8A29E; font: inherit;
+  }
+  .chev-btn:hover { color: #57534E; }
+  .chev-btn svg { transition: transform .18s ease; display: block; }
+  .chev-btn[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .sub-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+  .sub-list[hidden] { display: none; }
+  .sub-list .side-item a { padding-left: 32px; }
   /* article */
-  article section { margin-bottom: 44px; }
-  article h2 {
-    font-family: "Bricolage Grotesque", "Inter", sans-serif;
-    font-size: 25px; letter-spacing: -0.01em;
-    margin: 0 0 6px; padding-top: 8px;
+  .article { min-width: 0; max-width: 760px; padding: 26px 0 20px; }
+  main.article > section { margin-bottom: 48px; }
+  main.article > section:last-child { margin-bottom: 12px; }
+  .eyebrow { font-size: 11px; letter-spacing: .08em; font-weight: 700; color: var(--ink-faint); margin: 0 0 4px; }
+  .h1-row { display: flex; align-items: flex-start; gap: 12px; }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif; font-weight: 500;
+    font-size: 34px; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 10px; flex: 1;
   }
-  article h3 { font-size: 16px; margin: 26px 0 6px; font-weight: 600; }
-  article p { margin: 8px 0; max-width: 71ch; color: var(--ink-soft); }
-  article p strong, article li strong { color: var(--ink); font-weight: 600; }
-  article ul, article ol { padding-left: 20px; max-width: 71ch; color: var(--ink-soft); }
-  article li { margin: 5px 0; }
-  article code, .inline {
-    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
-    background: #E6F0FA; border: 1px solid var(--line); border-radius: 6px;
-    padding: 1px 6px; color: var(--ink);
+  .copy-page {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: var(--ink-soft); background: var(--card);
+    border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; cursor: pointer; margin-top: 6px;
   }
-  article pre {
-    margin: 12px 0; background: var(--ink); color: #D5E7F8;
-    border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6;
-    font-family: "IBM Plex Mono", monospace; overflow-x: auto;
+  .copy-page:hover { background: var(--paper-2); color: var(--ink); }
+  .article p { color: #3F3B36; margin: 10px 0; max-width: 70ch; }
+  .article p strong, .article li strong { color: var(--ink); }
+  .article a.u { color: var(--ink); text-decoration: underline; text-decoration-color: #C9C2B4; text-underline-offset: 3px; }
+  .article a.u:hover { text-decoration-color: var(--accent); }
+  .article h2 {
+    font-family: Georgia, "Times New Roman", serif; font-weight: 500;
+    font-size: 23px; margin: 34px 0 6px; letter-spacing: -0.01em; padding-top: 6px;
   }
-  article pre code { background: none; border: 0; padding: 0; color: inherit; font-size: inherit; }
-  pre .k { color: #5FC6F5; } pre .s { color: #A8DCFF; } pre .c { color: #7E96B5; }
-
-  .note {
-    background: var(--card); border: 1px solid var(--line);
-    border-left: 3px solid var(--teal); border-radius: 10px;
-    padding: 11px 15px; margin: 14px 0; font-size: 14px; max-width: 71ch;
-    color: var(--ink-soft);
+  .article h3 { font-size: 14.5px; margin: 22px 0 6px; font-weight: 650; }
+  /* proper permalink anchors on every section heading */
+  .article h2 { position: relative; }
+  .h-anchor {
+    margin-left: 9px; font-size: 15px; font-weight: 400; font-family: inherit;
+    color: var(--ink-faint); text-decoration: none; opacity: 0;
+    transition: opacity .15s ease; vertical-align: baseline;
   }
-  .note b { color: var(--ink); font-weight: 600; }
-
-  /* endpoint plates */
-  .ep {
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 18px; padding: 15px 18px; margin: 14px 0;
+  .article h2:hover .h-anchor, .h-anchor:focus-visible { opacity: 1; }
+  .h-anchor:hover { color: var(--primary); }
+  .h-anchor.copied { opacity: 1; color: var(--green-ink); }
+  .h-anchor.copied::after { content: ' copied'; font-size: 12px; font-weight: 500; }
+  .article ul, .article ol { color: #3F3B36; padding-left: 20px; max-width: 70ch; }
+  .article li { margin: 5px 0; }
+  .article code, .inline {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+    background: var(--code-bg); border: 1px solid var(--line-soft); border-radius: 6px;
+    padding: 1px 6px; color: var(--ink); white-space: nowrap;
   }
-  .ep-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .ep-head .route { font-family: "IBM Plex Mono", monospace; font-size: 13.5px; font-weight: 500; }
-  .m {
-    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500;
-    border-radius: 999px; padding: 3px 10px; letter-spacing: .02em;
+  /* method tabs like Terminal / VS Code / Desktop app */
+  .ptabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 14px 0 4px; overflow-x: auto; }
+  .ptabs button {
+    border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink-soft);
+    padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
   }
-  .m.get { border: 1.5px solid var(--teal); color: var(--teal-deep); }
-  .m.post { background: var(--ink); color: #fff; }
-  .m.patch { border: 1.5px solid var(--copper); color: var(--copper); }
-  .m.delete { background: var(--copper); color: #fff; }
-  .ep p { font-size: 14px; margin: 8px 0 0; }
-  .ep pre { margin-top: 10px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 14px 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-  th, td { text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { font-weight: 600; font-size: 13px; color: var(--ink); background: #E6F0FA; }
-  tr:last-child td { border-bottom: 0; }
-  td { color: var(--ink-soft); }
-  td:first-child { color: var(--ink); }
-
-  .kv { display: flex; gap: 12px; font-size: 14px; margin: 7px 0; max-width: 71ch; }
+  .ptabs button:hover { color: var(--ink); }
+  .ptabs button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+  .subtabs { display: flex; gap: 18px; margin: 12px 0 2px; font-size: 13px; }
+  .subtabs button {
+    border: 0; background: none; font: inherit; color: var(--ink-soft); cursor: pointer;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+  }
+  .subtabs button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
+  .tabpanel { display: none; }
+  .tabpanel.on { display: block; }
+  .plabel { font-size: 13px; font-weight: 600; margin: 16px 0 6px; }
+  /* code blocks */
+  .code {
+    position: relative; background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); margin: 8px 0 12px; overflow: hidden;
+  }
+  .code pre {
+    margin: 0; padding: 13px 46px 13px 14px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; line-height: 1.6; color: #23201C;
+  }
+  .code pre code { background: none; border: 0; padding: 0; white-space: pre; }
+  .tok-cmd { color: #B3401E; font-weight: 600; }
+  .tok-url { color: #2456C6; }
+  .tok-str { color: #0E6E3E; }
+  .tok-com { color: #9B9489; }
+  .tok-k { color: #7A3DC0; }
+  .code-tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+  .code-tools button {
+    border: 1px solid transparent; background: none; border-radius: 6px; cursor: pointer;
+    width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink-faint); font-size: 13px;
+  }
+  .code-tools button:hover { background: var(--paper-2); color: var(--ink); border-color: var(--line); }
+  .code.dark { background: #1C1917; border-color: #1C1917; }
+  .code.dark pre { color: #EDE6DA; }
+  /* callouts */
+  .callout {
+    display: flex; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--paper-2); padding: 11px 14px; margin: 14px 0; font-size: 13.5px; color: #3F3B36; max-width: 70ch;
+  }
+  .callout .ic { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-top: 2px; }
+  .callout.info .ic { background: #E2DED4; color: #57534E; }
+  .callout.tip { background: var(--green-bg); border-color: var(--green-line); }
+  .callout.tip .ic { background: #22A355; color: #fff; }
+  .callout.tip a, .callout.info a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+  /* accordion: What you can do */
+  .acc { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 12px 0; background: var(--card); max-width: 70ch; }
+  .acc-item + .acc-item { border-top: 1px solid var(--line-soft); }
+  .acc-btn {
+    width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+    background: none; border: 0; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink);
+    padding: 11px 14px; cursor: pointer;
+  }
+  .acc-btn:hover { background: var(--paper); }
+  .acc-btn .chev { color: var(--ink-faint); font-size: 11px; width: 14px; transition: transform .18s ease; }
+  .acc-item.open .acc-btn .chev { transform: rotate(90deg); }
+  .acc-btn .tick { color: var(--ink-faint); font-weight: 400; }
+  .acc-body { display: none; padding: 0 14px 13px 38px; font-size: 13.5px; color: var(--ink-soft); }
+  .acc-item.open .acc-body { display: block; }
+  .acc-body code { white-space: nowrap; }
+  /* tables */
+  .tbl-wrap { overflow-x: auto; margin: 12px 0; max-width: 70ch; }
+  table.grid { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.grid th {
+    text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-faint);
+    padding: 8px 10px; border-bottom: 1px solid var(--line);
+  }
+  table.grid td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: #3F3B36; }
+  table.grid td:first-child { color: var(--ink); }
+  table.grid a { color: var(--ink); text-decoration: underline; text-decoration-color: #C9C2B4; text-underline-offset: 3px; }
+  table.grid code { white-space: nowrap; }
+  /* endpoint plates restyled to match */
+  .ep { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; margin: 12px 0; max-width: 70ch; }
+  .ep-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .ep-head .route { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+  .m { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; font-weight: 700; border-radius: 5px; padding: 2px 8px; letter-spacing: .03em; }
+  .m.get { background: #EAF1FE; color: #2456C6; border: 1px solid #C9DAFA; }
+  .m.post { background: #1B1917; color: #fff; }
+  .m.patch { background: #FFF3E4; color: #9A5A00; border: 1px solid #F0D9B5; }
+  .m.delete { background: #FDECEC; color: #B3261E; border: 1px solid #F5C6C2; }
+  .ep p { font-size: 13.5px; margin: 7px 0 0; }
+  .kv { display: flex; gap: 10px; font-size: 13.5px; margin: 6px 0; max-width: 70ch; }
   .kv code { min-width: 150px; }
   .kv span { color: var(--ink-soft); }
+  .next-list { list-style: disc; }
+  .next-list a { color: var(--ink); text-decoration: underline; text-decoration-color: #C9C2B4; text-underline-offset: 3px; font-weight: 600; }
+  .feedback { display: flex; align-items: center; gap: 10px; margin: 26px 0 8px; font-size: 13px; color: var(--ink-soft); }
+  .feedback button {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px;
+    border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 12px; cursor: pointer; color: var(--ink-soft);
+  }
+  .feedback button:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .feedback button.picked { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pager { display: flex; justify-content: flex-end; margin: 10px 0 30px; }
+  .pager a { font-size: 13.5px; color: var(--ink-soft); text-decoration: none; }
+  .pager a:hover { color: var(--ink); }
+  hr.rule { border: 0; border-top: 1px solid var(--line); margin: 30px 0 0; }
+  /* right toc */
+  .toc { position: sticky; top: 118px; max-height: calc(100vh - 130px); overflow: auto; padding: 22px 0 40px; font-size: 12.5px; }
+  .toc .toc-h { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12.5px; margin-bottom: 8px; }
+  .toc a { display: block; color: var(--ink-soft); text-decoration: none; padding: 3px 0 3px 12px; border-left: 2px solid transparent; }
+  .toc a:hover { color: var(--ink); }
+  .toc a.on { color: var(--ink); font-weight: 600; border-left-color: var(--accent); }
+  .toc a.sub { padding-left: 24px; }
+  /* footer */
+  .footer { border-top: 1px solid var(--line); margin-top: 10px; background: var(--paper); }
+  .footer-inner {
+    max-width: 1440px; margin: 0 auto; padding: 34px 20px 26px;
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr; gap: 24px;
+  }
+  .footer .fbrand { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 10px; }
+  .footer .fbrand img { width: 20px; height: 20px; }
+  .footer h4 { font-size: 12.5px; margin: 0 0 10px; }
+  .footer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .footer ul a { font-size: 12.5px; color: var(--ink-soft); text-decoration: none; }
+  .footer ul a:hover { color: var(--ink); text-decoration: underline; }
+  .footer .social { display: flex; gap: 10px; margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+  .no-results { display: none; font-size: 13px; color: var(--ink-faint); padding: 8px 10px; }
 
-  footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; font-size: 12.5px; color: var(--ink-soft); flex-wrap: wrap; }
-  footer .right { margin-left: auto; display: flex; gap: 14px; font-family: "IBM Plex Mono", monospace; }
-  footer a { color: var(--teal-deep); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-
-  @media (max-width: 880px) {
-    .doc-grid { grid-template-columns: 1fr; gap: 8px; }
-    .rail { position: static; padding: 0; }
-    .rail ul::before, .rail .cursor { display: none; }
-    .rail ul { display: flex; flex-wrap: wrap; gap: 4px 14px; }
-    .rail .grp { display: none; }
-    .rail a { padding: 3px 0; }
-    .doc-head { padding-top: 36px; }
-    .bar nav a.hide-m { display: none; }
+  @media (max-width: 1120px) {
+    .layout { grid-template-columns: 230px minmax(0, 1fr); }
+    .toc { display: none; }
+  }
+  @media (max-width: 860px) {
+    .search, .dev-link { display: none; }
+    .search { max-width: none; }
+    .menu-btn { display: inline-flex; }
+    .layout { grid-template-columns: 1fr; }
+    .sidenav {
+      position: fixed; z-index: 50; top: 0; left: 0; bottom: 0; width: 300px;
+      background: var(--paper); border-right: 1px solid var(--line);
+      padding: 14px 10px 0 6px; transform: translateX(-105%); transition: transform .22s ease;
+      max-height: none;
+    }
+    .sidenav.open { transform: none; box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+    .side-viewport { max-height: 100vh; height: 100%; }
+    .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 49; display: none; }
+    .scrim.show { display: block; }
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 29px; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .rail .cursor { transition: none; }
     * { transition: none !important; }
   }
 </style>
 </head>
 <body>
 
-<header class="bar">
-  <a class="mark" href="index.html"><img src="/logo.png" alt="" onerror="this.remove()" />pool-anything</a>
-  <nav>
-    <a class="hide-m" href="index.html#how">How it pools</a>
-    <a class="hide-m" href="index.html#demo">Rotation</a>
-    <a href="docs.html" aria-current="page">Docs</a>
-    <a class="cta" href="index.html#start">Start pooling</a>
+<header class="topbar">
+  <div class="topbar-row">
+    <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open navigation">☰</button>
+    <a class="brand" href="index.html"><img src="/logo.png" alt="" onerror="this.remove()" /><span><b>pool-anything</b> Docs</span></a>
+    <button class="lang" type="button">English ▾</button>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="topSearch" type="search" placeholder="Search…" aria-label="Search docs" /><kbd>⌘K</kbd></label>
+    <div class="top-actions">
+      <a class="dev-link" href="index.html">Developer Platform</a>
+      <a class="open-btn" href="index.html#start">Open pool-anything ➜</a>
+      <button class="icon-btn" type="button" title="Appearance">◐</button>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <div class="tabs-inner">
+      <a href="#overview" class="on">Getting started</a>
+      <a href="#pool">Quickstart</a>
+      <a href="#rotation">Rotation</a>
+      <a href="#proxy">Proxy</a>
+      <a href="#api">Reference</a>
+      <a href="#registry">Registry</a>
+      <a href="#security">Security</a>
+      <a href="#layout">Architecture</a>
+    </div>
   </nav>
 </header>
 
-<div class="page">
-  <div class="doc-head">
-    <h1>Docs</h1>
-    <p class="lede">Everything the pool does, how to run it, and every endpoint it answers to. Written for the version in this repository.</p>
-  </div>
+<div class="scrim" id="scrim"></div>
 
-  <div class="doc-grid">
+<div class="layout">
+  <aside class="sidenav" id="sidenav" aria-label="Documentation sections">
+    <div class="side-viewport" id="sideViewport" tabindex="0">
+      <div class="side-fade" aria-hidden="true"></div>
+      <div id="navigation-items">
+        <div>
+          <div class="sidebar-group-header"><h3 class="sidebar-title"><span>Getting started</span></h3></div>
+          <ul class="sidebar-group">
+            <li id="nav-overview" class="side-item" data-title="Overview"><a href="#overview"><span class="lbl">Overview</span></a></li>
+            <li id="nav-pool" class="side-item" data-title="Quickstart"><a href="#pool"><span class="lbl">Quickstart</span></a></li>
+            <li id="nav-run" class="side-item" data-title="Run it"><a href="#run"><span class="lbl">Run it</span></a></li>
+            <li id="nav-scripts" class="side-item" data-title="Scripts and env"><a href="#scripts"><span class="lbl">Scripts &amp; env</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="sidebar-group-header"><h3 class="sidebar-title"><span>Core concepts</span></h3></div>
+          <ul class="sidebar-group">
+            <li id="nav-how-pooling-works" class="side-item" data-title="How pooling works"><a href="#how-pooling-works"><span class="lbl">How pooling works</span></a></li>
+            <li id="nav-storage" class="side-item" data-title="Storage model"><a href="#storage"><span class="lbl">Storage model</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="sidebar-group-header"><h3 class="sidebar-title"><span>Use pool-anything</span></h3></div>
+          <ul class="sidebar-group">
+            <li id="nav-api" class="side-item" data-title="HTTP API"><a href="#api"><span class="lbl">HTTP API</span></a></li>
+            <li data-title="Proxy and rotation" class="side-item has-children">
+              <div class="nav-row">
+                <a href="#rotation"><span class="lbl">Proxy &amp; rotation</span></a>
+                <button class="chev-btn" aria-expanded="true" aria-label="Toggle Proxy and rotation section"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:8px;height:18px"><path d="M6.5 2.75L12.75 9L6.5 15.25"></path></svg></button>
+              </div>
+              <ul class="sub-list">
+                <li id="nav-rotation" class="side-item" data-title="Rotation and usage"><a href="#rotation"><span class="lbl">Rotation &amp; usage</span></a></li>
+                <li id="nav-proxy" class="side-item" data-title="Proxy and injection"><a href="#proxy"><span class="lbl">Proxy &amp; injection</span></a></li>
+                <li id="nav-keys" class="side-item" data-title="Key endpoints"><a href="#keys"><span class="lbl">Key endpoints</span></a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="sidebar-group-header"><h3 class="sidebar-title"><span>Under the hood</span></h3></div>
+          <ul class="sidebar-group">
+            <li id="nav-layout" class="side-item" data-title="Project layout"><a href="#layout"><span class="lbl">Project layout</span></a></li>
+            <li id="nav-registry" class="side-item" data-title="Provider registry"><a href="#registry"><span class="lbl">Provider registry</span></a></li>
+            <li id="nav-security" class="side-item" data-title="Security"><a href="#security"><span class="lbl">Security</span></a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <p class="no-results" id="noResults">No sections match.</p>
+  </aside>
 
-    <aside class="rail" aria-label="Documentation sections">
-      <ul id="rail">
-        <li class="grp">The idea</li>
-        <li><a href="#overview">What it does</a></li>
-        <li class="grp">Set up</li>
-        <li><a href="#run">Run it</a></li>
-        <li><a href="#pool">First pool</a></li>
-        <li><a href="#scripts">Scripts &amp; env</a></li>
-        <li class="grp">Reference</li>
-        <li><a href="#api">HTTP API</a></li>
-        <li><a href="#rotation">Rotation</a></li>
-        <li><a href="#proxy">Proxy</a></li>
-        <li><a href="#keys">Keys</a></li>
-        <li class="grp">Under the hood</li>
-        <li><a href="#layout">Project layout</a></li>
-        <li><a href="#storage">Storage</a></li>
-        <li><a href="#registry">Provider registry</a></li>
-        <li><a href="#security">Security</a></li>
-        <li class="cursor" id="railCursor" aria-hidden="true"></li>
+  <main class="article" id="article">
+    <p class="eyebrow">GETTING STARTED</p>
+    <div class="h1-row" id="overview">
+      <h1>Overview</h1>
+      <button class="copy-page" id="copyPage" type="button">⧉ Copy page</button>
+    </div>
+    <p>pool-anything is an agentic-code-tool-style helper for API keys: it reads your provider list, gathers keys into pools, rotates them, and integrates with your development tools. Available on your machine, behind one local endpoint, with a browser UI.</p>
+    <p>pool-anything is an AI-powered quota assistant that helps you build features, fix bugs, and automate development tasks. It understands your entire key inventory and can work across multiple providers and tools to get things done.</p>
+
+    <h2 id="get-started">Get started</h2>
+    <p>pool-anything runs as one server: the web UI, the JSON API, and the proxy. Choose how you run it below to get started. Most setups require a <a class="u" href="#run">Node.js 22+ subscription</a> or a local checkout. The terminal, Docker, and source builds all support <a class="u" href="#registry">custom providers</a>.</p>
+
+    <div class="ptabs" role="tablist" aria-label="Run surfaces">
+      <button class="on" data-ptab="terminal" role="tab" aria-selected="true">Terminal</button>
+      <button data-ptab="docker" role="tab" aria-selected="false">Docker</button>
+      <button data-ptab="source" role="tab" aria-selected="false">Source build</button>
+    </div>
+    <div class="subtabs" role="tablist" aria-label="Install methods">
+      <button class="on" data-stab="native">Native Install (Recommended)</button>
+      <button data-stab="alt">Alternative</button>
+    </div>
+
+    <div class="tabpanel on" data-panel="terminal" data-variant="native">
+      <p class="plabel">macOS, Linux, WSL:</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm install && npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span> <span class="tok-com"># dev deps only: tsx, typescript</span>
+<span class="tok-cmd">npm run dev</span>     <span class="tok-com"># http://localhost:3000, reloads as you edit</span></code></pre></div>
+      <p class="plabel">Windows PowerShell:</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm install; npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span>; <span class="tok-cmd">npm run dev</span>  <span class="tok-com"># → http://localhost:3000</span></code></pre></div>
+      <p class="plabel">Windows CMD:</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm install && npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span> &amp;&amp; <span class="tok-cmd">npm run dev</span></code></pre></div>
+    </div>
+    <div class="tabpanel" data-panel="terminal" data-variant="alt">
+      <p class="plabel">Check it's alive:</p>
+      <div class="code"><div class="code-tools"><button data-copy="curl localhost:3000/health" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">curl</span> localhost:3000/health        <span class="tok-com"># → ok</span>
+<span class="tok-cmd">curl</span> localhost:3000/api/db/ping   <span class="tok-com"># → {"ok":true,…}</span></code></pre></div>
+    </div>
+    <div class="tabpanel" data-panel="docker" data-variant="native">
+      <p class="plabel">Docker (maps the SQLite volume):</p>
+      <div class="code"><div class="code-tools"><button data-copy="docker run -p 3000:3000 -v ./data:/app/data pool-anything" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">docker run</span> -p 3000:3000 -v ./data:/app/data pool-anything</code></pre></div>
+    </div>
+    <div class="tabpanel" data-panel="docker" data-variant="alt">
+      <p class="plabel">Docker Compose override:</p>
+      <div class="code"><div class="code-tools"><button data-copy="PORT=3000 docker compose up" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">PORT</span>=3000 docker compose up</code></pre></div>
+    </div>
+    <div class="tabpanel" data-panel="source" data-variant="native">
+      <p class="plabel">Compiled output:</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm run build && npm run start:dist" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm run build</span> &amp;&amp; <span class="tok-cmd">npm run start:dist</span></code></pre></div>
+    </div>
+    <div class="tabpanel" data-panel="source" data-variant="alt">
+      <p class="plabel">Init the database directly:</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm run db:init -- --seed" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm run db:init</span> -- --seed</code></pre></div>
+    </div>
+
+    <p>If you see <code>The token '&&' is not a valid statement separator</code>, you're in PowerShell, not CMD. If you see <code>'npm' is not recognized as an internal or external command</code>, you're in CMD, not PowerShell. Your prompt shows <code>PS C:\…</code> when you're in PowerShell and <code>C:\…</code> when you're in CMD.</p>
+    <p>If the install command fails with syntax errors near unexpected token <code>'<'</code>, a 403, or another curl error, see <a class="u" href="#security">Troubleshoot installation</a> to match the error to a fix and for alternative install methods.</p>
+    <p><a class="u" href="#registry"><strong>36 providers ship preconfigured</strong></a> so pool-anything can use the registry auth style. If a provider is missing, setups do not need a code change: a pool with your own <code>base_url</code> works instead.</p>
+
+    <div class="callout info"><span class="ic">ⓘ</span><span>Native installs automatically persist to <code>data/pool-anything.db</code> to keep you on the latest cursor. Override with <code>LOCAL_DB_PATH</code>.</span></div>
+
+    <p>You can also install with <code>apt</code>, <code>dnf</code>, or <code>apk</code> equivalents for Node 22 on Debian, Fedora, RHEL, and Alpine.</p>
+    <p>Then start pool-anything in any project. Replace <code>your-project</code> with the path to a project directory on your machine:</p>
+    <div class="code"><div class="code-tools"><button data-copy="cd your-project&#10;npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">cd</span> your-project
+<span class="tok-cmd">npm run dev</span></code></pre></div>
+    <p>You'll be prompted to add keys on first run. If you've set the <code>LOCAL_DB_PATH</code> environment variable, pool-anything skips the default path and asks you to approve the key instead. That's it! <a class="u" href="#pool"><strong>Continue with the Quickstart →</strong></a></p>
+
+    <div class="callout tip"><span class="ic">✓</span><span>See <a href="#scripts">advanced setup</a> for installation options, manual updates, or uninstallation instructions. Visit <a href="#security">installation troubleshooting</a> if you hit issues.</span></div>
+
+    <section id="overview-details">
+      <h2 id="what-you-can-do">What you can do</h2>
+      <p>Here are some of the ways you can use pool-anything:</p>
+      <div class="acc" id="acc">
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>⚡ <span class="tick">Automate the work you keep putting off</span></span></button><div class="acc-body">Batch provider calls through one <code>/proxy</code> endpoint instead of juggling keys by hand. See <a class="u" href="#proxy">the proxy</a>.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>✦ <span class="tick">Pool keys and spread quota evenly</span></span></button><div class="acc-body">Collect N keys under one named pool per provider; every call takes the next key via <code>cursor % keys.length</code>.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>⎇ <span class="tick">Rotate with round-robin + tracking</span></span></button><div class="acc-body"><code>GET /api/pools/:id/next</code> returns the next masked key and advances the cursor; <code>POST /consume</code> records tokens too.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>◈ <span class="tick">Connect your tools with one proxy</span></span></button><div class="acc-body">Header, prefixed-header, and <code>query:param</code> injection are handled per provider. See <a class="u" href="#proxy">injection table</a>.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>☰ <span class="tick">Customize with registry rows and overrides</span></span></button><div class="acc-body">One JSON row adds a provider; per-pool <code>base_url</code>, <code>key_header</code>, <code>key_prefix</code> override at runtime.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>⫽ <span class="tick">Run pools in parallel for many providers</span></span></button><div class="acc-body">Pools are independent rows — Groq, OpenRouter, Gemini side by side, each with its own cursor.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>↯ <span class="tick">Pipe, script, and automate with curl</span></span></button><div class="acc-body">No SDK needed: <code>curl -X POST localhost:3000/api/pools/1/proxy -d '{"path":"…"}'</code>.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>◔ <span class="tick">Track usage per key and per pool</span></span></button><div class="acc-body"><code>/usage</code> rolls up <code>SUM(tokens)</code> with quota and remaining where the registry knows them.</div></div>
+        <div class="acc-item"><button class="acc-btn" type="button"><span class="chev">▶</span><span>◍ <span class="tick">Work from anywhere the DB goes</span></span></button><div class="acc-body">One SQLite file, zero runtime deps — copy <code>data/pool-anything.db</code> and the pools move with you.</div></div>
+      </div>
+    </section>
+
+    <h2 id="everywhere">Use pool-anything everywhere</h2>
+    <p>Each <a class="u" href="#api">surface</a> connects to the same underlying pool engine, so your repo's pools, keys, and usage files, settings, and MCP servers work across all of them.</p>
+    <p>Beyond the Terminal and UI surfaces above, pool-anything integrates with scripted, chat, and browser workflows:</p>
+    <div class="tbl-wrap"><table class="grid">
+      <tr><th>What I want to do</th><th>Best option</th></tr>
+      <tr><td>Gather keys in a browser UI</td><td><a href="#pool">Pools overview</a></td></tr>
+      <tr><td>Send one request with rotation + auth</td><td><a href="#proxy">Proxy endpoint</a></td></tr>
+      <tr><td>Peek at the next key without spending it</td><td><a href="#rotation">GET …/next</a></td></tr>
+      <tr><td>Start a task locally, continue on mobile</td><td><a href="#api">REST everywhere</a></td></tr>
+      <tr><td>Run rotation on a recurring schedule</td><td><a href="#rotation">Consume + cron</a></td></tr>
+      <tr><td>Automate PR reviews and issue triage</td><td><a href="#proxy">Proxy in CI</a></td></tr>
+      <tr><td>Get automatic masked views on every key</td><td><a href="#keys">Key manager</a></td></tr>
+      <tr><td>Route bug reports from Slack to pull requests</td><td><a href="#proxy">Proxy + webhook</a></td></tr>
+      <tr><td>Build custom agents for your own workflows</td><td><a href="#registry">Registry + proxy</a></td></tr>
+    </table></div>
+
+    <h2 id="next-steps">Next steps</h2>
+    <p>Once you've installed pool-anything, these guides help you go deeper.</p>
+    <ul class="next-list">
+      <li><a href="#pool">Quickstart</a>: walk through your first real pool, from creating it to sending a proxied call</li>
+      <li><a href="#storage">Store rotation and usage</a>: give pools persistent cursors with SQLite-backed <code>SUM()</code> rollups</li>
+      <li><a href="#proxy">Proxy and best practices</a>: patterns for getting the most out of header vs query injection</li>
+      <li><a href="#registry">Provider registry</a>: free self-paced course material, including <a href="#registry">poolable flags</a> and <a href="#registry">keyFields</a></li>
+      <li><a href="#how-pooling-works">A cursor for every task</a>: how the pool uses <a href="#how-pooling-works">dynamic cursors</a> to orchestrate many keys at once</li>
+      <li><a href="#scripts">Scripts</a>: customize pool-anything for your workflow</li>
+      <li><a href="#security">Troubleshooting</a>: solutions for common issues</li>
+      <li><a href="index.html">pool-anything home</a>: demos, rotation visual, and product details</li>
+    </ul>
+
+    <div class="feedback"><span>Was this page helpful?</span><button type="button" data-fb="yes">♡ Yes</button><button type="button" data-fb="no">♡ No</button></div>
+    <div class="pager"><a href="#pool">Quickstart ›</a></div>
+
+    <hr class="rule" />
+
+    <!-- ============ FULL REFERENCE (same page, Claude style) ============ -->
+    <section id="pool">
+      <h2>Quickstart — your first pool</h2>
+      <ol>
+        <li>Open <span class="inline">localhost:3000</span> and search a provider — say, <strong>groq</strong>.</li>
+        <li>Click it. The setup dialog creates a pool for that provider.</li>
+        <li>Paste an API key, press Enter. Repeat for every key you own.</li>
+        <li>Press <strong>Done</strong>. The pool now appears on <strong>Pools</strong> and in the <strong>API key manager</strong>.</li>
+        <li>Send traffic through it:</li>
+      </ol>
+      <div class="code"><div class="code-tools"><button data-copy='curl -X POST localhost:3000/api/pools/1/proxy -H content-type:application/json -d {"path":"/openai/v1/models","method":"GET"}' title="Copy">⧉</button></div><pre><code><span class="tok-cmd">curl</span> -X POST localhost:3000/api/pools/1/proxy \
+  -H <span class="tok-str">'content-type: application/json'</span> \
+  -d <span class="tok-str">'{"path":"/openai/v1/models","method":"GET"}'</span></code></pre></div>
+      <div class="callout info"><span class="ic">ⓘ</span><span><strong>Watch it turn:</strong> every proxy call returns the <code>key_id</code> and <code>label</code> that served it, so you can see keys take turns. Add <code>"tokens": N</code> to count usage too.</span></div>
+    </section>
+
+    <section id="run">
+      <h2>Run it</h2>
+      <p>You need Node.js 22 or newer (the app uses the built-in <span class="inline">node:sqlite</span> module and native <span class="inline">fetch</span>). Nothing else — there are no runtime npm dependencies.</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm install" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span>     <span class="tok-com"># dev deps only: tsx, typescript</span>
+<span class="tok-cmd">npm run dev</span>     <span class="tok-com"># http://localhost:3000, reloads as you edit</span></code></pre></div>
+    </section>
+
+    <section id="scripts">
+      <h2>Scripts &amp; environment</h2>
+      <div class="tbl-wrap"><table class="grid">
+        <tr><th>Script</th><th>What it does</th></tr>
+        <tr><td><code>npm run dev</code></td><td>Main server on <code>:3000</code> with file watching.</td></tr>
+        <tr><td><code>npm start</code></td><td>Main server once, no watch.</td></tr>
+        <tr><td><code>npm run build</code></td><td>Type-check and compile to <code>dist/</code>.</td></tr>
+        <tr><td><code>npm run start:dist</code></td><td>Run the compiled output.</td></tr>
+        <tr><td><code>npm run db:init</code></td><td>Create the local database (<code>-- --seed</code> adds a sample row).</td></tr>
+      </table></div>
+      <div class="kv"><code>PORT</code><span>Main server port, default <span class="inline">3000</span>.</span></div>
+      <div class="kv"><code>HOST</code><span>Interface to bind, default <span class="inline">127.0.0.1</span> (loopback — the API has no auth).</span></div>
+      <div class="kv"><code>PROXY_TIMEOUT_MS</code><span>Per-attempt upstream timeout, default <span class="inline">30000</span>.</span></div>
+      <div class="kv"><code>ALLOW_PRIVATE_UPSTREAM</code><span><span class="inline">1</span> disables SSRF protections — tests/loopback only, never in prod.</span></div>
+      <div class="kv"><code>LOCAL_DB_PATH</code><span>Override where the SQLite file lives, default <span class="inline">data/pool-anything.db</span>.</span></div>
+      <div class="callout tip"><span class="ic">✓</span><span><strong>Local by default:</strong> the server binds <span class="inline">127.0.0.1</span> and the API has no auth — set <span class="inline">HOST</span> to another interface only behind your own auth layer.</span></div>
+    </section>
+
+    <section id="how-pooling-works">
+      <h2>How pooling works</h2>
+      <p>Most providers hand each key its own small rate limit: requests per minute, tokens per day. <strong>pool-anything</strong> gathers N keys for the same provider into one pool and does four things with them: <strong>Pool</strong>, <strong>Rotate</strong> (<code>cursor % keys.length</code>), <strong>Proxy</strong>, and <strong>Track</strong>. It ships with 36 preconfigured providers and a JSON API for everything else.</p>
+    </section>
+
+    <section id="storage">
+      <h2>Storage</h2>
+      <p>One SQLite file through Node's built-in <span class="inline">DatabaseSync</span>. The schema creates itself at startup; totals are computed on read with <span class="inline">SUM()</span> — no counters to drift.</p>
+      <div class="code"><pre><code><span class="tok-k">CREATE TABLE pools</span> (id, provider, name, cursor, …);
+<span class="tok-k">CREATE TABLE pool_keys</span> (id, pool_id, label, api_key, …);
+<span class="tok-k">CREATE TABLE usage</span> (id, pool_id, key_id, tokens, …);</code></pre></div>
+    </section>
+
+    <section id="api">
+      <h2>HTTP API</h2>
+      <p>Base URL <span class="inline">http://localhost:3000</span>. Bodies and responses are JSON; errors are <span class="inline">{ "error": "…" }</span>. List endpoints always mask keys — only the single-key view returns a raw value.</p>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/providers</span></div><p>Every provider in the registry, with base URL, auth style, quota notes, docs link, and logo.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools</span></div><p>All pools, newest first: <span class="inline">id, provider, name, cursor, base_url, key_header, key_prefix, created_at</span>.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools</span></div><p>Create a pool. <span class="inline">provider</span> and <span class="inline">name</span> are required; overrides fall back to the registry when empty.</p>
+        <div class="code"><pre><code>{ <span class="tok-str">"provider"</span>: <span class="tok-str">"groq"</span>, <span class="tok-str">"name"</span>: <span class="tok-str">"groq pool"</span> }</code></pre></div></div>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id</span></div><p>Pool summary with usage: key count, tokens used, quota and remaining, plus a per-key breakdown.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m delete">DELETE</span><span class="route">/api/pools/:id</span></div><p>Delete the pool with its keys and usage records.</p></div>
+    </section>
+
+    <section id="rotation">
+      <h2>Rotation endpoints</h2>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/next</span></div><p>Return the next key, masked, and advance the cursor. <span class="inline">400</span> if the pool has no keys, <span class="inline">404</span> if it doesn't exist.</p>
+        <div class="code"><pre><code>{ <span class="tok-str">"key_id"</span>: 2, <span class="tok-str">"label"</span>: <span class="tok-str">"key 2"</span>, <span class="tok-str">"masked"</span>: <span class="tok-str">"gsk_…9f"</span> }</code></pre></div></div>
+      <div class="ep"><div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools/:id/consume</span></div><p>Rotate to the next key and record usage against it. <span class="inline">tokens</span> must be a positive integer.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/usage</span></div><p>Usage rollup: pool total, quota, remaining, and per-key sums.</p></div>
+    </section>
+
+    <section id="proxy">
+      <h2>The proxy</h2>
+      <div class="ep"><div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools/:id/proxy</span></div><p>Pick the next key, inject its credentials, forward the request, record usage, report back. <span class="inline">path</span> is appended to the pool's base URL; <span class="inline">method</span> defaults to POST.</p>
+        <div class="code"><pre><code>{ <span class="tok-str">"path"</span>: <span class="tok-str">"/chat/completions"</span>, <span class="tok-str">"method"</span>: <span class="tok-str">"POST"</span>, <span class="tok-str">"tokens"</span>: 24 }</code></pre></div></div>
+      <div class="tbl-wrap"><table class="grid">
+        <tr><th>Shape</th><th>Injection</th><th>Seen on</th></tr>
+        <tr><td><code>Authorization</code> + prefix</td><td><code>Authorization: Bearer &lt;key&gt;</code></td><td>Groq, OpenAI, OpenRouter</td></tr>
+        <tr><td>Plain header + prefix</td><td><code>&lt;name&gt;&lt;prefix&gt;&lt;key&gt;</code></td><td><code>x-api-key</code> (Anthropic), <code>xi-api-key</code> (ElevenLabs)</td></tr>
+        <tr><td><code>query:&lt;param&gt;</code></td><td><code>?&lt;param&gt;=&lt;key&gt;</code></td><td>Mapbox, Google Maps, OpenWeather</td></tr>
+      </table></div>
+      <p>Provider extras (like <span class="inline">anthropic-version</span>) merge in automatically. Network failures return <span class="inline">502 { "error": "upstream unreachable" }</span>.</p>
+    </section>
+
+    <section id="keys">
+      <h2>Key endpoints</h2>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/keys</span></div><p>List keys, masked: <span class="inline">id, label, masked, info, created_at</span>.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools/:id/keys</span></div><p>Add a key. Send <span class="inline">label</span> and <span class="inline">api_key</span> → <span class="inline">{ "id": 7 }</span>.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/keys/:keyId</span></div><p>One key <strong>in full</strong> — the only endpoint that returns the raw value.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m patch">PATCH</span><span class="route">/api/pools/:id/keys/:keyId</span></div><p>Update any of <span class="inline">label</span>, <span class="inline">api_key</span>, <span class="inline">info</span>.</p></div>
+      <div class="ep"><div class="ep-head"><span class="m delete">DELETE</span><span class="route">/api/pools/:id/keys/:keyId</span></div><p>Remove a key → <span class="inline">{ "ok": true }</span>.</p></div>
+      <h3>Also answering</h3>
+      <div class="tbl-wrap"><table class="grid">
+        <tr><td><code>GET /health</code></td><td>Plain-text <code>ok</code> liveness probe.</td></tr>
+        <tr><td><code>GET /api/db/ping</code></td><td>Database path and row count.</td></tr>
+        <tr><td><code>GET /logos/&lt;name&gt;</code></td><td>Provider logos, one-hour cache.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="layout">
+      <h2>Project layout</h2>
+      <p>One HTTP server, one SQLite file, one JSON registry.</p>
+      <div class="code"><pre><code>pool-anything/
+├── src/server.ts        <span class="tok-com"># UI + JSON API + proxy (:3000)</span>
+├── src/pool/            <span class="tok-com"># schema, providers, rotation</span>
+├── data/providers.json  <span class="tok-com"># the registry</span>
+└── landing/             <span class="tok-com"># this site</span></code></pre></div>
+    </section>
+
+    <section id="registry">
+      <h2>Provider registry</h2>
+      <p><span class="inline">data/providers.json</span> is a flat array. Malformed rows are filtered out; a built-in fallback applies if the file can't be read.</p>
+      <div class="tbl-wrap"><table class="grid">
+        <tr><th>Field</th><th>Meaning</th></tr>
+        <tr><td><code>id</code> · <code>name</code></td><td>Registry key and display name.</td></tr>
+        <tr><td><code>baseUrl</code></td><td>Upstream root; the proxy appends the caller's path.</td></tr>
+        <tr><td><code>keyHeader</code> · <code>keyPrefix</code></td><td>Where the key goes — header plus prefix, or <code>query:&lt;param&gt;</code>.</td></tr>
+        <tr><td><code>extraHeaders</code></td><td>Always-sent headers, like <code>anthropic-version</code>.</td></tr>
+        <tr><td><code>quota</code></td><td>Human-readable free-tier notes, shown in the UI.</td></tr>
+        <tr><td><code>poolable</code></td><td><code>true</code> by default, <code>false</code> for control-plane only.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="security">
+      <h2>Security</h2>
+      <ul>
+        <li>Keys are stored <strong>plaintext</strong> in SQLite; the file stays out of version control.</li>
+        <li>List endpoints mask keys. Only <span class="inline">GET /keys/:id</span> returns a raw value.</li>
+        <li>There is <strong>no auth</strong> on the API — localhost or behind your own gate.</li>
+        <li>Logo paths are validated; request bodies cap at 1 MB.</li>
+        <li>Upstream responses pass through as text, capped at 4000 chars — treat them as untrusted.</li>
       </ul>
-    </aside>
+      <div class="feedback"><span>Was this page helpful?</span><button type="button" data-fb="yes">♡ Yes</button><button type="button" data-fb="no">♡ No</button></div>
+      <div class="pager"><a href="#pool">Quickstart ›</a></div>
+    </section>
+  </main>
 
-    <article>
-
-      <section id="overview">
-        <h2>What it does</h2>
-        <p>Most providers hand each key its own small rate limit: requests per minute, tokens per day. <strong>pool-anything</strong> gathers N keys for the same provider into one pool and does four things with them:</p>
-        <ul>
-          <li><strong>Pool</strong> — collect keys under one named pool, per provider.</li>
-          <li><strong>Rotate</strong> — hand out keys round-robin so quota use spreads evenly.</li>
-          <li><strong>Proxy</strong> — forward your request with the right key injected, header or query param.</li>
-          <li><strong>Track</strong> — record tokens per key, rolled up per pool.</li>
-        </ul>
-        <p>It ships with 37 preconfigured providers, a web UI for pools and keys, and a JSON API for everything else. Zero runtime dependencies: Node built-ins and one SQLite file.</p>
-        <div class="note"><b>New here?</b> Run it below, search a provider on <span class="inline">localhost:3000</span>, paste a couple of keys, then send one request through <span class="inline">/proxy</span>. Five minutes, start to finish.</div>
-      </section>
-
-      <section id="run">
-        <h2>Run it</h2>
-        <p>You need Node.js 22 or newer (the app uses the built-in <span class="inline">node:sqlite</span> module and native <span class="inline">fetch</span>). Nothing else — there are no runtime npm dependencies.</p>
-        <pre><code>npm install     <span class="c"># dev deps only: tsx, typescript</span>
-npm run dev     <span class="c"># http://localhost:3000, reloads as you edit</span></code></pre>
-        <p>Check it's alive:</p>
-        <pre><code>curl localhost:3000/health        <span class="c"># → ok</span>
-curl localhost:3000/api/db/ping   <span class="c"># → {"ok":true,"path":"…/data/pool-anything.db","items":0}</span></code></pre>
-      </section>
-
-      <section id="pool">
-        <h2>Your first pool</h2>
-        <ol>
-          <li>Open <span class="inline">localhost:3000</span> and search a provider — say, <strong>groq</strong>.</li>
-          <li>Click it. The setup dialog creates a pool for that provider.</li>
-          <li>Paste an API key, press Enter. Repeat for every key you own.</li>
-          <li>Press <strong>Done</strong>. The pool now appears on <strong>Pools</strong> and in the <strong>API key manager</strong>, where you can view, edit, or remove any key.</li>
-          <li>Send traffic through it:</li>
-        </ol>
-        <pre><code>curl -X POST localhost:3000/api/pools/1/proxy \
-  -H <span class="s">'content-type: application/json'</span> \
-  -d <span class="s">'{"path":"/openai/v1/models","method":"GET"}'</span></code></pre>
-        <div class="note"><b>Watch it turn:</b> every proxy call returns the <span class="inline">key_id</span> and <span class="inline">label</span> that served it, so you can see keys take turns. Add <span class="inline">"tokens": N</span> to count usage against that key too.</div>
-      </section>
-
-      <section id="scripts">
-        <h2>Scripts &amp; environment</h2>
-        <table>
-          <tr><th>Script</th><th>What it does</th></tr>
-          <tr><td><code>npm run dev</code></td><td>Main server on <code>:3000</code> with file watching.</td></tr>
-          <tr><td><code>npm start</code></td><td>Main server once, no watch.</td></tr>
-          <tr><td><code>npm run build</code></td><td>Type-check and compile to <code>dist/</code>.</td></tr>
-          <tr><td><code>npm run start:dist</code></td><td>Run the compiled output.</td></tr>
-          <tr><td><code>npm run db:init</code></td><td>Create the local database (<code>-- --seed</code> adds a sample row).</td></tr>
-          <tr><td><code>npm run sandbox</code></td><td>Sandbox server on <code>127.0.0.1:4000</code> with watching.</td></tr>
-        </table>
-        <div class="kv"><code>PORT</code><span>Main server port, default <span class="inline">3000</span>.</span></div>
-        <div class="kv"><code>SANDBOX_PORT</code><span>Sandbox port, default <span class="inline">4000</span>.</span></div>
-        <div class="kv"><code>LOCAL_DB_PATH</code><span>Override where the SQLite file lives, default <span class="inline">data/pool-anything.db</span>.</span></div>
-        <div class="note"><b>Sandbox:</b> <span class="inline">npm run sandbox</span> then open <span class="inline">127.0.0.1:4000/ui</span> — a minimal UI on the same database for exercising rotation without touching the main app. It binds to localhost only.</div>
-      </section>
-
-      <section id="api">
-        <h2>HTTP API</h2>
-        <p>Base URL <span class="inline">http://localhost:3000</span>. Bodies and responses are JSON; errors are <span class="inline">{ "error": "…" }</span> with a 4xx/5xx status. List endpoints always mask keys — only the single-key view returns a raw value. The API has no auth of its own; keep it local or put your gate in front.</p>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/providers</span></div>
-          <p>Every provider in the registry, with base URL, auth style, quota notes, docs link, and logo.</p>
-        </div>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools</span></div>
-          <p>All pools, newest first: <span class="inline">id, provider, name, cursor, base_url, key_header, key_prefix, created_at</span>.</p>
-        </div>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools</span></div>
-          <p>Create a pool. <span class="inline">provider</span> and <span class="inline">name</span> are required; the three override fields fall back to the registry when empty.</p>
-          <pre><code>{ <span class="s">"provider"</span>: <span class="s">"groq"</span>, <span class="s">"name"</span>: <span class="s">"groq pool"</span>,
-  <span class="s">"base_url"</span>: <span class="s">""</span>, <span class="s">"key_header"</span>: <span class="s">""</span>, <span class="s">"key_prefix"</span>: <span class="s">""</span> }</code></pre>
-        </div>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id</span></div>
-          <p>Pool summary with usage: key count, tokens used, quota and remaining (null unless the provider has a known token quota), plus a per-key breakdown.</p>
-          <pre><code><span class="k">{ "id": 1, "provider": "groq", "cursor": 12, "keys": 3,
-  "used": 1520, "quota": null, "remaining": null,
-  "perKey": [ { "id": 1, "label": "key 1", "used": 520 }, … ] }</span></code></pre>
-        </div>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m delete">DELETE</span><span class="route">/api/pools/:id</span></div>
-          <p>Delete the pool with its keys and usage records.</p>
-        </div>
-      </section>
-
-      <section id="rotation">
-        <h2>Rotation endpoints</h2>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/next</span></div>
-          <p>Return the next key, masked, and advance the cursor. <span class="inline">400</span> if the pool has no keys, <span class="inline">404</span> if it doesn't exist.</p>
-          <pre><code><span class="k">{ "key_id": 2, "label": "key 2", "masked": "gsk_…9f", "info": "" }</span></code></pre>
-        </div>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools/:id/consume</span></div>
-          <p>Rotate to the next key and record usage against it. <span class="inline">tokens</span> must be a positive integer.</p>
-          <pre><code>{ <span class="s">"tokens"</span>: 250 }
-<span class="k">→ { "key_id": 2, "label": "key 2", "masked": "gsk_…9f", "tokens": 250 }</span></code></pre>
-        </div>
-
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/usage</span></div>
-          <p>Usage rollup: pool total, quota, remaining, and per-key sums.</p>
-        </div>
-      </section>
-
-      <section id="proxy">
-        <h2>The proxy</h2>
-        <div class="ep">
-          <div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools/:id/proxy</span></div>
-          <p>Pick the next key, inject its credentials, forward the request, record usage, report back. <span class="inline">path</span> is appended to the pool's base URL; <span class="inline">method</span> defaults to POST; <span class="inline">headers</span> and <span class="inline">tokens</span> are optional.</p>
-          <pre><code>{ <span class="s">"path"</span>: <span class="s">"/chat/completions"</span>, <span class="s">"method"</span>: <span class="s">"POST"</span>,
-  <span class="s">"body"</span>: { … }, <span class="s">"tokens"</span>: 24 }
-
-<span class="k">{ "key_id": 2, "label": "key 2", "masked": "gsk_…9f",
-  "status": 200, "body": "…" }</span>   <span class="c">// body capped at 4000 chars</span></code></pre>
-          <p>How the key gets injected, from the provider's <span class="inline">keyHeader</span>:</p>
-        </div>
-        <table>
-          <tr><th>Shape</th><th>Injection</th><th>Seen on</th></tr>
-          <tr><td><code>Authorization</code> + prefix</td><td><code>Authorization: Bearer &lt;key&gt;</code></td><td>Groq, OpenAI, OpenRouter, Cohere</td></tr>
-          <tr><td>Plain header + prefix</td><td><code>&lt;name&gt;&lt;prefix&gt;&lt;key&gt;</code></td><td><code>x-api-key</code> (Anthropic), <code>xi-api-key</code> (ElevenLabs), <code>Token </code> (Deepgram)</td></tr>
-          <tr><td><code>query:&lt;param&gt;</code></td><td>appended as <code>?&lt;param&gt;=&lt;key&gt;</code></td><td>Mapbox, Google Maps, OpenWeather</td></tr>
-        </table>
-        <p>Provider extras (like <span class="inline">anthropic-version</span>) merge in automatically. Network failures return <span class="inline">502 { "error": "upstream unreachable" }</span>; a pool with no base URL returns <span class="inline">400</span>.</p>
-      </section>
-
-      <section id="keys">
-        <h2>Key endpoints</h2>
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/keys</span></div>
-          <p>List keys, masked: <span class="inline">id, label, masked, info, created_at</span>.</p>
-        </div>
-        <div class="ep">
-          <div class="ep-head"><span class="m post">POST</span><span class="route">/api/pools/:id/keys</span></div>
-          <p>Add a key. Send <span class="inline">label</span> and <span class="inline">api_key</span> (plus optional <span class="inline">info</span>) → <span class="inline">{ "id": 7 }</span>.</p>
-        </div>
-        <div class="ep">
-          <div class="ep-head"><span class="m get">GET</span><span class="route">/api/pools/:id/keys/:keyId</span></div>
-          <p>One key <strong>in full</strong> — the only endpoint that returns the raw value. The UI's View button uses it.</p>
-        </div>
-        <div class="ep">
-          <div class="ep-head"><span class="m patch">PATCH</span><span class="route">/api/pools/:id/keys/:keyId</span></div>
-          <p>Update any of <span class="inline">label</span>, <span class="inline">api_key</span>, <span class="inline">info</span>. Omitted fields stay put; an empty key is rejected.</p>
-        </div>
-        <div class="ep">
-          <div class="ep-head"><span class="m delete">DELETE</span><span class="route">/api/pools/:id/keys/:keyId</span></div>
-          <p>Remove a key from the pool → <span class="inline">{ "ok": true }</span>.</p>
-        </div>
-        <h3>Also answering</h3>
-        <table>
-          <tr><td><code>GET /health</code></td><td>Plain-text <code>ok</code> liveness probe.</td></tr>
-          <tr><td><code>GET /api/db/ping</code></td><td>Database path and row count.</td></tr>
-          <tr><td><code>GET /logos/&lt;name&gt;</code></td><td>Provider logos, one-hour cache.</td></tr>
-          <tr><td><code>GET /pools</code> · <code>GET /keys</code></td><td>The pools overview and key manager pages.</td></tr>
-        </table>
-      </section>
-
-      <section id="layout">
-        <h2>Project layout</h2>
-        <p>Two HTTP servers, one SQLite file, one JSON registry. Both servers import the same core, so the sandbox behaves exactly like the main app.</p>
-        <pre><code>pool-anything/
-├── src/
-│   ├── server.ts        <span class="c"># UI pages + JSON API + proxy   (:3000)</span>
-│   ├── pool/index.ts    <span class="c"># schema, providers, rotation, usage</span>
-│   ├── pool/rotation.ts <span class="c"># cursor step</span>
-│   ├── proxy/           <span class="c"># forward + credential injection</span>
-│   ├── db/              <span class="c"># secondary table + db:init CLI</span>
-│   └── sandbox/         <span class="c"># localhost-only test server   (:4000)</span>
-├── data/
-│   ├── providers.json   <span class="c"># the registry</span>
-│   └── pool-anything.db <span class="c"># gitignored</span>
-├── public/logos/        <span class="c"># provider logos</span>
-└── landing/             <span class="c"># this site: index.html + docs.html</span></code></pre>
-      </section>
-
-      <section id="storage">
-        <h2>Storage</h2>
-        <p>One SQLite file through Node's built-in <span class="inline">DatabaseSync</span> — a local stand-in for Cloudflare D1. The schema creates itself at startup; extra columns arrive through guarded <span class="inline">ALTER TABLE</span> migrations.</p>
-        <pre><code><span class="k">CREATE TABLE pools</span> (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  provider TEXT NOT NULL,                 <span class="c">-- registry id, e.g. 'groq'</span>
-  name TEXT NOT NULL,
-  cursor INTEGER NOT NULL DEFAULT 0,      <span class="c">-- rotation position</span>
-  base_url TEXT NOT NULL DEFAULT '',      <span class="c">-- custom-provider override</span>
-  key_header TEXT NOT NULL DEFAULT 'X-API-Key',
-  key_prefix TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-<span class="k">CREATE TABLE pool_keys</span> (
-  id, pool_id → pools, label,
-  api_key TEXT NOT NULL,                  <span class="c">-- stored plaintext</span>
-  info TEXT NOT NULL DEFAULT '', created_at …
-);
-<span class="k">CREATE TABLE usage</span> (
-  id, pool_id → pools, key_id → pool_keys,
-  tokens INTEGER NOT NULL, created_at …
-);</code></pre>
-        <p>Totals are computed on read with <span class="inline">SUM()</span> and joins — no counters to drift out of sync. The <span class="inline">items</span> table behind <span class="inline">/api/db/ping</span> is a separate demo table for exercising the D1 path; pools don't touch it.</p>
-      </section>
-
-      <section id="registry">
-        <h2>Provider registry</h2>
-        <p><span class="inline">data/providers.json</span> is a flat array. Malformed rows are filtered out, and a small built-in fallback list applies if the file can't be read at all.</p>
-        <table>
-          <tr><th>Field</th><th>Meaning</th></tr>
-          <tr><td><code>id</code> · <code>name</code></td><td>Registry key and display name.</td></tr>
-          <tr><td><code>baseUrl</code></td><td>Upstream root; the proxy appends the caller's path.</td></tr>
-          <tr><td><code>keyHeader</code> · <code>keyPrefix</code></td><td>Where the key goes — a header name plus optional prefix, or <code>query:&lt;param&gt;</code>.</td></tr>
-          <tr><td><code>extraHeaders</code></td><td>Always-sent headers, like <code>anthropic-version</code>.</td></tr>
-          <tr><td><code>quota</code></td><td>Human-readable free-tier notes, shown in the UI.</td></tr>
-          <tr><td><code>keyFields</code></td><td>Input shape: one <code>api_key</code>, or several (Twilio: SID + token).</td></tr>
-          <tr><td><code>hint</code> · <code>docsUrl</code></td><td>Where to get a key; the official docs link.</td></tr>
-          <tr><td><code>poolable</code></td><td><code>true</code> by default, <code>false</code> for control-plane only (Neon), <code>"conditional"</code> for Supabase and Appwrite.</td></tr>
-        </table>
-        <p>Adding a provider is one JSON row. Adding one at runtime is a pool with your own <span class="inline">base_url</span>, <span class="inline">key_header</span>, and <span class="inline">key_prefix</span>.</p>
-      </section>
-
-      <section id="security">
-        <h2>Security</h2>
-        <ul>
-          <li>Keys are stored <strong>plaintext</strong> in SQLite; the file and its WAL siblings stay out of version control.</li>
-          <li>List endpoints mask keys. Only <span class="inline">GET /keys/:id</span> returns a raw value.</li>
-          <li>There is <strong>no auth</strong> on the API — run it on localhost or behind your own gate. The sandbox binds <span class="inline">127.0.0.1</span> only.</li>
-          <li>Logo paths are validated against <span class="inline">^[a-z0-9-]+\.(svg|png)$</span>; request bodies cap at 1 MB.</li>
-          <li>Upstream responses pass through as text, capped at 4000 chars — treat them as untrusted.</li>
-        </ul>
-      </section>
-
-      <footer>
-        <span>pool-anything docs · kept in step with the code in this repo</span>
-        <span class="right">
-          <a href="index.html">← Landing</a>
-          <a href="index.html#start">Run it</a>
-        </span>
-      </footer>
-
-    </article>
-  </div>
+  <aside class="toc" aria-label="On this page">
+    <div class="toc-h">⇄ On this page</div>
+    <a href="#get-started" class="on">Get started</a>
+    <a href="#what-you-can-do">What you can do</a>
+    <a href="#everywhere">Use pool-anything everywhere</a>
+    <a href="#next-steps">Next steps</a>
+    <a href="#api" class="sub">HTTP API</a>
+    <a href="#rotation" class="sub">Rotation</a>
+    <a href="#proxy" class="sub">Proxy</a>
+    <a href="#keys" class="sub">Keys</a>
+  </aside>
 </div>
 
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="fbrand"><img src="/logo.png" alt="" onerror="this.remove()" /><span><b>pool-anything</b> Docs</span></div>
+      <div class="social"><span>✕</span><span>▣</span></div>
+    </div>
+    <div><h4>Product</h4><ul><li><a href="#overview">Overview</a></li><li><a href="#pool">Quickstart</a></li><li><a href="#proxy">Proxy</a></li><li><a href="index.html#demo">Rotation demo</a></li></ul></div>
+    <div><h4>Help and security</h4><ul><li><a href="#security">Security</a></li><li><a href="#storage">Storage</a></li><li><a href="#scripts">Setup</a></li></ul></div>
+    <div><h4>Learn</h4><ul><li><a href="#how-pooling-works">How pooling works</a></li><li><a href="#registry">Providers</a></li><li><a href="index.html">Landing</a></li></ul></div>
+    <div><h4>Reference</h4><ul><li><a href="#api">HTTP API</a></li><li><a href="#keys">Keys</a></li><li><a href="#layout">Architecture</a></li></ul></div>
+  </div>
+</footer>
+
 <script>
-  (function () {
-    var rail = document.getElementById('rail');
-    var cursor = document.getElementById('railCursor');
-    var links = Array.prototype.slice.call(rail.querySelectorAll('a'));
-    var sections = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+(function () {
+  var sidenav = document.getElementById('sidenav');
+  var scrim = document.getElementById('scrim');
+  document.getElementById('menuBtn').addEventListener('click', function () {
+    sidenav.classList.add('open'); scrim.classList.add('show');
+  });
+  scrim.addEventListener('click', function () {
+    sidenav.classList.remove('open'); scrim.classList.remove('show');
+  });
+  sidenav.addEventListener('click', function (e) {
+    if (e.target.closest('a')) { sidenav.classList.remove('open'); scrim.classList.remove('show'); }
+  });
 
-    function setActive(i) {
-      links.forEach(function (a, j) { a.classList.toggle('on', j === i); });
-      var a = links[i];
-      // centre the copper cursor on the active link, relative to the rail's <ul>
-      var y = a.offsetTop + a.offsetHeight / 2 - 5;
-      cursor.style.transform = 'translateY(' + y + 'px)';
-    }
+  // copy buttons
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-copy');
+      if (navigator.clipboard) navigator.clipboard.writeText(t);
+      var old = b.textContent; b.textContent = '✓';
+      setTimeout(function () { b.textContent = old; }, 1100);
+    });
+  });
+  document.getElementById('copyPage').addEventListener('click', function () {
+    var txt = document.getElementById('article').innerText.slice(0, 20000);
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    this.textContent = '✓ Copied';
+    var self = this;
+    setTimeout(function () { self.textContent = '⧉ Copy page'; }, 1300);
+  });
 
-    function onScroll() {
-      var mark = 110; // just under the sticky bar
-      var active = 0;
-      for (var i = 0; i < sections.length; i++) {
-        if (sections[i] && sections[i].getBoundingClientRect().top <= mark) active = i;
-      }
-      setActive(active);
-    }
-
-    var ticking = false;
-    window.addEventListener('scroll', function () {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(function () { onScroll(); ticking = false; });
-    }, { passive: true });
-    window.addEventListener('resize', onScroll);
-    onScroll();
+  // proper permalink anchors on every section heading (# on hover, click copies link)
+  (function permalinks() {
+    var seen = {};
+    var heads = document.querySelectorAll('main.article h2[id], main.article section[id] > h2');
+    Array.prototype.forEach.call(heads, function (h) {
+      var id = h.id || (h.parentElement && h.parentElement.id);
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      var a = document.createElement('a');
+      a.className = 'h-anchor';
+      a.href = '#' + id;
+      a.setAttribute('aria-label', 'Copy link to this section');
+      a.textContent = '#';
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var url = location.href.split('#')[0] + '#' + id;
+        if (navigator.clipboard) navigator.clipboard.writeText(url);
+        try { history.replaceState(null, '', '#' + id); } catch (err) {}
+        var t = document.getElementById(id);
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        a.classList.add('copied');
+        setTimeout(function () { a.classList.remove('copied'); }, 1200);
+      });
+      h.appendChild(a);
+    });
   })();
+
+  // tabs: surface x variant
+  var ptabs = Array.prototype.slice.call(document.querySelectorAll('[data-ptab]'));
+  var stabs = Array.prototype.slice.call(document.querySelectorAll('[data-stab]'));
+  var curP = 'terminal', curS = 'native';
+  function renderTabs() {
+    ptabs.forEach(function (b) {
+      var on = b.getAttribute('data-ptab') === curP;
+      b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+    });
+    stabs.forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-stab') === curS);
+    });
+    document.querySelectorAll('.tabpanel').forEach(function (p) {
+      p.classList.toggle('on', p.getAttribute('data-panel') === curP && p.getAttribute('data-variant') === curS);
+    });
+  }
+  ptabs.forEach(function (b) { b.addEventListener('click', function () { curP = b.getAttribute('data-ptab'); renderTabs(); }); });
+  stabs.forEach(function (b) { b.addEventListener('click', function () { curS = b.getAttribute('data-stab'); renderTabs(); }); });
+  renderTabs();
+
+  // accordion
+  document.querySelectorAll('.acc-btn').forEach(function (b) {
+    b.addEventListener('click', function () { b.parentElement.classList.toggle('open'); });
+  });
+
+  // feedback
+  document.querySelectorAll('[data-fb]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var group = b.parentElement.querySelectorAll('[data-fb]');
+      group.forEach(function (x) { x.classList.remove('picked'); });
+      b.classList.add('picked');
+    });
+  });
+
+  // expandable parents: label link navigates, chevron button only toggles
+  document.querySelectorAll('.side-item .chev-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      var sub = btn.closest('.side-item').querySelector(':scope > .sub-list');
+      if (sub) sub.hidden = expanded;
+    });
+  });
+
+  // search filters left nav (group-aware, auto-expands parents on match)
+  var q = document.getElementById('topSearch');
+  var links = Array.prototype.slice.call(sidenav.querySelectorAll('.side-item > a, .nav-row > a'));
+  var allItems = Array.prototype.slice.call(sidenav.querySelectorAll('.side-item'));
+  var noRes = document.getElementById('noResults');
+  q.addEventListener('input', function () {
+    var s = q.value.trim().toLowerCase(); var n = 0;
+    allItems.forEach(function (li) {
+      var kids = li.querySelectorAll(':scope > .sub-list .side-item');
+      if (kids.length) {
+        var anyHit = false;
+        Array.prototype.forEach.call(kids, function (k) {
+          var hit = !s || (k.getAttribute('data-title') || k.textContent).toLowerCase().indexOf(s) !== -1;
+          k.style.display = hit ? '' : 'none'; if (hit) { anyHit = true; n++; }
+        });
+        var selfHit = !s || (li.getAttribute('data-title') || '').toLowerCase().indexOf(s) !== -1;
+        li.style.display = (anyHit || selfHit || !s) ? '' : 'none';
+        var btn = li.querySelector(':scope > .nav-row > .chev-btn');
+        var sub = li.querySelector(':scope > .sub-list');
+        if (btn && sub) { btn.setAttribute('aria-expanded', String(!s || anyHit || selfHit)); sub.hidden = !!s && !(anyHit || selfHit); }
+        return;
+      }
+      var hit2 = !s || (li.getAttribute('data-title') || li.textContent).toLowerCase().indexOf(s) !== -1;
+      li.style.display = hit2 ? '' : 'none'; if (hit2) n++;
+    });
+    sidenav.querySelectorAll('#navigation-items > div').forEach(function (group) {
+      var vis = Array.prototype.some.call(group.querySelectorAll('.side-item'), function (li) { return li.style.display !== 'none'; });
+      group.style.display = vis ? '' : 'none';
+    });
+    noRes.style.display = n ? 'none' : 'block';
+  });
+  q.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      var first = links.filter(function (a) { return a.closest('.side-item').style.display !== 'none'; })[0];
+      if (first) location.hash = first.getAttribute('href');
+    }
+    if (e.key === 'Escape') { q.value = ''; q.dispatchEvent(new Event('input')); q.blur(); }
+  });
+  // ⌘K / Ctrl+K focuses search from anywhere on the page
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      q.focus();
+      q.select();
+    }
+  });
+
+  // selecting: scrollspy sets data-active + aria-current, keeps row centered
+  var spyIds = ['overview', 'get-started', 'what-you-can-do', 'everywhere', 'next-steps', 'pool', 'run', 'scripts', 'how-pooling-works', 'storage', 'api', 'rotation', 'proxy', 'keys', 'layout', 'registry', 'security'];
+  var spySecs = spyIds.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  var sideLinks = links;
+  var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var sideViewport = document.getElementById('sideViewport');
+  var lastActive = null;
+  function centerInSidebar(li) {
+    if (!li || !sideViewport) return;
+    var vRect = sideViewport.getBoundingClientRect();
+    var iRect = li.getBoundingClientRect();
+    if (iRect.top >= vRect.top && iRect.bottom <= vRect.bottom) return;
+    var top = iRect.top - vRect.top + sideViewport.scrollTop;
+    sideViewport.scrollTop = top - vRect.height / 2 + iRect.height / 2;
+  }
+  function setActive(active) {
+    if (active === lastActive) return;
+    lastActive = active;
+    function rowDepth(li) {
+      var d = 0, p = li.parentElement;
+      while (p) { if (p.classList && p.classList.contains('side-item')) d++; p = p.parentElement; }
+      return d;
+    }
+    // deepest matching row wins, so exactly one row ever selects
+    var winner = null, winnerDepth = -1;
+    allItems.forEach(function (li) {
+      var a = li.querySelector(':scope > a, :scope > .nav-row > a');
+      var hit = !!a && a.getAttribute('href') === '#' + active && li.style.display !== 'none';
+      li.setAttribute('data-active', 'false');
+      if (a) a.removeAttribute('aria-current');
+      if (hit && rowDepth(li) > winnerDepth) { winner = li; winnerDepth = rowDepth(li); }
+    });
+    if (winner) {
+      winner.setAttribute('data-active', 'true');
+      var wa = winner.querySelector(':scope > a, :scope > .nav-row > a');
+      if (wa) wa.setAttribute('aria-current', 'page');
+      // auto-expand the parent group holding the active row
+      var parent = winner.parentElement && winner.parentElement.closest('.side-item');
+      if (parent) {
+        var b = parent.querySelector(':scope > .nav-row > .chev-btn');
+        var s = parent.querySelector(':scope > .sub-list');
+        if (b && s) { b.setAttribute('aria-expanded', 'true'); s.hidden = false; }
+      }
+      centerInSidebar(winner);
+    }
+  }
+  function onScroll() {
+    var mark = 140, active = spySecs[0] ? spySecs[0].id : null;
+    for (var i = 0; i < spySecs.length; i++) {
+      if (spySecs[i].getBoundingClientRect().top <= mark) active = spySecs[i].id;
+    }
+    // bottom of page: recognize the last section even if its top never crosses the mark
+    try {
+      var doc = document.documentElement;
+      if (window.innerHeight + window.scrollY >= doc.scrollHeight - 24) {
+        active = spySecs[spySecs.length - 1].id;
+      }
+    } catch (e) {}
+    setActive(active);
+    tocLinks.forEach(function (a) {
+      var h = a.getAttribute('href');
+      a.classList.toggle('on', h === '#' + active);
+    });
+    var tabMap = { overview: 0, pool: 1, rotation: 2, proxy: 3, api: 4, registry: 5, security: 6, layout: 7 };
+    document.querySelectorAll('.tabs a').forEach(function (a, idx) {
+      a.classList.toggle('on', ('#' + active) === a.getAttribute('href') || (active && tabMap[active] === idx));
+    });
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(function () { onScroll(); ticking = false; });
+  }, { passive: true });
+  // fade scrollbar thumb while the sidebar itself scrolls
+  var sideT = null;
+  sideViewport.addEventListener('scroll', function () {
+    sideViewport.classList.add('scrolling');
+    clearTimeout(sideT); sideT = setTimeout(function () { sideViewport.classList.remove('scrolling'); }, 400);
+  }, { passive: true });
+  // initial: honor location.hash, then center the row (Mintlify initial-scroll)
+  (function initSidebarScroll() {
+    try {
+      var h = (location.hash || '#overview').slice(1);
+      if (document.getElementById(h)) setActive(h); else onScroll();
+      var li = sidenav.querySelector('.side-item[data-active="true"]');
+      if (li) centerInSidebar(li);
+      else onScroll();
+    } catch (e) { onScroll(); }
+  })();
+})();
 </script>
 </body>
 </html>
