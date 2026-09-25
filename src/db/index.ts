@@ -1,15 +1,10 @@
-import { DatabaseSync } from "node:sqlite";
-import fs from "node:fs";
-import path from "node:path";
+import { sdb } from "../pool/index.js";
 
-export const DB_PATH =
-  process.env.LOCAL_DB_PATH ?? path.join(process.cwd(), "data", "pool-anything.db");
+export { DB_PATH } from "../pool/index.js";
 
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-
-export const db = new DatabaseSync(DB_PATH);
-
-db.exec(`
+// Secondary demo table (exercises the D1 path behind /api/db/ping).
+// Uses the shared pool connection: one file, one handle.
+sdb.exec(`
   CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -17,7 +12,7 @@ db.exec(`
   );
 `);
 
-export function dbPing(): { path: string; items: number } {
-  const row = db.prepare("SELECT COUNT(*) AS n FROM items").get() as { n: number };
-  return { path: DB_PATH, items: row.n };
+export function dbPing(): { ok: boolean } {
+  sdb.prepare("SELECT COUNT(*) AS n FROM items").get();
+  return { ok: true };
 }

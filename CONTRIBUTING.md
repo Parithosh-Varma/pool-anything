@@ -22,6 +22,7 @@ Requires Node.js >= 22.5 (for the built-in `node:sqlite` module).
    - Provider definitions live in `data/providers.json` — see below.
 3. Test your change:
    - `npm run typecheck`
+   - `npm test`
    - `npm run build`
    - Manually verify in the UI (`npm run dev`) — exercise the flow you touched.
 4. Open a pull request using the template.

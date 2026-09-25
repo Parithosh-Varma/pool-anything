@@ -511,6 +511,8 @@ const shellCss = `
   .shell.collapsed { --sbw:57px; }
   .sidebar { background:#fff; border-right:1px solid #e5e5e5; display:flex; flex-direction:column; min-height:100vh; height:100vh; position:sticky; top:0; overflow:hidden; white-space:nowrap; }
   .sb-header { height:58px; flex-shrink:0; display:flex; align-items:center; gap:4px; border-bottom:1px solid #e5e5e5; padding:0 12px; overflow:hidden; }
+  .sb-acct { flex:1; min-width:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 12px; border-radius:8px; border:0; background:transparent; font-size:14px; }
+  .sb-acct span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
   .sb-logo { width:40px; height:40px; flex-shrink:0; display:grid; place-items:center; overflow:hidden; }
   .sb-logo img { width:36px; height:36px; object-fit:contain; }
   .sb-nav { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:12px 11px 12px 14px; scrollbar-width:none; }
@@ -525,10 +527,11 @@ const shellCss = `
   .collapse-btn:hover { background:#f0f0f0; color:#111; }
   .shell.collapsed:not(.peeking) .lbl { display:none; }
   .shell.collapsed:not(.peeking) .sb-header { padding:0 8px; justify-content:center; }
+  .shell.collapsed:not(.peeking) .sb-acct { display:none; }
   .shell.collapsed:not(.peeking) .mi { justify-content:center; padding:0; }
   .shell.peeking { --sbw:260px; }
-  .shell .lbl { opacity:1; transition:opacity 150ms ease; }
-  .shell.closing .lbl { opacity:0; }
+  .shell .lbl, .shell .sb-acct { opacity:1; transition:opacity 150ms ease; }
+  .shell.closing .lbl, .shell.closing .sb-acct { opacity:0; }
   @keyframes pageIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
   .content { animation:pageIn .3s ease both; }
   @media (max-width:720px) { .shell { --sbw:57px; } .lbl { display:none; } }`;
@@ -539,7 +542,7 @@ function shellNav(active: string): string {
     return `<a class="mi${href === active ? " active" : ""}" href="${href}"${ext ? ' target="_blank" rel="noopener"' : ""}><span class="ic">${icon}</span><span class="lbl">${label}</span></a>`;
   };
   return `<aside class="sidebar">
-  <div class="sb-header"><a class="sb-logo" aria-label="pool-anything home" href="/"><img src="/logo.png" alt="pool-anything" width="36" height="36" /></a></div>
+  <div class="sb-header"><a class="sb-logo" aria-label="pool-anything home" href="/"><img src="/logo.png" alt="pool-anything" width="36" height="36" /></a><div class="sb-acct" title="Local account"><span>Local account</span></div></div>
   <nav class="sb-nav">${item("/", ICONS.home, "Home")}${item("/pools", ICONS.pools, "Pools")}${item("/keys", ICONS.keys, "API key manager")}${item("/playground", ICONS.playground, "Playground")}${item("/analytics", ICONS.analytics, "Analytics")}${item(DOCS_URL, ICONS.docs, "Docs")}</nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
 </aside><script>
@@ -1086,7 +1089,7 @@ function collectMessages(){
   if(p.system.trim())out.push({role:'system',content:p.system});
   document.getElementById('turns').childNodes.forEach(n=>{
     if(n.className&&n.className.indexOf('uturn')>=0){
-      const t=n.querySelector('textarea').value;
+      const t=n.dataset.locked?(n.dataset.content||''):n.querySelector('textarea').value;
       if(t.trim())out.push({role:'user',content:t});
     }else if(n.className&&n.className.indexOf('aturn')>=0){
       out.push({role:'assistant',content:n.dataset.content||''});
@@ -1103,8 +1106,19 @@ function addUserTurn(text){
   document.getElementById('turns').appendChild(d);
   return t;
 }
+function lockComposers(){
+  document.getElementById('turns').childNodes.forEach(n=>{
+    if(n.className&&n.className.indexOf('uturn')>=0&&!n.dataset.locked){
+      const t=n.querySelector('textarea');if(!t)return;
+      n.dataset.locked='1';n.dataset.content=t.value;
+      n.removeChild(t);
+      const b=document.createElement('div');b.className='body';b.textContent=n.dataset.content;
+      n.appendChild(b);
+    }
+  });
+}
 function addAssistantTurn(text,isErr){
-  const d=document.createElement('div');d.className='msg assistant'+(isErr?' err':'');
+  const d=document.createElement('div');d.className='msg assistant aturn'+(isErr?' err':'');
   d.dataset.content=text;
   d.innerHTML='<span class="who">ASSISTANT</span>';
   const b=document.createElement('div');b.className='body';b.textContent=text;
@@ -1228,9 +1242,10 @@ async function send(){
   if(!p.model){err('Enter a model id.');return;}
   const pid=Number(document.getElementById('pool').value);
   btn.disabled=true;
+  lockComposers();
   try{
     const r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:p.path,method:'POST',body:{model:p.model,messages:msgs,temperature:p.temp,max_tokens:p.maxtokens,top_p:p.topp}})}));
-    if(r.error){addAssistantTurn(r.error,true);return;}
+    if(r.error){addAssistantTurn(r.error,true);addUserTurn('').focus();return;}
     let text=r.body||'';
     try{
       const d=JSON.parse(text);
@@ -1238,6 +1253,7 @@ async function send(){
       if(typeof text!=='string')text=JSON.stringify(text,null,2);
     }catch{}
     addAssistantTurn(text,r.status<200||r.status>=300);
+    addUserTurn('').focus();
   }finally{btn.disabled=false;updateCode();}
 }
 async function init(){

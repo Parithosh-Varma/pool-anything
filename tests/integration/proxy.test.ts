@@ -17,6 +17,11 @@ const echo = http.createServer((req, res) => {
   req.on("data", (c) => (s += c));
   req.on("end", () => {
     const key = req.headers["x-api-key"] as string;
+    if (req.url === "/redirect") {
+      res.writeHead(302, { location: "http://169.254.169.254/latest/meta-data/" });
+      res.end("redirect");
+      return;
+    }
     if (key === "ONE") {
       res.writeHead(429, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: "rate limited" }));
@@ -49,6 +54,27 @@ test("forward rotates and fails over 429 to next key", async () => {
 test("second forward skips cooling key", async () => {
   const r = await forward(pid, { path: "/v1/hi2", method: "GET" });
   assert.ok("key_id" in r && r.label === "key 2");
+});
+
+test("redirects are not followed and do not cool the key", async () => {
+  sdb.prepare("UPDATE pool_keys SET cooldown_until = 0 WHERE pool_id = ?").run(pid);
+  const r = await forward(pid, { path: "/redirect", method: "GET" });
+  assert.equal(r.status, 400);
+  assert.match((r as { error: string }).error, /redirect/i);
+  const rows = sdb.prepare("SELECT cooldown_until AS c FROM pool_keys WHERE pool_id = ?").all(pid) as { c: number }[];
+  assert.ok(rows.every((k) => k.c <= Date.now()), "no key cooled by a redirect");
+});
+
+test("invalid proxy input is rejected before keys are touched", async () => {
+  sdb.prepare("UPDATE pool_keys SET cooldown_until = 0 WHERE pool_id = ?").run(pid);
+  const before = sdb.prepare("SELECT cursor AS c FROM pools WHERE id = ?").get(pid) as { c: number };
+  const r = await forward(pid, { path: "/has space", method: "GET" });
+  assert.equal(r.status, 400);
+  assert.match((r as { error: string }).error, /path/i);
+  const after = sdb.prepare("SELECT cursor AS c FROM pools WHERE id = ?").get(pid) as { c: number };
+  assert.equal(after.c, before.c, "cursor must not advance on rejected input");
+  const rows = sdb.prepare("SELECT cooldown_until AS c FROM pool_keys WHERE pool_id = ?").all(pid) as { c: number }[];
+  assert.ok(rows.every((k) => k.c <= Date.now()), "no key cooled by bad input");
 });
 
 test.after(() => echo.close());

@@ -1,4 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Custom Replicate tile - original pool-anything icon set -->
-<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-<path d="M20 32L44 44L44 20Z"/><circle cx="20" cy="32" r="4.5" fill="currentColor" stroke="none"/><circle cx="44" cy="44" r="4.5" fill="currentColor" stroke="none"/><circle cx="44" cy="20" r="4.5" fill="currentColor" stroke="none"/></svg>
+<svg fill="currentColor" fill-rule="evenodd" height="1em" style="flex:none;line-height:1" viewBox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><title>Replicate</title><path d="M22 10.552v2.26h-7.932V22H11.54V10.552H22zM22 2v2.264H4.528V22H2V2h20zm0 4.276V8.54H9.296V22H6.768V6.276H22z"></path></svg>

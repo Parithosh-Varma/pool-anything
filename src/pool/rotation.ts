@@ -1,4 +1,4 @@
-import { sdb, QUOTA, getPool, mask } from "./index.js";
+import { sdb, getPool, mask, quotaForProvider, quotaWindowFilter } from "./index.js";
 
 export type KeyRow = {
   key_id: number;
@@ -8,24 +8,20 @@ export type KeyRow = {
   used: number;
 };
 
-function quotaFor(provider: string): number | null {
-  return QUOTA[provider] ?? null;
-}
-
-/** Eligible keys: not cooling down, quota not exhausted. Ordered by latency (unknown first), id. */
+/** Eligible keys: not cooling down, quota not exhausted (within the quota window). Ordered by latency (unknown first), id. */
 export function eligibleKeys(poolId: number): (KeyRow & { masked: string })[] {
   const pool = getPool(poolId);
   if (!pool) return [];
   const now = Date.now();
+  const { limit: quota, window } = quotaForProvider(pool.provider);
   const rows = sdb
     .prepare(
       `SELECT k.id AS key_id, k.label, k.api_key, k.info, COALESCE(SUM(u.tokens),0) AS used
-       FROM pool_keys k LEFT JOIN usage u ON u.key_id = k.id
+       FROM pool_keys k LEFT JOIN usage u ON u.key_id = k.id${quotaWindowFilter(window)}
        WHERE k.pool_id = ? AND k.cooldown_until <= ?
        GROUP BY k.id ORDER BY k.latency_ms ASC, k.id ASC`
     )
     .all(poolId, now) as (KeyRow & { latency_ms: number | null })[];
-  const quota = quotaFor(pool.provider);
   return rows
     .filter((k) => quota === null || k.used < quota)
     .map(({ latency_ms: _l, ...k }) => ({ ...k, masked: mask(k.api_key) }));
@@ -57,7 +53,18 @@ export function nextKey(poolId: number) {
   return masked;
 }
 
-export function recordUsage(poolId: number, tokens: number) {
+export function recordUsage(poolId: number, tokens: number, keyId?: number) {
+  if (keyId !== undefined) {
+    // Attribute to a specific key without advancing the rotation cursor.
+    const pool = getPool(poolId);
+    if (!pool) return { error: "pool not found" } as const;
+    const row = sdb
+      .prepare("SELECT id, label, api_key FROM pool_keys WHERE id = ? AND pool_id = ?")
+      .get(keyId, poolId) as { id: number; label: string; api_key: string } | undefined;
+    if (!row) return { error: "key not found" } as const;
+    sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, keyId, tokens);
+    return { key_id: row.id, label: row.label, masked: mask(row.api_key), tokens };
+  }
   const sel = nextKey(poolId);
   if ("error" in sel) return sel;
   sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, sel.key_id, tokens);

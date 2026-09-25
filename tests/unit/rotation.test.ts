@@ -56,3 +56,29 @@ test("quota-exhausted key is skipped (cartesia 20k)", () => {
   const next2 = nextKey(pid) as { label: string };
   assert.equal(next2.label, "key 2");
 });
+
+test("recordUsage with key_id attributes without rotating", () => {
+  const pid = mkPool("custom", "attr");
+  const a = mkKey(pid, "key 1");
+  const b = mkKey(pid, "key 2");
+  const first = nextKey(pid) as { label: string; key_id: number };
+  assert.equal(first.label, "key 1");
+  // Attribute 100 tokens to key 2 explicitly: cursor must not advance.
+  const r = recordUsage(pid, 100, b) as { label: string; key_id: number; tokens: number };
+  assert.equal(r.key_id, b);
+  assert.equal(r.tokens, 100);
+  const after = nextKey(pid) as { label: string };
+  assert.equal(after.label, "key 2", "cursor still points at key 2");
+  const perKey = (sdb.prepare("SELECT key_id, SUM(tokens) AS t FROM usage WHERE pool_id = ? GROUP BY key_id").all(pid) as { key_id: number; t: number }[]);
+  assert.equal(perKey.length, 1);
+  assert.equal(perKey[0].key_id, b);
+  assert.equal(perKey[0].t, 100);
+  assert.ok(a !== b);
+});
+
+test("recordUsage with unknown key_id errors", () => {
+  const pid = mkPool("custom", "attr-err");
+  mkKey(pid, "key 1");
+  assert.equal((recordUsage(pid, 10, 999999) as { error: string }).error, "key not found");
+  assert.equal((recordUsage(999999, 10, 1) as { error: string }).error, "pool not found");
+});
