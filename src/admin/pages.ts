@@ -135,6 +135,8 @@ export const page = `<!doctype html>
   details.cat > summary::-webkit-details-marker { display:none; }
   details.cat > summary .chev { color:var(--subtle); font-size:10px; transition:transform 200ms; }
   details.cat[open] > summary .chev { transform:rotate(90deg); }
+  details.cat > summary:hover, details.browse > summary:hover { background:#f5f5f5; border-radius:8px; }
+  details.cat > summary:focus-visible, details.browse > summary:focus-visible, .tips-banner > summary:focus-visible { outline:2px solid #111; outline-offset:2px; border-radius:8px; }
   .cat-grid { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; padding-bottom:4px; }
   .cat-empty { font-size:12px; color:var(--subtle); padding:4px 2px 12px; }
   .conn-empty { font-size:13px; color:var(--subtle); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:14px; }
@@ -155,7 +157,7 @@ export const page = `<!doctype html>
   .qlinks a:hover { background:#ececec; }
   .qlinks a:hover .t { text-decoration:underline; text-underline-offset:2px; }
   .qlinks a .go { margin-left:auto; color:var(--subtle); font-size:12px; transition:transform 150ms ease; }
-  .qlinks a:hover .go { transform:translateX(3px); color:#111; }
+  .qlinks a:hover .go, .qlinks a:focus-visible .go { transform:translateX(4px); color:#111; }
   .qlinks a:focus-visible { outline:2px solid #111; outline-offset:-2px; }
   .qlinks small { color:var(--subtle); font-weight:400; }
   .analytics-head { display:flex; align-items:center; gap:10px; }
@@ -196,7 +198,7 @@ export const page = `<!doctype html>
   .stat-list .srow:first-child { border-top:0; }
   .stat-list .sl { color:var(--subtle); }
   .stat-list .sv { margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums; }
-  .stat-list .sv.calm { color:#a3a3a3; font-weight:500; }
+  .stat-list .sv.calm { color:var(--subtle); font-weight:500; }
   .stat-list .sd { font-size:12px; color:var(--subtle); }
   .tips { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-size:13px; display:flex; flex-direction:column; gap:8px; }
   .tips b { font-size:13px; }
@@ -410,8 +412,8 @@ export const page = `<!doctype html>
         connStats[st.provider] = cur;
       }
     } catch { connectedIds = new Set(); connStats = {}; }
-    // Browse starts open when nothing is connected yet, collapsed otherwise.
-    browseAll.open = connectedIds.size === 0;
+    // Browse stays collapsed by default; only expand on explicit user action (caret click or typing in search).
+    browseAll.open = false;
     renderHome('');
   }
   function cardButton(p, i, large) {
@@ -466,7 +468,8 @@ export const page = `<!doctype html>
       total += ps.length; shown += vis.length;
       if (f && vis.length === 0) return;
       const det = document.createElement('details'); det.className = 'cat';
-      det.open = !window.matchMedia('(max-width: 700px)').matches;
+      // Collapsed by default; expand only when filtering so matches are visible, otherwise wait for explicit caret click.
+      det.open = Boolean(f);
       const sum = document.createElement('summary');
       const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▶';
       sum.appendChild(chev);
