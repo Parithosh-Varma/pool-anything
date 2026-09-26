@@ -151,8 +151,11 @@ export const page = `<!doctype html>
   #browseAll { border-top:1px solid #f0f0f0; padding-top:6px; }
   .qlinks { display:flex; flex-direction:column; border-top:1px solid #f0f0f0; padding-top:6px; }
   .qlinks a { display:flex; align-items:center; gap:10px; padding:9px 2px; font-size:13.5px; font-weight:500; color:#111; text-decoration:none; border-radius:8px; }
-  .qlinks a:hover { background:#f5f5f5; }
-  .qlinks a .go { margin-left:auto; color:var(--subtle); font-size:12px; }
+  .qlinks a:hover { background:#ececec; }
+  .qlinks a:hover .t { text-decoration:underline; text-underline-offset:2px; }
+  .qlinks a .go { margin-left:auto; color:var(--subtle); font-size:12px; transition:transform 150ms ease; }
+  .qlinks a:hover .go { transform:translateX(3px); color:#111; }
+  .qlinks a:focus-visible { outline:2px solid #111; outline-offset:-2px; }
   .qlinks small { color:var(--subtle); font-weight:400; }
   .analytics-head { display:flex; align-items:center; gap:10px; }
   .analytics-head h2 { font-size:15px; font-weight:600; margin:0; }
@@ -274,14 +277,14 @@ export const page = `<!doctype html>
     <section aria-label="Quick links">
       <p class="sec-label">Quick links</p>
       <div class="qlinks">
-        <a href="/pools">Pools <small>usage per pool</small><span class="go">→</span></a>
-        <a href="/keys">API key manager <small>add · view · rotate</small><span class="go">→</span></a>
-        <a href="/playground">Playground <small>try a pooled key</small><span class="go">→</span></a>
+        <a href="/pools"><span class="t">Pools</span> <small>usage per pool</small><span class="go">→</span></a>
+        <a href="/keys"><span class="t">API key manager</span> <small>add · view · rotate</small><span class="go">→</span></a>
+        <a href="/playground"><span class="t">Playground</span> <small>try a pooled key</small><span class="go">→</span></a>
       </div>
     </section>
     </div>
     <div class="analytics" id="analytics">
-      <div class="analytics-head"><h2>Analytics</h2><div class="analytics-controls"><span class="range-pill">◷ Last 14 days</span><button class="icon-btn" id="anaRefresh" type="button" title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></div>
+      <div class="analytics-head"><h2>Analytics</h2><div class="analytics-controls"><span class="range-pill">◷ Last 14 days</span><button class="icon-btn" id="gsReopen" type="button" title="Show getting started" aria-label="Show getting started" hidden>?</button><button class="icon-btn" id="anaRefresh" type="button" title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></div>
       <details class="tips-banner" id="getStarted" hidden>
         <summary><span class="chev">▶</span><b>Getting started</b><button class="gs-x" id="gsHide" type="button" title="Dismiss" aria-label="Dismiss getting started">✕</button></summary>
         <ol>
@@ -597,11 +600,25 @@ export const page = `<!doctype html>
       const a = await j(await fetch('/api/analytics'));
       const grid = document.getElementById('homeGrid');
       const gs = document.getElementById('getStarted');
+      const gsReopen = document.getElementById('gsReopen');
+      const req0 = (a.requests || 0) === 0;
       const dismissed = (() => { try { return localStorage.getItem('gs-dismissed') === '1'; } catch { return false; } })();
-      // Prominent only with zero usage; a collapsed banner under 10 requests; hidden after.
+      // Zero usage always shows it (fresh workspace recovers automatically);
+      // otherwise a collapsed banner under 10 requests, hidden beyond that.
+      // Dismissal persists in localStorage; the ? control reopens it anytime.
       if (gs) {
-        if (dismissed || (a.requests || 0) >= 10) gs.hidden = true;
-        else { gs.hidden = false; gs.open = (a.requests || 0) === 0; }
+        if (req0) { gs.hidden = false; gs.open = true; }
+        else if (dismissed || (a.requests || 0) >= 10) gs.hidden = true;
+        else { gs.hidden = false; gs.open = false; }
+      }
+      if (gsReopen) {
+        gsReopen.hidden = !(!req0 && gs.hidden);
+        gsReopen.onclick = () => {
+          try { localStorage.removeItem('gs-dismissed'); } catch {}
+          gs.hidden = false; gs.open = true;
+          gsReopen.hidden = true;
+          gs.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        };
       }
       const gsHide = document.getElementById('gsHide');
       if (gsHide) gsHide.onclick = (e) => {
