@@ -77,10 +77,10 @@ export const page = `<!doctype html>
   h1 { font-size:clamp(22px, 5vw, 30px); font-weight:600; margin:0; text-align:center; }
   .hero-logo { width:40px; height:40px; object-fit:contain; flex-shrink:0; }
   .hero-row { display:flex; align-items:center; justify-content:center; gap:4px; }
-  .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:6px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
-  .search-box { display:flex; align-items:center; gap:0; background:#f5f5f5; border:1px solid var(--line); border-radius:12px; height:40px; padding:0 4px 0 10px; box-shadow:0 4px 12px rgba(0,0,0,.08); }
+  .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px; box-shadow:none; }
+  .search-box { display:flex; align-items:center; gap:0; background:#f5f5f5; border:1px solid var(--line); border-radius:9px; height:36px; padding:0 4px 0 10px; box-shadow:none; }
   .search-box svg { flex-shrink:0; color:var(--subtle); }
-  .search-box input { flex:1; min-width:0; border:0; outline:0; background:transparent; font-size:16px; padding:0 16px; }
+  .search-box input { flex:1; min-width:0; border:0; outline:0; background:transparent; font-size:14px; padding:0 12px; }
   .kbd { display:flex; gap:4px; padding-right:10px; }
   .kbd kbd { height:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-family:inherit; background:#fff; color:#525252; border:1px solid #e5e5e5; border-radius:4px; }
   #results { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
@@ -110,7 +110,33 @@ export const page = `<!doctype html>
   .perr { color:#b00; font-size:13px; min-height:18px; }
   button:focus-visible, a:focus-visible { outline:2px solid #111; outline-offset:2px; }
   input:focus-visible, select:focus-visible { outline:none; }
-  .search-box:focus-within { border-color:transparent; box-shadow:0 4px 12px rgba(0,0,0,.08), 0 0 0 1.5px rgba(59,130,246,.5); }
+  .search-box:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px rgba(59,130,246,.4); }
+  .hero-row, .search-card { max-width:480px; }
+  .sec-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); margin:0 0 8px; }
+  .conn-grid { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .prov-lg { display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; min-height:104px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; cursor:pointer; font-size:12px; font-weight:600; text-align:left; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
+  .prov-lg:hover { background:#f5f5f5; }
+  .prov-lg .top { display:flex; align-items:center; gap:8px; width:100%; }
+  .prov-lg img { width:28px; height:28px; }
+  .prov-lg .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prov-lg .meta { font-size:11px; color:var(--subtle); font-weight:500; font-variant-numeric:tabular-nums; }
+  .meter { height:4px; border-radius:999px; background:#eee; width:100%; overflow:hidden; }
+  .meter i { display:block; height:100%; background:#3b82f6; border-radius:999px; }
+  details.browse { width:100%; background:transparent; border:0; }
+  details.browse > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#111; padding:10px 2px; user-select:none; }
+  details.browse > summary::-webkit-details-marker { display:none; }
+  details.browse > summary .chev { color:var(--subtle); font-size:11px; transition:transform 200ms; }
+  details.browse[open] > summary .chev { transform:rotate(90deg); }
+  details.browse > summary .count { font-size:11px; font-weight:500; color:var(--subtle); }
+  details.cat { width:100%; margin:2px 0 10px; }
+  details.cat > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:8px 2px; user-select:none; }
+  details.cat > summary::-webkit-details-marker { display:none; }
+  details.cat > summary .chev { color:var(--subtle); font-size:10px; transition:transform 200ms; }
+  details.cat[open] > summary .chev { transform:rotate(90deg); }
+  .cat-grid { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; padding-bottom:4px; }
+  .cat-empty { font-size:12px; color:var(--subtle); padding:4px 2px 12px; }
+  .conn-empty { font-size:13px; color:var(--subtle); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:14px; }
+  .conn-empty b { color:#111; }
   @media (max-width:520px) { .hero-row { flex-wrap:wrap; text-align:center; } h1 { font-size:22px; } .analytics-head { flex-wrap:wrap; row-gap:8px; } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation:none !important; transition:none !important; }
@@ -202,7 +228,16 @@ export const page = `<!doctype html>
       </div>
     </div>
     <div class="home-grid" id="homeGrid">
-    <div id="results"></div>
+    <div id="homeLeft" style="width:100%;display:flex;flex-direction:column;gap:20px;min-width:0">
+    <section id="connectedSection" aria-label="Connected providers">
+      <p class="sec-label">Connected providers</p>
+      <div class="conn-grid" id="connected"></div>
+    </section>
+    <details class="browse" id="browseAll">
+      <summary><span class="chev">▶</span>Browse all providers <span class="count" id="browseCount"></span></summary>
+      <div id="browseCats"></div>
+    </details>
+    </div>
     <div class="analytics" id="analytics">
       <div class="analytics-head"><h2>Analytics</h2><div class="analytics-controls"><span class="range-pill">◷ Last 14 days</span><button class="icon-btn" id="anaRefresh" type="button" title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></div>
       <div class="analytics-grid">
@@ -268,29 +303,132 @@ export const page = `<!doctype html>
     finishCollapse(() => shell.classList.remove('peeking'));
   });
   const input = document.getElementById('search');
-  const results = document.getElementById('results');
+  const connBox = document.getElementById('connected');
+  const browseAll = document.getElementById('browseAll');
+  const browseCats = document.getElementById('browseCats');
+  const browseCount = document.getElementById('browseCount');
   let providers = [];
+  const CATS = [
+    ['AI Models', ['groq','openrouter','gemini','mistral','cohere','fireworks','huggingface','together','replicate','openai','anthropic','perplexity','anyscale']],
+    ['Voice & Speech', ['elevenlabs','deepgram','cartesia']],
+    ['Search & Data Retrieval', ['tavily','brave-search','serper','scrapingbee']],
+    ['Email & Messaging', ['resend','sendgrid','mailgun','postmark','twilio']],
+    ['Business / Maps / Weather', ['finnhub','mapbox','googlemaps','openweather']],
+    ['Infrastructure / Database', ['supabase','neon','upstash','turso','appwrite','cloudflare']],
+  ];
+  const CUSTOM_ID = 'custom';
+  let connectedIds = new Set();
+  let connStats = {};
   async function j(r) { const t = await r.text(); try { return JSON.parse(t); } catch { return t; } }
+  function provById(id) { return providers.find(p => p.id === id); }
+  function matches(p, f) {
+    if (!f) return true;
+    return p.name.toLowerCase().includes(f) || p.id.includes(f);
+  }
+  function logoImg(p, size) {
+    if (!p.logoFile) return null;
+    const img = document.createElement('img'); img.alt = '';
+    img.src = '/logos/' + p.logoFile + '?v=${LOGO_V}';
+    img.onerror = () => img.remove();
+    return img;
+  }
   async function loadProviders() {
     providers = await j(await fetch('/api/providers'));
-    renderProviders('');
-  }
-  function renderProviders(f) {
-    f = (f || '').toLowerCase();
-    results.innerHTML = '';
-    const list = !f ? providers : providers.filter(p => p.name.toLowerCase().includes(f) || p.id.includes(f));
-    list.forEach((p, i) => {
-      const b = document.createElement('button');
-      b.className = 'prov'; b.type = 'button'; b.title = p.name;
-      b.style.animationDelay = Math.min(i * 35, 350) + 'ms';
-      if (p.logoFile) {
-        const img = document.createElement('img'); img.alt = ''; img.src = '/logos/' + p.logoFile + '?v=${LOGO_V}';
-        img.onerror = () => img.remove(); b.appendChild(img);
+    // Connected = providers with pools holding keys (+ per-provider usage for status).
+    try {
+      const pools = await j(await fetch('/api/pools'));
+      const withKeys = [];
+      for (const pl of (Array.isArray(pools) ? pools : [])) {
+        try {
+          const s = await j(await fetch('/api/pools/' + pl.id));
+          if (s && !s.error && (s.keys || 0) > 0) withKeys.push(s);
+        } catch {}
       }
+      connectedIds = new Set(withKeys.map(s => s.provider));
+      connStats = {};
+      for (const st of withKeys) {
+        const cur = connStats[st.provider] || { keys: 0, used: 0, quota: null };
+        cur.keys += st.keys || 0;
+        cur.used += (st.usedInWindow ?? st.used) || 0;
+        if (st.quota !== null && st.quota !== undefined) cur.quota = (cur.quota || 0) + st.quota * (st.keys || 0);
+        connStats[st.provider] = cur;
+      }
+    } catch { connectedIds = new Set(); connStats = {}; }
+    // Browse starts open when nothing is connected yet, collapsed otherwise.
+    browseAll.open = connectedIds.size === 0;
+    renderHome('');
+  }
+  function cardButton(p, i, large) {
+    const b = document.createElement('button');
+    b.className = large ? 'prov-lg' : 'prov'; b.type = 'button'; b.title = p.name;
+    b.style.animationDelay = Math.min(i * 35, 350) + 'ms';
+    if (large) {
+      const top = document.createElement('div'); top.className = 'top';
+      const im = logoImg(p); if (im) top.appendChild(im);
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name; top.appendChild(nm);
+      b.appendChild(top);
+      const st = connStats[p.id] || { keys: 0, used: 0, quota: null };
+      const meta = document.createElement('span'); meta.className = 'meta';
+      meta.textContent = st.keys + (st.keys === 1 ? ' key' : ' keys') + (st.quota ? ' · ' + st.used + ' / ' + st.quota + ' used' : st.used ? ' · ' + st.used + ' tracked' : '');
+      b.appendChild(meta);
+      if (st.quota) {
+        const m = document.createElement('div'); m.className = 'meter';
+        const fill = document.createElement('i');
+        fill.style.width = Math.min(100, Math.round(st.used / st.quota * 100)) + '%';
+        m.appendChild(fill); b.appendChild(m);
+      }
+    } else {
+      const im = logoImg(p); if (im) b.appendChild(im);
       const n = document.createElement('span'); n.textContent = p.name; b.appendChild(n);
-      b.onclick = () => { location.href = '/provider/' + p.id; };
-      results.appendChild(b);
+    }
+    b.onclick = () => { location.href = '/provider/' + p.id; };
+    return b;
+  }
+  function renderHome(f) {
+    f = (f || '').toLowerCase();
+    // Connected section.
+    connBox.innerHTML = '';
+    const connList = providers.filter(p => connectedIds.has(p.id) && matches(p, f));
+    if (connList.length === 0) {
+      const d = document.createElement('div'); d.className = 'conn-empty';
+      d.innerHTML = f ? 'No connected providers match.' : '<b>No providers connected yet.</b> Pick one below to pool your first keys.';
+      connBox.appendChild(d);
+    } else {
+      connList.forEach((p, i) => connBox.appendChild(cardButton(p, i, true)));
+    }
+    // Browse-all categories (custom rendered as its own tile group).
+    browseCats.innerHTML = '';
+    let total = 0, shown = 0;
+    const groups = CATS.map(([label, ids]) => [label, ids.map(provById).filter(Boolean)]);
+    const custom = provById(CUSTOM_ID);
+    if (custom) groups.push(['Custom', [custom]]);
+    const known = new Set(); groups.forEach(([, ps]) => ps.forEach(p => known.add(p.id)));
+    const other = providers.filter(p => !known.has(p.id));
+    if (other.length) groups.push(['Other', other]);
+    groups.forEach(([label, ps]) => {
+      const vis = ps.filter(p => matches(p, f));
+      total += ps.length; shown += vis.length;
+      if (f && vis.length === 0) return;
+      const det = document.createElement('details'); det.className = 'cat';
+      det.open = !window.matchMedia('(max-width: 700px)').matches;
+      const sum = document.createElement('summary');
+      const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▶';
+      sum.appendChild(chev);
+      const lab = document.createElement('span'); lab.className = 'sec-label'; lab.style.margin = '0'; lab.textContent = label;
+      sum.appendChild(lab);
+      const cnt = document.createElement('span'); cnt.className = 'count'; cnt.style.cssText = 'font-size:11px;color:var(--subtle)';
+      cnt.textContent = vis.length + ' / ' + ps.length; sum.appendChild(cnt);
+      det.appendChild(sum);
+      if (vis.length === 0) {
+        const e = document.createElement('div'); e.className = 'cat-empty'; e.textContent = 'Nothing here yet.'; det.appendChild(e);
+      } else {
+        const grid = document.createElement('div'); grid.className = 'cat-grid';
+        vis.forEach((p, i) => grid.appendChild(cardButton(p, i, false)));
+        det.appendChild(grid);
+      }
+      browseCats.appendChild(det);
     });
+    browseCount.textContent = f ? shown + ' of ' + total : total + ' providers';
   }
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); }
@@ -298,11 +436,15 @@ export const page = `<!doctype html>
   let t;
   input.addEventListener('input', () => {
     clearTimeout(t);
-    t = setTimeout(() => renderProviders(input.value.trim()), 150);
+    t = setTimeout(() => {
+      const v = input.value.trim();
+      if (v) browseAll.open = true; // typing expands browse so matches are visible
+      renderHome(v);
+    }, 120);
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      const first = results.querySelector('.prov');
+      const first = document.querySelector('#connected .prov-lg, #browseCats .prov');
       if (first) first.click();
     }
   });
