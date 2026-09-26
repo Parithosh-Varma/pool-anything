@@ -13,6 +13,10 @@ sdb.exec(`
 `);
 
 export function dbPing(): { ok: boolean } {
-  sdb.prepare("SELECT COUNT(*) AS n FROM items").get();
-  return { ok: true };
+  try {
+    sdb.prepare("SELECT COUNT(*) AS n FROM items").get();
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
 }

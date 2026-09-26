@@ -9,6 +9,8 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 export const sdb = new DatabaseSync(DB_PATH);
 
+sdb.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;`);
+
 sdb.exec(`
   CREATE TABLE IF NOT EXISTS pools (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +37,10 @@ sdb.exec(`
     tokens INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  CREATE INDEX IF NOT EXISTS idx_pool_keys_pool ON pool_keys(pool_id);
+  CREATE INDEX IF NOT EXISTS idx_usage_pool_created ON usage(pool_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_usage_key_created ON usage(key_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_pools_provider ON pools(provider);
 `);
 
 export type Provider = {
@@ -98,26 +104,86 @@ function loadProviders(): Provider[] {
         id: p.id as string,
         name: p.name as string,
         quota: String(p.quota ?? ""),
-        keyFields: Array.isArray(p.keyFields) ? (p.keyFields as string[]) : ["api_key"],
+        keyFields: Array.isArray(p.keyFields) && (p.keyFields as unknown[]).every((k) => typeof k === "string") ? (p.keyFields as string[]) : ["api_key"],
         hint: String(p.hint ?? ""),
         baseUrl: p.baseUrl as string,
         keyHeader: String(p.keyHeader ?? "X-API-Key"),
         keyPrefix: String(p.keyPrefix ?? ""),
-        extraHeaders: (p.extraHeaders ?? {}) as Record<string, string>,
+        extraHeaders:
+          p.extraHeaders !== null && typeof p.extraHeaders === "object" && !Array.isArray(p.extraHeaders)
+            ? (Object.fromEntries(Object.entries(p.extraHeaders as Record<string, unknown>).filter(([, v]) => typeof v === "string")) as Record<string, string>)
+            : {},
         docsUrl: typeof p.docsUrl === "string" ? p.docsUrl : undefined,
-        logoFile: typeof p.logo === "string" ? path.basename(p.logo) : undefined,
+        logoFile: typeof p.logo === "string" && p.logo ? path.basename(p.logo) : undefined,
         poolable: (p.poolable ?? true) as boolean | string,
       }));
-  } catch {
+  } catch (e) {
+    console.warn(`[warn] failed to load data/providers.json, using fallback providers: ${(e as Error).message}`);
     return FALLBACK_PROVIDERS;
   }
 }
 
 export const PROVIDERS: Provider[] = loadProviders();
 
-export function mask(key: string): string {
-  if (key.length <= 8) return "****";
+export function mask(key: unknown): string {
+  if (typeof key !== "string" || key.length <= 8) return "****";
   return `${key.slice(0, 4)}…${key.slice(-2)}`;
+}
+
+export type KeyFields = string[];
+
+export function providerKeyFields(provider: string): string[] {
+  return PROVIDERS.find((x) => x.id === provider)?.keyFields ?? ["api_key"];
+}
+
+export function isMultiFieldProvider(provider: string): boolean {
+  const f = providerKeyFields(provider);
+  return !(f.length === 1 && (f[0] === "api_key" || f[0] === "apiToken"));
+}
+
+function cleanFieldValue(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  if (!t || t.length > 4096 || /[\r\n\0]/.test(t)) return null;
+  return t;
+}
+
+/** Validate + normalize a credentials object for a provider. Returns normalized or error. */
+export function normalizeCredentials(
+  provider: string,
+  input: unknown
+): { ok: true; value: Record<string, string> } | { ok: false; error: string } {
+  const fields = providerKeyFields(provider);
+  if (input === undefined || input === null) return { ok: false, error: `missing credentials: ${fields.join(", ")} required` };
+  if (typeof input !== "object" || Array.isArray(input)) return { ok: false, error: "credentials must be an object" };
+  const out: Record<string, string> = {};
+  for (const f of fields) {
+    const v = cleanFieldValue((input as Record<string, unknown>)[f]);
+    if (v === null) return { ok: false, error: `field ${f} required (non-empty, <=4096 chars, no CR/LF)` };
+    out[f] = v;
+  }
+  return { ok: true, value: out };
+}
+
+export function parseCredentials(raw: unknown): Record<string, string> {
+  if (typeof raw !== "string" || !raw || raw === "{}") return {};
+  try {
+    const o = JSON.parse(raw) as unknown;
+    if (o !== null && typeof o === "object" && !Array.isArray(o)) {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+        if (typeof v === "string" && /^[A-Za-z0-9_-]+$/.test(k)) out[k] = v;
+      }
+      return out;
+    }
+  } catch { /* fall through */ }
+  return {};
+}
+
+export function maskCredentials(creds: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(creds)) out[k] = mask(v);
+  return out;
 }
 
 export const QUOTA: Record<string, number | null> = {
@@ -162,8 +228,8 @@ export const QUOTA: Record<string, number | null> = {
   googlemaps: null, // "~10k/SKU/mo under $200 credit" — approximate, SKU-varying, dollar-backed
 };
 
-/** Quota window: "month" resets each calendar month (UTC), "all" accumulates lifetime. */
-export type QuotaWindow = "month" | "all";
+/** Quota window: "month" resets each calendar month (UTC), "day" resets each UTC day, "all" accumulates lifetime. */
+export type QuotaWindow = "month" | "day" | "all";
 
 export const QUOTA_WINDOW: Record<string, QuotaWindow> = {
   cartesia: "all", // token grant per key, no monthly reset documented
@@ -209,9 +275,41 @@ export function quotaForProvider(provider: string): { limit: number | null; wind
   return { limit: QUOTA[provider] ?? null, window: QUOTA_WINDOW[provider] ?? "all" };
 }
 
+/**
+ * Daily caps enforced in addition to the primary quota. A key is eligible
+ * only when it is under *every* applicable limit (e.g. resend: 3000/mo AND
+ * 100/day). Primary `QUOTA` stays the legacy single-limit view; this table
+ * adds the second dimension without breaking `quotaForProvider` callers.
+ */
+export const QUOTA_DAILY: Record<string, number> = {
+  groq: 14400, // "14.4k req/day"
+  openrouter: 200, // "~200 RPD"
+  gemini: 1500, // "1500 RPD"
+  openweather: 1000, // "1,000/day"
+  sendgrid: 100, // "100/day"
+  cloudflare: 100000, // "100k req/day"
+  resend: 100, // "100/day" in addition to 3000/mo
+};
+
+/** All enforceable limits for a provider (primary + daily). Empty = unlimited. */
+export function quotaLimitsForProvider(provider: string): { limit: number; window: QuotaWindow }[] {
+  const out: { limit: number; window: QuotaWindow }[] = [];
+  const primary = quotaForProvider(provider);
+  if (primary.limit !== null) out.push({ limit: primary.limit, window: primary.window });
+  const daily = QUOTA_DAILY[provider];
+  if (typeof daily === "number" && daily > 0) {
+    // Avoid duplicating when the primary limit already is the daily one.
+    if (!(primary.limit === daily && primary.window === "day")) out.push({ limit: daily, window: "day" });
+  }
+  return out;
+}
+
 /** SQL fragment restricting joined usage rows to the quota window (UTC, matches datetime('now')). */
 export function quotaWindowFilter(window: QuotaWindow, column = "u.created_at"): string {
-  return window === "month" ? ` AND ${column} >= date('now','start of month')` : "";
+  if (column !== "u.created_at" && column !== "created_at") throw new Error("invalid quota column");
+  if (window === "month") return ` AND ${column} >= date('now','start of month')`;
+  if (window === "day") return ` AND ${column} >= date('now')`;
+  return "";
 }
 
 export function getPool(poolId: number) {
@@ -226,17 +324,30 @@ export function keyCount(poolId: number): number {
 
 try {
   sdb.exec(`ALTER TABLE pools ADD COLUMN base_url TEXT NOT NULL DEFAULT ''`);
-} catch {}
+} catch (e) {
+  if (!/duplicate column/i.test((e as Error).message)) throw e;
+}
 try {
   sdb.exec(`ALTER TABLE pools ADD COLUMN key_header TEXT NOT NULL DEFAULT 'X-API-Key'`);
-} catch {}
+} catch (e) {
+  if (!/duplicate column/i.test((e as Error).message)) throw e;
+}
 try {
   sdb.exec(`ALTER TABLE pools ADD COLUMN key_prefix TEXT NOT NULL DEFAULT ''`);
-} catch {}
-for (const col of ["cooldown_until INTEGER NOT NULL DEFAULT 0", "latency_ms REAL", "consec_fail INTEGER NOT NULL DEFAULT 0"]) {
+} catch (e) {
+  if (!/duplicate column/i.test((e as Error).message)) throw e;
+}
+for (const col of ["cooldown_until INTEGER NOT NULL DEFAULT 0", "latency_ms REAL", "consec_fail INTEGER NOT NULL DEFAULT 0"] as const) {
   try {
     sdb.exec(`ALTER TABLE pool_keys ADD COLUMN ${col}`);
-  } catch {}
+  } catch (e) {
+    if (!/duplicate column/i.test((e as Error).message)) throw e;
+  }
+}
+try {
+  sdb.exec(`ALTER TABLE pool_keys ADD COLUMN credentials TEXT NOT NULL DEFAULT '{}'`);
+} catch (e) {
+  if (!/duplicate column/i.test((e as Error).message)) throw e;
 }
 
 export function firstPoolWithKeys(provider: string) {
@@ -265,7 +376,14 @@ export function poolSummary(poolId: number) {
        WHERE k.pool_id = ? GROUP BY k.id ORDER BY k.id`
     )
     .all(poolId) as { id: number; label: string; used: number }[];
-  return { ...pool, keys, used, usedInWindow: windowed, quota, quotaWindow: window, remaining: quota === null ? null : quota * keys - windowed, perKey };
+  // All enforceable limits (primary + daily) with pool-level windowed totals.
+  const limits = quotaLimitsForProvider(pool.provider).map(({ limit, window: w }) => {
+    const wUsed = (
+      sdb.prepare(`SELECT COALESCE(SUM(tokens),0) AS t FROM usage WHERE pool_id = ?${quotaWindowFilter(w, "created_at")}`).get(poolId) as { t: number }
+    ).t;
+    return { limit, window: w, usedInWindow: wUsed, remaining: Math.max(0, limit * keys - wUsed) };
+  });
+  return { ...pool, keys, used, usedInWindow: windowed, quota, quotaWindow: window, remaining: quota === null ? null : Math.max(0, quota * keys - windowed), perKey, limits };
 }
 
 export type AnalyticsPoint = { day: string; requests: number; tokens: number };

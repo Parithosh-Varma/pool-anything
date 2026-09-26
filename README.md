@@ -162,12 +162,20 @@ Providers are defined in [`data/providers.json`](data/providers.json). See [CONT
 
 ```
 src/
-  server.ts          Main HTTP server + web UI (search, pools, keys, playground, analytics; /docs redirects out)
-  pool/index.ts      Pool logic: providers, quotas, usage, analytics (SQLite)
-  pool/rotation.ts   Round-robin rotation, cooldown, quota windows
-  proxy/forward.ts   Upstream forwarding + SSRF guard
-  upstream/index.ts  Auth injection (header / query param)
-  config/env.ts      PORT, HOST, DB path, timeouts
+  server.ts          Thin HTTP front door (delegates to router/admin/observability)
+  router/api.ts      Route matchers + abuse caps (MAX_POOLS / MAX_KEYS_PER_POOL)
+  admin/branding.ts  Logo version, docs URL, sidebar icons
+  admin/shell.ts     Shared shell CSS/nav/JS
+  admin/pages.ts     Web UI pages (search, pools, keys, playground, analytics)
+  middleware/auth.ts Bearer auth for raw keys, writes, rotation, proxy (POOL_API_TOKEN)
+  common/http.ts     JSON body + hardened JSON responses
+  observability/health.ts  /health, /api/db/ping, /api/analytics handlers
+  pool/index.ts      Providers, quotas (monthly + daily), usage, analytics (SQLite)
+  pool/rotation.ts   Round-robin rotation, cooldown, multi-window quota enforcement
+  proxy/forward.ts   Upstream forwarding + literal-IP SSRF guard + failover cap
+  proxy/dns.ts       DNS rebinding guard (resolve + reject private IPs)
+  upstream/index.ts  Per-key auth injection (single + multi-field credentials)
+  config/env.ts      PORT, HOST, POOL_API_TOKEN, DB path, timeouts
   db/                SQLite helpers + init script
 data/
   providers.json     36 preconfigured providers
