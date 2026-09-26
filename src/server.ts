@@ -141,7 +141,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === "POST" && sub === "/proxy") {
-      const b = (await readJson(req)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number };
+      const b = (await readJson(req)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string> };
       if (b === null || typeof b !== "object" || Array.isArray(b))
         return send(res, 400, { error: "proxy body must be an object" });
       const r = await forward(poolId, b);

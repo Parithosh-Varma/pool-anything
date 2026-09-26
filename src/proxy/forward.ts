@@ -1,6 +1,6 @@
 import { sdb, getPool } from "../pool/index.js";
 import { nextKeyRaw, markSuccess, markFailure } from "../pool/rotation.js";
-import { resolveTarget, resolveTargetForKey, effectiveApiKey, buildUpstreamRequest, type ForwardOpts } from "../upstream/index.js";
+import { resolveTarget, resolveTargetForKey, effectiveApiKey, buildUpstreamRequest, validateQueryParams, type ForwardOpts } from "../upstream/index.js";
 import { allowPrivateUpstream, proxyTimeoutMs } from "../config/env.js";
 import { resolveAndCheck, hostnameOf } from "./dns.js";
 
@@ -141,6 +141,10 @@ export function validateProxyOpts(opts: ProxyOpts): { ok: boolean; error?: strin
   }
   if (opts.tokens !== undefined && (!Number.isInteger(opts.tokens) || opts.tokens <= 0 || opts.tokens > MAX_TOKENS_PER_REQUEST))
     return { ok: false, error: `tokens must be a positive integer <= ${MAX_TOKENS_PER_REQUEST}` };
+  if (opts.query !== undefined) {
+    const q = validateQueryParams(opts.query);
+    if (!q.ok) return { ok: false, error: q.error };
+  }
   if (opts.body !== undefined) {
     try {
       JSON.stringify(opts.body);

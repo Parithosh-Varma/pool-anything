@@ -61,6 +61,15 @@ export function effectiveApiKey(
   key: KeyLike
 ): string {
   const creds = parseCredentials(typeof key.credentials === "string" ? key.credentials : "{}");
+  // Mailgun expects Basic base64(api:KEY); keys are stored raw per the hint.
+  if (pool.provider === "mailgun") {
+    const raw =
+      (typeof creds["apiKey"] === "string" && creds["apiKey"]) ||
+      (typeof creds["api_key"] === "string" && creds["api_key"]) ||
+      key.api_key;
+    if (raw) return Buffer.from(`api:${raw}`).toString("base64");
+    return key.api_key;
+  }
   if (Object.keys(creds).length === 0) return key.api_key;
   // Twilio: Basic base64(SID:token).
   if (creds["accountSid"] && creds["authToken"]) {
@@ -92,7 +101,25 @@ export type ForwardOpts = {
   method?: string;
   headers?: Record<string, string>;
   body?: unknown;
+  /** Extra URL query params, encoded safely (e.g. PostgREST {select: "*"}). */
+  query?: Record<string, string>;
 };
+
+const QUERY_KEY_RE = /^[A-Za-z0-9_.~-]+$/;
+
+export function validateQueryParams(q: unknown): { ok: true; value: Record<string, string> } | { ok: false; error: string } {
+  if (q === undefined) return { ok: true, value: {} };
+  if (q === null || typeof q !== "object" || Array.isArray(q)) return { ok: false, error: "query must be an object" };
+  const entries = Object.entries(q as Record<string, unknown>);
+  if (entries.length > 50) return { ok: false, error: "too many query params" };
+  const out: Record<string, string> = {};
+  for (const [k, v] of entries) {
+    if (typeof k !== "string" || !QUERY_KEY_RE.test(k) || k.length > 256) return { ok: false, error: `invalid query param: ${k}` };
+    if (typeof v !== "string" || v.length > 2000 || /[\r\n\0]/.test(v)) return { ok: false, error: `invalid query value for ${k}` };
+    out[k] = v;
+  }
+  return { ok: true, value: out };
+}
 
 /** Pure builder: returns exact URL + headers the proxy will send. No network. */
 export function buildUpstreamRequest(target: Target, apiKey: string, opts: ForwardOpts): { url: string; headers: Record<string, string>; body: string | undefined } {
@@ -101,6 +128,11 @@ export function buildUpstreamRequest(target: Target, apiKey: string, opts: Forwa
   // Provider defaults first, then caller headers — but the auth header is
   // always re-injected afterwards so a caller cannot override or duplicate it.
   const headers: Record<string, string> = { "content-type": "application/json", ...target.extraHeaders, ...(opts.headers ?? {}) };
+  const qv = validateQueryParams(opts.query);
+  if (!qv.ok) throw new Error(qv.error);
+  for (const [k, v] of Object.entries(qv.value)) {
+    p += `${p.includes("?") ? "&" : "?"}${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+  }
   if (target.keyHeader.startsWith("query:")) {
     const name = target.keyHeader.slice("query:".length);
     if (!/^[A-Za-z0-9_-]+$/.test(name)) throw new Error("keyHeader invalid");

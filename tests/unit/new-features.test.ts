@@ -73,6 +73,33 @@ test("daily quotas: limits table + enforcement", async () => {
   assert.equal((sel as { error: string }).error, "all keys cooling down or quota-exhausted");
 });
 
+test("scrapingbee uses query auth (proxy reachable)", async () => {
+  const { checkTarget } = await import("../../src/proxy/forward.js");
+  const { PROVIDERS } = await import("../../src/pool/index.js");
+  const sb = PROVIDERS.find((x) => x.id === "scrapingbee");
+  assert.ok(sb);
+  assert.equal(sb.keyHeader, "query:api_key");
+  assert.equal(checkTarget(sb.baseUrl, sb.keyHeader).ok, true);
+});
+
+test("mailgun synthesizes Basic base64(api:KEY)", async () => {
+  const { effectiveApiKey, buildUpstreamRequest } = await import("../../src/upstream/index.js");
+  const mat = effectiveApiKey({ provider: "mailgun" }, { api_key: "key-abc", credentials: "{}" });
+  assert.equal(Buffer.from(mat, "base64").toString(), "api:key-abc");
+  const r = buildUpstreamRequest({ baseUrl: "https://api.mailgun.net/v3", keyHeader: "Authorization", keyPrefix: "Basic ", extraHeaders: {} }, mat, { path: "/x" });
+  assert.equal(r.headers["Authorization"], "Basic " + mat);
+});
+
+test("proxy query params are encoded safely", async () => {
+  const { buildUpstreamRequest } = await import("../../src/upstream/index.js");
+  const { validateProxyOpts } = await import("../../src/proxy/forward.js");
+  const r = buildUpstreamRequest({ baseUrl: "https://xyz.supabase.co/rest/v1", keyHeader: "apikey", keyPrefix: "", extraHeaders: {} }, "anon", { path: "/todos", query: { select: "*" } });
+  assert.equal(r.url, "https://xyz.supabase.co/rest/v1/todos?select=*");
+  assert.equal(validateProxyOpts({ path: "/x", query: { select: "*" } }).ok, true);
+  assert.equal(validateProxyOpts({ path: "/x?evil=1" }).ok, false);
+  assert.equal(validateProxyOpts({ path: "/x", query: { "bad key": "v" } }).ok, false);
+});
+
 test("router matchers + health", () => {
   assert.deepEqual(matchPoolRoute("/api/pools/1/next"), { poolId: 1, sub: "/next" });
   assert.deepEqual(matchPoolRoute("/api/pools/1/keys"), null);

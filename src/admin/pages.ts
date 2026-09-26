@@ -488,7 +488,14 @@ async function refresh(){
     const prov=provs.find(x=>x.id===p.provider)||{name:p.provider,quota:'',logoFile:p.provider+'.svg'};
     const [ks,us]=await Promise.all([j(await fetch('/api/pools/'+p.id+'/keys')),j(await fetch('/api/pools/'+p.id+'/usage'))]);
     const card=document.createElement('div');card.className='card';
-    card.innerHTML='<div class="chead"><img alt=""/><b></b><span class="pill"></span></div><ul></ul><div class="row"><input placeholder="key '+(ks.length+1)+' — paste API key" aria-label="API key"/><button>Gather</button><button class="ghost sm">Delete pool</button></div>';
+    const fields=(prov.keyFields&&prov.keyFields.length?prov.keyFields:['api_key']);
+    const multi=!(fields.length===1&&(fields[0]==='api_key'||fields[0]==='apiToken'));
+    const rowEl=document.createElement('div');rowEl.className='row';
+    const inputs=fields.map(f=>{const i=document.createElement('input');i.type='password';i.autocomplete='off';i.placeholder='key '+(ks.length+1)+' — '+f;i.setAttribute('aria-label',f);rowEl.appendChild(i);return i;});
+    const gatherBtn=document.createElement('button');gatherBtn.textContent='Gather';rowEl.appendChild(gatherBtn);
+    const delBtn=document.createElement('button');delBtn.textContent='Delete pool';delBtn.className='ghost sm';rowEl.appendChild(delBtn);
+    card.innerHTML='<div class="chead"><img alt=""/><b></b><span class="pill"></span></div><ul></ul>';
+    card.appendChild(rowEl);
     const img=card.querySelector('img');if(prov.logoFile){img.src='/logos/'+prov.logoFile+'?v=${LOGO_V}';img.onerror=()=>img.remove();}else img.remove();
     card.querySelector('b').textContent=prov.name+' · #'+p.id;
     card.querySelector('.pill').textContent='used '+((us.quota?(us.usedInWindow ?? us.used):us.used)||0)+(us.quota?' / '+(us.quota*ks.length):'');
@@ -507,7 +514,7 @@ async function refresh(){
         const full=await j(await fetch('/api/pools/'+p.id+'/keys/'+k.id));
         if(full.error){err(full.error);return;}
         v.dataset.open='1';v.textContent='Hide';
-        li.querySelector('span').textContent=k.label+' · '+full.api_key;
+        li.querySelector('span').textContent=k.label+' · '+full.api_key+(full.credentials?' · '+Object.entries(full.credentials).map(([a,b])=>a+'='+b).join(' '):'');
       };
       const e=document.createElement('button');e.textContent='Edit';e.className='ghost sm';
       e.onclick=async()=>{
@@ -515,11 +522,16 @@ async function refresh(){
         if(full.error){err(full.error);return;}
         li.innerHTML='';
         const f=document.createElement('div');f.style.cssText='display:flex;gap:6px;flex:1;flex-wrap:wrap';
-        f.innerHTML='<input value="'+esc(full.label)+'" style="flex:1;min-width:80px"/><input value="'+esc(full.api_key)+'" type="password" style="flex:2;min-width:120px"/><input value="'+esc(full.info||'')+'" placeholder="info" style="flex:1;min-width:80px"/>';
-        const [il,ik,ii]=f.querySelectorAll('input');
+        f.innerHTML='<input value="'+esc(full.label)+'" style="flex:1;min-width:80px"/><input value="'+esc(full.info||'')+'" placeholder="info" style="flex:1;min-width:80px"/>';
+        const credFields=(full.credentials&&Object.keys(full.credentials).length?Object.keys(full.credentials):(k.credentials&&Object.keys(k.credentials).length?Object.keys(k.credentials):['api_key']));
+        const kins=credFields.map(cf=>{const i=document.createElement('input');i.type='password';i.placeholder=cf;i.value=(full.credentials&&full.credentials[cf])||(cf==='api_key'?full.api_key:'');i.style.cssText='flex:2;min-width:110px';f.appendChild(i);return i;});
+        const [il,ii]=f.querySelectorAll('input');
         const sv=document.createElement('button');sv.textContent='Save';sv.className='sm';
         sv.onclick=async()=>{
-          const r=await j(await fetch('/api/pools/'+p.id+'/keys/'+k.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({label:il.value,api_key:ik.value,info:ii.value})}));
+          const patch={label:il.value,info:ii.value};
+          if(credFields.length===1&&credFields[0]==='api_key')patch.api_key=kins[0].value;
+          else patch.credentials=Object.fromEntries(credFields.map((cf,i)=>[cf,kins[i].value]));
+          const r=await j(await fetch('/api/pools/'+p.id+'/keys/'+k.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify(patch)}));
           if(r.error){err(r.error);return;}
           refresh();
         };
@@ -531,13 +543,17 @@ async function refresh(){
       d.onclick=async()=>{await fetch('/api/pools/'+p.id+'/keys/'+k.id,{method:'DELETE'});refresh();};
       li.appendChild(v);li.appendChild(e);li.appendChild(d);ul.appendChild(li);
     });
-    const [inp,gather,del]=card.querySelectorAll('input,button');
+    const del=delBtn,gather=gatherBtn;
     gather.onclick=async()=>{
-      const api_key=inp.value.trim();if(!api_key){err('Paste an API key first.');return;}
-      await j(await fetch('/api/pools/'+p.id+'/keys',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label:'key '+(ks.length+1),api_key})}));
+      err('');
+      const vals=inputs.map(i=>i.value.trim());
+      if(vals.some(v=>!v)){err('Paste '+(multi?'all '+fields.join(', '):'an API key')+' first.');return;}
+      const payload=multi?{label:'key '+(ks.length+1),credentials:Object.fromEntries(fields.map((f,i)=>[f,vals[i]]))}:{label:'key '+(ks.length+1),api_key:vals[0]};
+      const r=await j(await fetch('/api/pools/'+p.id+'/keys',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}));
+      if(r.error){err(r.error);return;}
       refresh();
     };
-    inp.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();gather.onclick();}});
+    inputs.forEach(i=>i.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();gather.onclick();}}));
     del.onclick=async()=>{if(!confirm('Delete pool "'+p.name+'" and all its keys + usage?'))return;await fetch('/api/pools/'+p.id,{method:'DELETE'});refresh();};
     box.appendChild(card);
   }
@@ -915,7 +931,7 @@ ${shellCss}
 async function j(r){const t=await r.text();try{return JSON.parse(t)}catch{return t}}
 function he(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 const err=t=>document.getElementById('err').textContent=t||'';
-const MODELS={groq:'openai/gpt-oss-120b',openai:'gpt-4o-mini',openrouter:'meta-llama/llama-3.3-70b-instruct:free',mistral:'mistral-small-latest',fireworks:'accounts/fireworks/models/llama-v3p3-70b-instruct',together:'meta-llama/Llama-3.3-70B-Instruct-Turbo',gemini:'gemini-2.0-flash',anthropic:'claude-sonnet-4-20250514',perplexity:'sonar',cohere:'command-r',replicate:'ibm-granite/granite-3.3-8b-instruct',huggingface:'meta-llama/Llama-3.3-70B-Instruct',deepgram:'nova-3',elevenlabs:'eleven_multilingual_v2',cartesia:'sonic-2',tavily:'tavily-search'};
+const MODELS={groq:'openai/gpt-oss-120b',openai:'gpt-4o-mini',openrouter:'meta-llama/llama-3.3-70b-instruct:free',mistral:'mistral-small-latest',fireworks:'accounts/fireworks/models/llama-v3p3-70b-instruct',together:'meta-llama/Llama-3.3-70B-Instruct-Turbo',gemini:'gemini-2.0-flash',anthropic:'claude-sonnet-4-20250514',perplexity:'sonar',cohere:'command-r',replicate:'ibm-granite/granite-3.3-8b-instruct',huggingface:'meta-llama/Llama-3.3-70B-Instruct',deepgram:'nova-3',elevenlabs:'eleven_multilingual_v2',cartesia:'sonic-2',tavily:'tavily-search',anyscale:'meta-llama/Llama-3.3-70B-Instruct'};
 const IMG_MODELS={openai:'gpt-image-1',together:'FLUX.1-schnell',fireworks:'accounts/fireworks/models/flux-1-schnell',replicate:'black-forest-labs/flux-schnell',huggingface:'black-forest-labs/FLUX.1-schnell',openrouter:'black-forest-labs/flux-1-schnell:free',gemini:'imagen-3.0-generate-002',mistral:'mistral-medium'};
 let lastDefault='';
 let lastImgDefault='⌁';
@@ -1244,7 +1260,7 @@ async function refresh(){
       const full=await j(await fetch('/api/pools/'+pool.id+'/keys/'+k.id));
       if(full.error){err(full.error);return;}
       v.dataset.open='1';v.textContent='Hide';
-      m.textContent=k.label+' · '+full.api_key;
+      m.textContent=k.label+' · '+full.api_key+(full.credentials?' · '+Object.entries(full.credentials).map(([a,b])=>a+'='+b).join(' '):'');
     };
     const e=document.createElement('button');e.textContent='Edit';e.type='button';
     e.onclick=async()=>{
@@ -1252,11 +1268,16 @@ async function refresh(){
       if(full.error){err(full.error);return;}
       row.innerHTML='';
       const f=document.createElement('div');f.style.cssText='display:flex;gap:6px;flex:1;flex-wrap:wrap';
-      f.innerHTML='<input value="'+esc(full.label)+'" style="flex:1;min-width:70px"/><input value="'+esc(full.api_key)+'" type="password" style="flex:2;min-width:110px"/>';
-      const [il,ik]=f.querySelectorAll('input');
+      f.innerHTML='<input value="'+esc(full.label)+'" style="flex:1;min-width:70px"/>';
+      const credFields=(full.credentials&&Object.keys(full.credentials).length?Object.keys(full.credentials):(k.credentials&&Object.keys(k.credentials).length?Object.keys(k.credentials):((p.keyFields&&p.keyFields.length?p.keyFields:['api_key']))));
+      const kins=credFields.map(cf=>{const i=document.createElement('input');i.type='password';i.placeholder=cf;i.value=(full.credentials&&full.credentials[cf])||(cf==='api_key'?full.api_key:'');i.style.cssText='flex:2;min-width:100px';f.appendChild(i);return i;});
+      const [il]=f.querySelectorAll('input');
       const sv=document.createElement('button');sv.textContent='Save';sv.type='button';
       sv.onclick=async()=>{
-        const r=await j(await fetch('/api/pools/'+pool.id+'/keys/'+k.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({label:il.value,api_key:ik.value})}));
+        const patch={label:il.value};
+        if(credFields.length===1&&credFields[0]==='api_key')patch.api_key=kins[0].value;
+        else patch.credentials=Object.fromEntries(credFields.map((cf,i)=>[cf,kins[i].value]));
+        const r=await j(await fetch('/api/pools/'+pool.id+'/keys/'+k.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify(patch)}));
         if(r.error){err(r.error);return;}
         refresh();
       };
@@ -1273,19 +1294,22 @@ async function refresh(){
 }
 function addSlot(){
   const n=keyTotal+document.querySelectorAll('#pslots .slotrow').length+1;
+  const fields=(p.keyFields&&p.keyFields.length?p.keyFields:['api_key']);
+  const multi=!(fields.length===1&&(fields[0]==='api_key'||fields[0]==='apiToken'));
   const form=document.createElement('form');form.className='slotrow';
-  form.innerHTML='<input placeholder="key '+n+' — paste API key, hit Enter" aria-label="API key '+n+'" type="password" autocomplete="off"/><button type="submit">Gather</button>';
-  const inp=form.querySelector('input');
+  const inputs=fields.map(f=>{const i=document.createElement('input');i.type='password';i.autocomplete='off';i.placeholder='key '+n+' — '+f;i.setAttribute('aria-label',f+' '+n);form.appendChild(i);return i;});
+  const btn=document.createElement('button');btn.type='submit';btn.textContent='Gather';form.appendChild(btn);
   form.onsubmit=async(e)=>{
     e.preventDefault();
     err('');
-    const api_key=inp.value.trim();
-    if(!api_key){err('Paste an API key first.');return;}
-    const r=await j(await fetch('/api/pools/'+pool.id+'/keys',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label:'key '+n,api_key})}));
+    const vals=inputs.map(i=>i.value.trim());
+    if(vals.some(v=>!v)){err(multi?'Paste all '+fields.join(', ')+' first.':'Paste an API key first.');return;}
+    const payload=multi?{label:'key '+n,credentials:Object.fromEntries(fields.map((f,i)=>[f,vals[i]]))}:{label:'key '+n,api_key:vals[0]};
+    const r=await j(await fetch('/api/pools/'+pool.id+'/keys',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}));
     if(r.error){err(r.error);return;}
     form.remove();refresh();
   };
-  document.getElementById('pslots').appendChild(form);inp.focus();
+  document.getElementById('pslots').appendChild(form);inputs[0].focus();
 }
 document.getElementById('pmore').onclick=()=>addSlot();
 init();
