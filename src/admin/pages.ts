@@ -113,14 +113,14 @@ export const page = `<!doctype html>
   .search-box:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px rgba(59,130,246,.4); }
   .hero-row, .search-card { max-width:480px; }
   .sec-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); margin:0 0 8px; }
-  .conn-grid { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
-  .prov-lg { display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; min-height:104px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; cursor:pointer; font-size:12px; font-weight:600; text-align:left; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
+  .conn-grid { width:100%; display:flex; flex-direction:column; gap:8px; }
+  .prov-lg { display:flex; align-items:center; gap:10px; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; font-size:13px; font-weight:600; text-align:left; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
   .prov-lg:hover { background:#f5f5f5; }
-  .prov-lg .top { display:flex; align-items:center; gap:8px; width:100%; }
-  .prov-lg img { width:28px; height:28px; }
+  .prov-lg .top { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+  .prov-lg img { width:28px; height:28px; flex-shrink:0; }
   .prov-lg .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .prov-lg .meta { font-size:11px; color:var(--subtle); font-weight:500; font-variant-numeric:tabular-nums; }
-  .meter { height:4px; border-radius:999px; background:#eee; width:100%; overflow:hidden; }
+  .prov-lg .meta { font-size:11px; color:var(--subtle); font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0; }
+  .meter { height:4px; border-radius:999px; background:#eee; width:64px; flex-shrink:0; overflow:hidden; }
   .meter i { display:block; height:100%; background:#3b82f6; border-radius:999px; }
   details.browse { width:100%; background:transparent; border:0; }
   details.browse > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#111; padding:10px 2px; user-select:none; }
@@ -141,7 +141,9 @@ export const page = `<!doctype html>
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation:none !important; transition:none !important; }
   }
-  .analytics { width:100%; display:flex; flex-direction:column; gap:12px; }
+  .analytics { width:100%; display:flex; flex-direction:column; gap:10px; }
+  .home-grid { row-gap:0; }
+  #homeLeft { gap:16px !important; }
   .analytics-head { display:flex; align-items:center; gap:10px; }
   .analytics-head h2 { font-size:15px; font-weight:600; margin:0; }
   .analytics-controls { margin-left:auto; display:flex; align-items:center; gap:8px; }
@@ -172,11 +174,11 @@ export const page = `<!doctype html>
   .chart-tip .dot { width:10px; height:10px; border-radius:999px; background:#4290F0; flex-shrink:0; }
   .chart-tip .tip-val { margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums; padding-left:12px; }
   .no-data { position:absolute; top:38%; left:50%; transform:translate(-50%,-50%); font-size:11px; color:var(--subtle); background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 10px; white-space:nowrap; }
-  .ana-card.primary .ana-value b { font-size:30px; }
-  .ana-card.primary .ana-chart { height:128px; }
+  .ana-card.primary .ana-value b { font-size:26px; }
+  .ana-card.primary .ana-chart { height:96px; }
   .ana-cap { font-size:11px; color:var(--subtle); margin-top:2px; }
   .stat-list { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 14px; }
-  .stat-list .srow { display:flex; align-items:baseline; gap:8px; padding:9px 0; border-top:1px solid #f0f0f0; font-size:13px; }
+  .stat-list .srow { display:flex; align-items:baseline; gap:8px; padding:7px 0; border-top:1px solid #f0f0f0; font-size:13px; }
   .stat-list .srow:first-child { border-top:0; }
   .stat-list .sl { color:var(--subtle); }
   .stat-list .sv { margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums; }
