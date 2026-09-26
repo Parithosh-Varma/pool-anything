@@ -172,6 +172,20 @@ export const page = `<!doctype html>
   .chart-tip .dot { width:10px; height:10px; border-radius:999px; background:#4290F0; flex-shrink:0; }
   .chart-tip .tip-val { margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums; padding-left:12px; }
   .no-data { position:absolute; top:38%; left:50%; transform:translate(-50%,-50%); font-size:11px; color:var(--subtle); background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 10px; white-space:nowrap; }
+  .ana-card.primary .ana-value b { font-size:30px; }
+  .ana-card.primary .ana-chart { height:128px; }
+  .ana-cap { font-size:11px; color:var(--subtle); margin-top:2px; }
+  .stat-list { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 14px; }
+  .stat-list .srow { display:flex; align-items:baseline; gap:8px; padding:9px 0; border-top:1px solid #f0f0f0; font-size:13px; }
+  .stat-list .srow:first-child { border-top:0; }
+  .stat-list .sl { color:var(--subtle); }
+  .stat-list .sv { margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums; }
+  .stat-list .sv.calm { color:#a3a3a3; font-weight:500; }
+  .stat-list .sd { font-size:12px; color:var(--subtle); }
+  .tips { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-size:13px; display:flex; flex-direction:column; gap:8px; }
+  .tips b { font-size:13px; }
+  .tips ol { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; color:#404040; }
+  .tips small { color:var(--subtle); }
   .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
   .stat-mini { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
   .stat-mini b { font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; }
@@ -240,13 +254,23 @@ export const page = `<!doctype html>
     </div>
     <div class="analytics" id="analytics">
       <div class="analytics-head"><h2>Analytics</h2><div class="analytics-controls"><span class="range-pill">◷ Last 14 days</span><button class="icon-btn" id="anaRefresh" type="button" title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></div>
+      <div class="tips" id="getStarted" hidden>
+        <b>Getting started</b>
+        <ol>
+          <li>Gather keys for a provider above — one per free-tier account.</li>
+          <li>Point your client at <small>/api/pools/:id/proxy</small> and send a request.</li>
+          <li>Come back here: usage per key shows up automatically.</li>
+        </ol>
+      </div>
       <div class="analytics-grid">
-        <div class="ana-card"><div class="ana-top"><span class="ana-title">Total requests</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statRequests">—</b><span class="ana-delta flat" id="statDeltaReq"></span></div><div class="ana-chart"><svg id="chartRequests" viewBox="0 0 600 110" preserveAspectRatio="none" role="img" aria-label="Total requests"></svg><div class="ana-y" id="yRequests"></div><div class="chart-tip" id="tipRequests"></div></div></div>
-        <div class="ana-card"><div class="ana-top"><span class="ana-title">Tokens tracked</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statTokens">—</b><span class="ana-delta flat" id="statDeltaTok"></span></div><div class="ana-chart"><svg id="chartTokens" viewBox="0 0 600 110" preserveAspectRatio="none" role="img" aria-label="Tokens tracked"></svg><div class="ana-y" id="yTokens"></div><div class="chart-tip" id="tipTokens"></div></div></div>
-        <div class="ana-card small"><div class="ana-top"><span class="ana-title">Pools</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statPools">—</b></div><div class="ana-chart"><svg id="chartPools" viewBox="0 0 300 78" preserveAspectRatio="none" role="img" aria-label="Pools"></svg><div class="chart-tip" id="tipPools"></div></div></div>
-        <div class="ana-card small"><div class="ana-top"><span class="ana-title">Keys pooled</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statKeys">—</b></div><div class="ana-chart"><svg id="chartKeys" viewBox="0 0 300 78" preserveAspectRatio="none" role="img" aria-label="Keys pooled"></svg><div class="chart-tip" id="tipKeys"></div></div></div>
-        <div class="ana-card small"><div class="ana-top"><span class="ana-title">Keys cooling</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statCooling">—</b><span class="ana-delta flat" id="statCoolingNote"></span></div><div class="ana-chart"><svg id="chartCool" viewBox="0 0 300 78" preserveAspectRatio="none" role="img" aria-label="Keys cooling"></svg><div class="chart-tip" id="tipCool"></div></div></div>
-        <div class="ana-card small"><div class="ana-top"><span class="ana-title">Avg tokens / req</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statAvg">—</b></div><div class="ana-chart"><svg id="chartAvg" viewBox="0 0 300 78" preserveAspectRatio="none" role="img" aria-label="Average tokens per request"></svg><div class="chart-tip" id="tipAvg"></div></div></div>
+        <div class="ana-card primary"><div class="ana-top"><span class="ana-title">Total requests</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statRequests">—</b><span class="ana-delta flat" id="statDeltaReq"></span></div><div class="ana-chart"><svg id="chartRequests" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Total requests"></svg><div class="ana-y" id="yRequests"></div><div class="chart-tip" id="tipRequests"></div></div><div class="ana-cap">Requests served through your pools</div></div>
+        <div class="ana-card primary"><div class="ana-top"><span class="ana-title">Keys pooled</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statKeys">—</b></div><div class="ana-chart"><svg id="chartKeys" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Keys pooled"></svg><div class="chart-tip" id="tipKeys"></div></div><div class="ana-cap">API keys rotating across pools</div></div>
+      </div>
+      <div class="stat-list" id="statList">
+        <div class="srow"><span class="sl">Tokens tracked</span><span class="ana-delta flat" id="statDeltaTok"></span><span class="sv" id="statTokens">—</span></div>
+        <div class="srow"><span class="sl">Pools</span><span class="sv" id="statPools">—</span></div>
+        <div class="srow"><span class="sl">Keys cooling</span><span class="sd" id="statCoolingNote"></span><span class="sv" id="statCooling">—</span></div>
+        <div class="srow"><span class="sl">Avg tokens / req</span><span class="sv" id="statAvg">—</span></div>
       </div>
     </div>
     </div>
@@ -543,34 +567,35 @@ export const page = `<!doctype html>
   async function loadAnalytics() {
     try {
       const a = await j(await fetch('/api/analytics'));
-      const ana = document.getElementById('analytics');
       const grid = document.getElementById('homeGrid');
-      const empty = a.requests === 0 && a.pools === 0 && a.keys === 0;
-      // First run: hide the dashboard instead of six "No data" cards.
-      if (ana) ana.style.display = empty ? 'none' : '';
-      if (grid) grid.style.display = empty ? 'block' : '';
-      if (empty) return;
-      const BLUE = '#3b82f6', RED = '#ef4444';
+      const tips = document.getElementById('getStarted');
+      const starting = (a.requests || 0) < 10;
+      // Low-volume accounts get onboarding tips, not sparse charts.
+      if (tips) tips.hidden = !starting;
+      if (grid) grid.style.display = '';
+      const BLUE = '#3b82f6';
       document.getElementById('statRequests').textContent = fmtCompact(a.requests);
       document.getElementById('statRequests').title = String(a.requests);
-      document.getElementById('statTokens').textContent = fmtCompact(a.tokens);
-      document.getElementById('statTokens').title = String(a.tokens);
+      const st = document.getElementById('statTokens');
+      st.textContent = fmtCompact(a.tokens); st.title = String(a.tokens);
       document.getElementById('statPools').textContent = String(a.pools);
       document.getElementById('statKeys').textContent = String(a.keys);
-      document.getElementById('statCooling').textContent = String(a.cooling || 0);
+      document.getElementById('statKeys').title = String(a.keys);
+      const cool = document.getElementById('statCooling');
       const cn = document.getElementById('statCoolingNote');
-      if ((a.cooling || 0) > 0) { cn.textContent = 'in backoff'; cn.className = 'ana-delta down'; }
-      else { cn.textContent = ''; cn.className = 'ana-delta flat'; }
+      if ((a.cooling || 0) > 0) {
+        cool.textContent = String(a.cooling); cool.className = 'sv';
+        cn.textContent = 'in backoff'; cn.className = 'sd';
+      } else {
+        cool.textContent = '—'; cool.className = 'sv calm'; cool.title = '0';
+        cn.textContent = 'all healthy'; cn.className = 'sd';
+      }
       document.getElementById('statAvg').textContent = String(a.avgTokens || 0);
       setDelta('statDeltaReq', a.deltaRequestsPct, 'requests, last 7 days vs prior 7 days');
       setDelta('statDeltaTok', a.deltaTokensPct, 'tokens, last 7 days vs prior 7 days');
       const days = (a.series || []).map(p => p.day);
       renderLine('chartRequests', 'tipRequests', 'yRequests', days, (a.series || []).map(p => p.requests), 'Total requests', BLUE);
-      renderLine('chartTokens', 'tipTokens', 'yTokens', days, (a.series || []).map(p => p.tokens), 'Tokens tracked', BLUE);
-      renderLine('chartPools', 'tipPools', null, (a.poolsSeries || []).map(p => p.day), (a.poolsSeries || []).map(p => p.count), 'Pools', BLUE);
       renderLine('chartKeys', 'tipKeys', null, (a.keysSeries || []).map(p => p.day), (a.keysSeries || []).map(p => p.count), 'Keys pooled', BLUE);
-      renderLine('chartCool', 'tipCool', null, days, days.map(() => a.cooling || 0), 'Keys cooling (live)', RED);
-      renderLine('chartAvg', 'tipAvg', null, days, (a.series || []).map(p => p.requests ? Math.round(p.tokens / p.requests * 10) / 10 : 0), 'Avg tokens / req', BLUE);
     } catch (e) { /* analytics is best-effort; search still works */ }
   }
   const anaRefresh = document.getElementById('anaRefresh');
