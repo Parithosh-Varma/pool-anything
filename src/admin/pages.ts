@@ -12,7 +12,8 @@ export const page = `<!doctype html>
 <title>pool-anything</title>
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
-  :root { --line:#e5e5e5; --subtle:#737373; --bg:#fafafa; --card:#fff; }
+  :root { --line:#e5e5e5; --subtle:#737373; --bg:#fafafa; --card:#fff; color-scheme:light; }
+  html { background:#fff; }
   html { scrollbar-gutter:stable; scrollbar-width:none; -ms-overflow-style:none; }
   html::-webkit-scrollbar, body::-webkit-scrollbar { display:none; }
   * { box-sizing:border-box; }
