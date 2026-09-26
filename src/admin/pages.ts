@@ -78,7 +78,7 @@ export const page = `<!doctype html>
   .hero-logo { width:40px; height:40px; object-fit:contain; flex-shrink:0; }
   .hero-row { display:flex; align-items:center; justify-content:center; gap:4px; }
   .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px; box-shadow:none; }
-  .search-box { display:flex; align-items:center; gap:0; background:#f5f5f5; border:1px solid var(--line); border-radius:9px; height:36px; padding:0 4px 0 10px; box-shadow:none; }
+  .search-box { display:flex; align-items:center; gap:0; background:#f5f5f5; border:1px solid var(--line); border-radius:9px; height:34px; padding:0 4px 0 10px; box-shadow:none; }
   .search-box svg { flex-shrink:0; color:var(--subtle); }
   .search-box input { flex:1; min-width:0; border:0; outline:0; background:transparent; font-size:14px; padding:0 12px; }
   .kbd { display:flex; gap:4px; padding-right:10px; }
@@ -111,7 +111,9 @@ export const page = `<!doctype html>
   button:focus-visible, a:focus-visible { outline:2px solid #111; outline-offset:2px; }
   input:focus-visible, select:focus-visible { outline:none; }
   .search-box:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px rgba(59,130,246,.4); }
-  .hero-row, .search-card { max-width:480px; }
+  .hero-row, .search-card { max-width:400px; }
+  .hero-row h1, .hero-row { gap:2px; }
+  h1 { font-size:clamp(20px, 4vw, 26px); }
   .sec-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); margin:0 0 8px; }
   .conn-grid { width:100%; display:flex; flex-direction:column; gap:8px; }
   .prov-lg { display:flex; align-items:center; gap:10px; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; font-size:13px; font-weight:600; text-align:left; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
@@ -143,7 +145,15 @@ export const page = `<!doctype html>
   }
   .analytics { width:100%; display:flex; flex-direction:column; gap:10px; }
   .home-grid { row-gap:0; }
-  #homeLeft { gap:16px !important; }
+  #homeLeft { gap:0 !important; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; align-self:start; }
+  #homeLeft > section { margin-bottom:18px; }
+  #homeLeft > section:last-child { margin-bottom:0; }
+  #browseAll { border-top:1px solid #f0f0f0; padding-top:6px; }
+  .qlinks { display:flex; flex-direction:column; border-top:1px solid #f0f0f0; padding-top:6px; }
+  .qlinks a { display:flex; align-items:center; gap:10px; padding:9px 2px; font-size:13.5px; font-weight:500; color:#111; text-decoration:none; border-radius:8px; }
+  .qlinks a:hover { background:#f5f5f5; }
+  .qlinks a .go { margin-left:auto; color:var(--subtle); font-size:12px; }
+  .qlinks small { color:var(--subtle); font-weight:400; }
   .analytics-head { display:flex; align-items:center; gap:10px; }
   .analytics-head h2 { font-size:15px; font-weight:600; margin:0; }
   .analytics-controls { margin-left:auto; display:flex; align-items:center; gap:8px; }
@@ -188,6 +198,14 @@ export const page = `<!doctype html>
   .tips b { font-size:13px; }
   .tips ol { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; color:#404040; }
   .tips small { color:var(--subtle); }
+  .tips-banner { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 14px; font-size:13px; }
+  .tips-banner > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:8px 0; user-select:none; }
+  .tips-banner > summary::-webkit-details-marker { display:none; }
+  .tips-banner > summary .chev { color:var(--subtle); font-size:10px; transition:transform 200ms; }
+  .tips-banner[open] > summary .chev { transform:rotate(90deg); }
+  .tips-banner ol { margin:4px 0 10px; padding-left:18px; display:flex; flex-direction:column; gap:4px; color:#404040; }
+  .gs-x { margin-left:auto; border:0; background:transparent; color:var(--subtle); cursor:pointer; font-size:12px; padding:2px 6px; border-radius:6px; }
+  .gs-x:hover { background:#f0f0f0; color:#111; }
   .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
   .stat-mini { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
   .stat-mini b { font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; }
@@ -253,17 +271,25 @@ export const page = `<!doctype html>
       <summary><span class="chev">▶</span>Browse all providers <span class="count" id="browseCount"></span></summary>
       <div id="browseCats"></div>
     </details>
+    <section aria-label="Quick links">
+      <p class="sec-label">Quick links</p>
+      <div class="qlinks">
+        <a href="/pools">Pools <small>usage per pool</small><span class="go">→</span></a>
+        <a href="/keys">API key manager <small>add · view · rotate</small><span class="go">→</span></a>
+        <a href="/playground">Playground <small>try a pooled key</small><span class="go">→</span></a>
+      </div>
+    </section>
     </div>
     <div class="analytics" id="analytics">
       <div class="analytics-head"><h2>Analytics</h2><div class="analytics-controls"><span class="range-pill">◷ Last 14 days</span><button class="icon-btn" id="anaRefresh" type="button" title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></div>
-      <div class="tips" id="getStarted" hidden>
-        <b>Getting started</b>
+      <details class="tips-banner" id="getStarted" hidden>
+        <summary><span class="chev">▶</span><b>Getting started</b><button class="gs-x" id="gsHide" type="button" title="Dismiss" aria-label="Dismiss getting started">✕</button></summary>
         <ol>
           <li>Gather keys for a provider above — one per free-tier account.</li>
           <li>Point your client at <small>/api/pools/:id/proxy</small> and send a request.</li>
           <li>Come back here: usage per key shows up automatically.</li>
         </ol>
-      </div>
+      </details>
       <div class="analytics-grid">
         <div class="ana-card primary"><div class="ana-top"><span class="ana-title">Total requests</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statRequests">—</b><span class="ana-delta flat" id="statDeltaReq"></span></div><div class="ana-chart"><svg id="chartRequests" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Total requests"></svg><div class="ana-y" id="yRequests"></div><div class="chart-tip" id="tipRequests"></div></div><div class="ana-cap">Requests served through your pools</div></div>
         <div class="ana-card primary"><div class="ana-top"><span class="ana-title">Keys pooled</span><span class="ana-dots">…</span></div><div class="ana-value"><b id="statKeys">—</b></div><div class="ana-chart"><svg id="chartKeys" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Keys pooled"></svg><div class="chart-tip" id="tipKeys"></div></div><div class="ana-cap">API keys rotating across pools</div></div>
@@ -570,10 +596,19 @@ export const page = `<!doctype html>
     try {
       const a = await j(await fetch('/api/analytics'));
       const grid = document.getElementById('homeGrid');
-      const tips = document.getElementById('getStarted');
-      const starting = (a.requests || 0) < 10;
-      // Low-volume accounts get onboarding tips, not sparse charts.
-      if (tips) tips.hidden = !starting;
+      const gs = document.getElementById('getStarted');
+      const dismissed = (() => { try { return localStorage.getItem('gs-dismissed') === '1'; } catch { return false; } })();
+      // Prominent only with zero usage; a collapsed banner under 10 requests; hidden after.
+      if (gs) {
+        if (dismissed || (a.requests || 0) >= 10) gs.hidden = true;
+        else { gs.hidden = false; gs.open = (a.requests || 0) === 0; }
+      }
+      const gsHide = document.getElementById('gsHide');
+      if (gsHide) gsHide.onclick = (e) => {
+        e.preventDefault();
+        try { localStorage.setItem('gs-dismissed', '1'); } catch {}
+        document.getElementById('getStarted').hidden = true;
+      };
       if (grid) grid.style.display = '';
       const BLUE = '#3b82f6';
       document.getElementById('statRequests').textContent = fmtCompact(a.requests);
