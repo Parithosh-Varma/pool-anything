@@ -521,3 +521,27 @@ Net-new vs admin (additive, no admin equivalent): sidebar 2-level nav w/ scroll-
 | 17 | Leftovers (`#eee`, `#000` video, `#9ca3af`) | Partial (dark `#1C1917`, `tok-com #9B9489`) | track→line (#5); video bg→`#1C1917`; code tokens→docs tok palette: cmd `#B3401E`, str `#0E6E3E`, num `#9A5A00` (patch-amber precedent), fn `#2456C6`, com `#9B9489` | `pages.ts:1081,1105` reworked |
 
 Cross-cutting consequences: admin body 13px stays (density — Phase 4 adjustment note, not a token conflict); admin `ana-value` 22/26px numerals stay (no docs equiv — dashboard data-viz, fallback most-used); landing hero clamp stays larger (documented exception, Phase 4).
+
+---
+
+## 12. Component mapping — surface selector → docs canonical (Phase 3)
+
+> `src/admin/components.ts` ships both layers. Rebuilt = same selector, docs values (Phase 4 applies). Net-new = `ds-*` class, available everywhere, no admin markup yet (additive).
+
+| Surface selector | Docs canonical | Disposition |
+|---|---|---|
+| Admin bare `button` (keys solid), `.slotrow button`, `.btn`, `.iconbtn/.icon-btn`, `.filebtn`, widget buttons | `.open-btn` (solid) / `.icon-btn` (30px) / `.code-tools button` (26px) / `.feedback button` (pill) | Rebuilt: solid h34 r8 pad 0/12 + ghost; icon 30px r8; copy 26px (§11 #9) |
+| Admin `input/select/.ctl`, slotrow input, widget input | `.search input` idiom (borderless-in-bar) + `.code` blocks use bare `pre` | Rebuilt: r8, line border, h34, 13–14px; search-bar variant r8 |
+| Admin `.page-card/.support-card/.card/.chat/.code/.studio` (r16) | `.ep` r10 / `.code` r8 / `.acc` r10; docs max radius 12 | Rebuilt → r12 containers (docs max), pad 18 kept (admin density note, Phase 4) |
+| Admin `.pill/.range-pill` | `.m` badges (r5!) / `.feedback` pill r999 / `.active-pill` | Rebuilt: pill r999 kept (feedback precedent); method-badge idiom new as `ds-m` |
+| Admin `.mi` nav + `.active` | sidenav `[data-active]` (accent-soft + primary) | Bridge rule in components.ts (accent tint replaces `#ececec`) |
+| Admin `.chart-tip` | none (kept) | Kept: r10→r8? **r10 kept** — tooltip has no docs equiv; shadow already `md`-identical. Fallback most-used |
+| Admin `.search-box` + `.kbd` | `.search` + `kbd ⌘K` | Bridge rule (r8, kbd r5, accent focus) |
+| Admin `.tips-banner` | `.callout.info` | Bridge rule (paper-2, r8, pad 11/14) |
+| Admin `.stat-list` | `table.grid` | Bridge rule (faint 12/600 labels, line-soft dividers); full `table.ds-grid` available |
+| Admin playground `.k/.s/.n/.fn/.c` | `.tok-*` palette | Bridge rule → docs tok colors |
+| Admin `.err/.msg.err/.cap-note/.ana-delta/.submit/.meter` | danger/warn/green plates | Bridge rules (all §11 #2/#3/#5) |
+| — (none) | `.callout`, `.ds-code`, `.ds-ptabs`, `.ds-toc`, `.ds-ep`, `.ds-acc`, `.ds-search`, `.ds-feedback`, `.ds-eyebrow` | **Net-new** `ds-*` in components.ts (11 components) |
+| Landing `.btn-dark/.btn-light` | `.open-btn` / `.lang`-adjacent light | Phase 4: dark→ink solid r8 (already r8 ✓, pad 9/16 kept — density exception, hover `#000` kept as docs precedent) |
+| Landing `.win/.plan/.well/.run-card` (r12–20) | `.ep` r10 / `.code` r8 | Phase 4: converge to r10/r12, keep hero `lg` shadow (docs drawer precedent covers `0 20px 60px` only for drawers — hero keeps `0 12px 40px` as documented exception) |
+| 404 `.go a.primary/.secondary` | `.open-btn` / bordered light | Phase 4: full re-skin (simplest surface) |
