@@ -470,3 +470,31 @@ Layout: topbar-row + tabs-inner + layout + footer-inner all `max-width:1440px`, 
 | Focus / motion | `:focus-visible { 2px accent, offset 2, r4 }`; sidenav rows `2px primary offset -1`; chev `.18s ease`; sidenav drawer `transform .22s ease` + scrim `rgba(0,0,0,.3)` + open shadow `0 20px 60px rgba(0,0,0,.18)`; h-anchor `opacity .15s` | — | `docs.html:37,153,175,361-367,207-215` |
 
 Net-new vs admin (additive, no admin equivalent): sidebar 2-level nav w/ scroll-spy active, right-rail toc, ptabs/subtabs, callouts, ⌘K search, code+copy pattern, table.grid, endpoint plates, accordion, feedback pills, h-anchor permalinks. Closest admin analogues for re-skin: home `.search-box`→search idiom, playground copy buttons→code-tools, `.tips-banner`→callout, `.stat-list`→table.grid idiom, `.mi.active`→primary-soft/primary.
+
+---
+
+## 11. Reconciliation decisions — docs-tiebreaker version (Phase 1, supersedes §8)
+
+> Rule: docs's value wins wherever docs has an equivalent; otherwise the most-used value stands. This section **replaces** §8 as the decision log — §8 is retained as the original finding list only.
+
+| # | Conflict (§8) | Docs equivalent? | Decision (winner) | What changes |
+|---|---|---|---|---|
+| 1 | Chart blue `#3b82f6` vs `#4290F0` | None (docs has no chart lines; `#2456C6` is link-only) | **Fallback: `#3b82f6`**; tooltip dot converges to it | `pages.ts:296` dot `#4290F0`→`#3b82f6` |
+| 2 | Error reds ×4 (`#dc2626/#b00/#f04438/#ef4444`) | **Yes** — danger plate: text `#B3261E`, bg `#FDECEC`, border `#F5C6C2` (`docs.html:309`) | **Docs wins for text/bg/border**; chart pair `#ef4444` + `rgba(239,68,68,.08)` kept (paired, no equiv) | `.err`/`ana-delta.down`/widget dot → `#B3261E`; `msg.err` → `#FDECEC/#F5C6C2`; submit border `#f04438`→`#B3261E`, ring → `rgba(179,38,30,.15)` |
+| 3 | Success greens ×3 (`#15803d/#166534/#16a34a`) | **Yes** — `#1E6B32` / `#EBF6EC` / `#BFE3C4` (+ chip `#22A355`) | **Docs wins** | delta-up + cap-note.ok + widget dot → `#1E6B32`; ok bg/border → docs pair |
+| 4 | Hover gray ×3 (`#f0f0f0/#f5f5f5/#ececec`) | **Yes** — hover `paper-2`, active `primary-soft`+`primary` text (sidenav) | **Docs wins**: hover → `#F5F5F4`; **nav active → `rgba(193,95,60,.1)` bg + `#C15F3C` text** (replaces `.mi.active #ececec`) | All hovers converge spelling to `#F5F5F4`; admin sidebar active becomes accent-tinted per docs sidenav |
+| 5 | Meter track `#eee` | None | **Judgment: track = `--line` `#E8E3D9`** | `pages.ts:231` `#eee`→`var(--line)` |
+| 6 | Secondary text `#525252` vs `#737373` | **Yes** — `ink-soft #57534E`, `faint #8A8680` | **Docs wins**: secondary → `#57534E` (retires both), microcopy → `#8A8680` (retires `#a3a3a3`); primary `#111`→`#1B1917` | Global textRamp swap; prose contexts may use `#3F3B36` (docs body-copy precedent) |
+| 7 | Border spelling `#e5e5e5` vs `var(--line)` | **Yes** — everything via `var(--line)` | **Docs wins**: literal → var; `--line` value → `#E8E3D9` | 13 hardcoded borders → var |
+| 8 | Slotrow padding `0/16` vs `0/14` (+border) | Partial (button pad-x idiom 12: open-btn, feedback) | **Docs idiom wins**: pad `0 12px`, `border:1px solid var(--ink)` (border matches bg, open-btn precedent) | Both slotrow variants unified |
+| 9 | 6 button/input heights | **Yes** — computed set {26, 30, ≈34} | **Docs wins: {26 sm/icon, 30 control-icon, 34 md}**; inputs min-h 34 | Retire 28/32/36/38; widget 34/32→34/30 |
+| 10 | Radii 4/6/8/9/10/12/16/999 | **Yes** — docs set {5,6,7,8,10,12,999}, no 4/9/16 | **Docs wins**: kbd 4→5, search 9→8, **page cards + dialog 16→12** (docs max), slotrow inputs 10→8 | Retire 4/9/16 |
+| 11 | Duplicate `h1` clamp | N/A (hygiene) | Delete dead first rule | `pages.ts:183` removed |
+| 12 | `--accent` + `--primary` dup | **Yes** — same value, two names | Canonical `--accent`/`--accent-ink`; `--primary*` dropped from token file (docs.html itself untouched as reference) | Token file only |
+| 13 | Four `--ink`s / three `--line`s / three accents | **Yes** | **Docs wins**: ink `#1B1917`, line `#E8E3D9`, line-soft `#EFEAE1`, accent `#C15F3C` on all surfaces | Landing/404 migrate; landing hero size exempt (§Phase 4 exception) |
+| 14 | `--cream: #ffffff` misnomer | **Yes** — `--paper: #FFFFFF` | Rename to `--paper` in token file + landing migration | — |
+| 15 | Focus asymmetry (`#111` outline vs blue ring vs none) | **Yes** — `2px accent, offset 2, r4` (+`offset -1` on tinted rows) | **Docs wins globally**; delete `input:focus-visible{outline:none}`; search wrapper adopts accent outline, blue ring retired; submit keeps danger-tinted ring (retinted, no docs equiv) | `pages.ts:217-219` reworked |
+| 16 | `font-weight:650` | **Yes** — docs h3 itself is 650 | **Blessed, scoped to headings (h3) only**; UI text stays 600 | Reverses §8 #16 recommendation |
+| 17 | Leftovers (`#eee`, `#000` video, `#9ca3af`) | Partial (dark `#1C1917`, `tok-com #9B9489`) | track→line (#5); video bg→`#1C1917`; code tokens→docs tok palette: cmd `#B3401E`, str `#0E6E3E`, num `#9A5A00` (patch-amber precedent), fn `#2456C6`, com `#9B9489` | `pages.ts:1081,1105` reworked |
+
+Cross-cutting consequences: admin body 13px stays (density — Phase 4 adjustment note, not a token conflict); admin `ana-value` 22/26px numerals stay (no docs equiv — dashboard data-viz, fallback most-used); landing hero clamp stays larger (documented exception, Phase 4).
