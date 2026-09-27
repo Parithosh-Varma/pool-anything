@@ -11,22 +11,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --cream: #ffffff;
-    --cream-2: #f5f5f4;
-    --card: #ffffff;
-    --ink: #141413;
-    --ink-soft: #30302e;
-    --ink-faint: #5e5d59;
-    --line: #e8e6dc;
-    --line-soft: #efede4;
-    --line-strong: #d1cfc5;
-    --dark: #141413;
-    --dark-2: #1e1e1c;
-    --accent: #d97757;
+    --cream: #FFFFFF;
+    --cream-2: #F5F5F4;
+    --card: #FFFFFF;
+    --ink: #1B1917;
+    --ink-soft: #57534E;
+    --ink-faint: #8A8680;
+    --line: #E8E3D9;
+    --line-soft: #EFEAE1;
+    --line-strong: #D6D0C4;
+    --dark: #1B1917;
+    --dark-2: #23201C;
+    --accent: #C15F3C;
     --accent-soft: #ebc9b7;
     --blue: #2F6FED;
     --green: #1F7A4D;
-    --radius: 14px;
+    --radius: 12px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-serif: Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; scroll-padding-top: 70px; }
@@ -34,16 +37,16 @@
     margin: 0;
     background: var(--cream);
     color: var(--ink);
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
   ::selection { background: var(--ink); color: #fff; }
   a { color: inherit; }
-  :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
   h1, h2, h3.serif {
-    font-family: "Source Serif 4", Georgia, serif;
+    font-family: var(--font-serif);
     font-weight: 400;
     letter-spacing: -0.015em;
     line-height: 1.08;
@@ -94,14 +97,14 @@
   .hero-cta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
   .install-pill {
     display: inline-flex; align-items: center; gap: 10px;
-    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    font-family: var(--font-mono); font-size: 12px;
     background: var(--dark); color: #f5f4ed;
     border-radius: 8px; padding: 9px 8px 9px 14px; max-width: 420px;
   }
   .install-pill code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .install-pill button {
     border: 1px solid #3A3833; background: #26251F; color: #fff;
-    border-radius: 6px; font-size: 12px; padding: 5px 10px; cursor: pointer; font-family: "Inter", sans-serif;
+    border-radius: 6px; font-size: 12px; padding: 5px 10px; cursor: pointer; font-family: var(--font-sans);
   }
   .hero-meta { font-size: 12.5px; color: var(--ink-faint); }
   .hero-meta a { color: var(--ink-soft); }
@@ -118,7 +121,7 @@
   }
   .win-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); font-size: 12px; color: var(--ink-soft); }
   .dot { width: 9px; height: 9px; border-radius: 99px; background: #d6d3c8; }
-  .win-body { padding: 14px 16px; font-family: "IBM Plex Mono", monospace; font-size: 12.3px; line-height: 1.65; }
+  .win-body { padding: 14px 16px; font-family: var(--font-mono); font-size: 12.3px; line-height: 1.65; }
   .win-back { position: absolute; top: 0; left: 40px; right: 0; }
   .win-front { position: absolute; top: 120px; left: 0; right: 80px; border-color: var(--ink); }
   .win-front .win-body { background: var(--dark); color: #E8E2D2; border-radius: 0 0 12px 12px; }
@@ -139,8 +142,8 @@
 
   /* pricing */
   .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 940px; margin: 0 auto; }
-  .plan { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; text-align: left; }
-  .plan h3 { font-family: "Inter", sans-serif; font-size: 14px; font-weight: 600; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+  .plan { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; text-align: left; }
+  .plan h3 { font-family: var(--font-sans); font-size: 14px; font-weight: 600; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
   .plan p { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 14px; min-height: 42px; }
   .plan ul { list-style: none; margin: 0 0 18px; padding: 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 7px; }
   .plan ul li::before { content: "✓ "; color: var(--ink); }
@@ -153,13 +156,13 @@
   .change { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
   .change h4 { margin: 0 0 4px; font-size: 14px; }
   .change p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
-  .change .tag { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11px; background: var(--cream-2); border-radius: 999px; padding: 2px 9px; margin-bottom: 8px; }
+  .change .tag { display: inline-block; font-family: var(--font-mono); font-size: 11px; background: var(--cream-2); border-radius: 999px; padding: 2px 9px; margin-bottom: 8px; }
 
   /* dark capability */
-  .dark-panel { background: var(--dark); color: #f5f4ed; border-radius: 20px; padding: 34px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 30px; max-width: 1020px; margin: 26px auto 0; }
+  .dark-panel { background: var(--dark); color: #f5f4ed; border-radius: 12px; padding: 34px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 30px; max-width: 1020px; margin: 26px auto 0; }
   .term { background: #0C0B0A; border: 1px solid #2E2C27; border-radius: 12px; overflow: hidden; }
-  .term-bar { display: flex; gap: 6px; padding: 10px 14px; border-bottom: 1px solid #2E2C27; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: #97948a; }
-  .term-body { padding: 16px; font-family: "IBM Plex Mono", monospace; font-size: 12.2px; line-height: 1.7; color: #d6d3c8; min-height: 280px; }
+  .term-bar { display: flex; gap: 6px; padding: 10px 14px; border-bottom: 1px solid #2E2C27; font-family: var(--font-mono); font-size: 11.5px; color: #97948a; }
+  .term-body { padding: 16px; font-family: var(--font-mono); font-size: 12.2px; line-height: 1.7; color: #d6d3c8; min-height: 280px; }
   .cap-list { display: flex; flex-direction: column; gap: 18px; justify-content: center; }
   .cap h4 { margin: 0 0 4px; font-size: 14.5px; color: #fff; }
   .cap p { margin: 0; font-size: 13.5px; color: #A8A396; }
@@ -168,7 +171,7 @@
 
   /* rotation well (live demo) */
   .well {
-    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 20px; max-width: 1020px; margin: 18px auto 0;
   }
   .well-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
@@ -184,25 +187,25 @@
     padding: 8px 11px; font-size: 13px; transition: border-color .3s, background .3s;
   }
   .key-ledger li.lit { border-color: var(--ink); background: #F6F3EA; }
-  .key-ledger .mask { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+  .key-ledger .mask { font-family: var(--font-mono); font-size: 12.5px; }
   .key-ledger .use { font-size: 12px; color: var(--ink-soft); }
   .meter { grid-column: 1 / -1; height: 4px; background: #f5f4ed; border-radius: 99px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0%; background: var(--ink); border-radius: 99px; transition: width .45s ease; }
   .well-foot { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
-  .well-foot p { margin: 0; font-size: 12.5px; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
-  .log { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .well-foot p { margin: 0; font-size: 12.5px; color: var(--ink-soft); font-family: var(--font-mono); }
+  .log { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 12px; }
   .log li { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; display: flex; gap: 8px; }
   .log li b { font-weight: 500; }
 
   /* where you code */
   .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1020px; margin: 26px auto 0; }
-  .ide-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .ide-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .ide-card .shot { height: 190px; padding: 16px; }
-  .ide-card .shot .mini { background: var(--dark); border-radius: 10px; height: 100%; padding: 12px; font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.7; color: #d6d3c8; overflow: hidden; }
+  .ide-card .shot .mini { background: var(--dark); border-radius: 10px; height: 100%; padding: 12px; font-family: var(--font-mono); font-size: 11px; line-height: 1.7; color: #d6d3c8; overflow: hidden; }
   .ide-card h4 { margin: 0; padding: 16px 18px 4px; font-size: 14.5px; }
   .ide-card p { margin: 0; padding: 0 18px 16px; font-size: 13px; color: var(--ink-soft); }
   .ide-card .meta { display: flex; gap: 6px; padding: 0 18px 18px; }
-  .ide-card .meta span { font-family: "IBM Plex Mono", monospace; font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--ink-soft); }
+  .ide-card .meta span { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; color: var(--ink-soft); }
   .band-orange { height: 6px; background: #D96C3F; } .band-green { height: 6px; background: #2E9E63; } .band-blue { height: 6px; background: #5B8DEF; }
 
   .slack-bar {
@@ -215,13 +218,13 @@
 
   /* quotes */
   .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1020px; margin: 26px auto 0; text-align: left; }
-  .quote .logo { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .quote .logo { font-family: var(--font-mono); font-weight: 600; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
   .quote blockquote { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
   .quote cite { display: block; margin-top: 8px; font-style: normal; font-size: 12.5px; color: var(--ink-faint); }
 
   /* integrations */
   .integ { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px; max-width: 1020px; margin: 26px auto 0; align-items: center; }
-  .logo-grid { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .logo-grid { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .logo-grid span { border: 1px solid var(--line-soft); border-radius: 10px; padding: 12px 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--ink-soft); background: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .logo-grid span img { width: 22px; height: 22px; display: block; flex-shrink: 0; }
   .integ h3 { font-size: 24px; margin: 0 0 8px; }
@@ -238,9 +241,9 @@
 
   /* rundown */
   .rundown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 1020px; margin: 26px auto 0; }
-  .run-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; text-align: left; text-decoration: none; display: block; }
+  .run-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; text-align: left; text-decoration: none; display: block; }
   .run-card:hover { border-color: var(--line-strong); box-shadow: 0 8px 24px rgba(20,20,19,.06); }
-  .run-card .src { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-faint); background: var(--cream-2); border-radius: 999px; padding: 2px 9px; margin-bottom: 10px; }
+  .run-card .src { display: inline-block; font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); background: var(--cream-2); border-radius: 999px; padding: 2px 9px; margin-bottom: 10px; }
   .run-card h4 { margin: 0 0 6px; font-size: 14px; }
   .run-card p { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
   .run-card span.more { font-size: 13px; font-weight: 500; }
@@ -248,7 +251,7 @@
   /* pipe diagram */
   .flow { display: grid; grid-template-columns: auto 1fr auto 1fr auto; gap: 10px; align-items: center; max-width: 1020px; margin: 22px auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
   .node { background: var(--cream-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 13px; text-align: center; white-space: nowrap; }
-  .node b { display: block; } .node small { color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .node b { display: block; } .node small { color: var(--ink-soft); font-family: var(--font-mono); font-size: 11px; }
   .node.pool { background: var(--ink); color: #fff; border-color: var(--ink); } .node.pool small { color: #C9C2B0; }
   .conduit { height: 2px; background-image: linear-gradient(90deg, #B9B09A 55%, transparent 45%); background-size: 12px 2px; position: relative; }
   .conduit::after { content: ""; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; border-radius: 99px; background: var(--accent); animation: travel 2.6s linear infinite; }
@@ -257,10 +260,10 @@
 
   .start2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1020px; margin: 26px auto 0; }
   .start2 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
-  .start2 h3 { font-family: "Source Serif 4", serif; font-size: 22px; margin: 0 0 8px; font-weight: 400; }
+  .start2 h3 { font-family: var(--font-serif); font-size: 22px; margin: 0 0 8px; font-weight: 400; }
   .start2 ol { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 8px; }
-  .start2 ol code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: var(--cream-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
-  pre.code { margin: 0; background: var(--dark); color: #d6d3c8; border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6; font-family: "IBM Plex Mono", monospace; overflow-x: auto; }
+  .start2 ol code { font-family: var(--font-mono); font-size: 12.5px; background: var(--cream-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+  pre.code { margin: 0; background: var(--dark); color: #d6d3c8; border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6; font-family: var(--font-mono); overflow-x: auto; }
 
   /* dark footer cta */
   .footer-dark { background: var(--dark); color: #f5f4ed; margin-top: 0; }
@@ -278,7 +281,7 @@
   .foot-cols h5 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #97948a; margin: 0 0 12px; }
   .foot-cols a { display: block; font-size: 13.5px; color: #C9C2B0; text-decoration: none; margin-bottom: 8px; }
   .foot-cols a:hover { color: #fff; }
-  .foot-base { display: flex; gap: 14px; align-items: center; padding-top: 20px; border-top: 1px solid #2E2C27; font-size: 12.5px; color: #97948a; font-family: "IBM Plex Mono", monospace; }
+  .foot-base { display: flex; gap: 14px; align-items: center; padding-top: 20px; border-top: 1px solid #2E2C27; font-size: 12.5px; color: #97948a; font-family: var(--font-mono); }
   .foot-base .social { margin-left: auto; display: flex; gap: 10px; }
 
   @media (max-width: 1100px) {
@@ -350,7 +353,7 @@
     </div>
     <div class="hero-visual" aria-hidden="false">
       <div class="win win-back">
-        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">pool-anything — pools</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px">36 providers</span></div>
+        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">pool-anything — pools</span><span style="margin-left:auto;font-family:var(--font-mono);font-size:11px">36 providers</span></div>
         <div style="display:grid;grid-template-columns:150px 1fr;min-height:230px">
           <div style="border-right:1px solid var(--line-soft);padding:12px;font-size:12px;color:var(--ink-soft);display:flex;flex-direction:column;gap:9px">
             <span style="display:flex;align-items:center;gap:7px;color:var(--ink);font-weight:600"><img src="logos/pool-anything.svg" alt="" width="16" height="16" onerror="this.remove()" />Pools</span>
@@ -358,13 +361,13 @@
             <span style="display:flex;align-items:center;gap:7px"><img src="logos/openrouter.svg" alt="" width="16" height="16" onerror="this.remove()" />openrouter · 3</span>
             <span style="display:flex;align-items:center;gap:7px"><img src="logos/gemini.svg" alt="" width="16" height="16" onerror="this.remove()" />gemini · 4</span>
             <span style="display:flex;align-items:center;gap:7px"><img src="logos/mistral.svg" alt="" width="16" height="16" onerror="this.remove()" />mistral · 2</span>
-            <span style="margin-top:auto;font-family:'IBM Plex Mono',monospace;font-size:11px">cursor → key 3</span>
+            <span style="margin-top:auto;font-family:var(--font-mono);font-size:11px">cursor → key 3</span>
           </div>
           <div class="win-body"><span class="tok-c"># pick the next key, inject auth, forward</span><br /><span class="tok-k">POST</span> /api/pools/<span class="tok-s">1</span>/proxy<br />{ <span class="tok-s">"path"</span>: <span class="tok-s">"/chat/completions"</span>,<br />&nbsp;&nbsp;<span class="tok-s">"tokens"</span>: <span class="tok-s">25</span> }<br /><br /><span class="tok-g">{ "key_id": 3, "status": 200,</span><br /><span class="tok-g">&nbsp;&nbsp;"masked": "gsk_…c4" }</span></div>
         </div>
       </div>
       <div class="win win-front">
-        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">rotation — cursor % keys.length</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px" id="heroCount">live demo ↓</span></div>
+        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">rotation — cursor % keys.length</span><span style="margin-left:auto;font-family:var(--font-mono);font-size:11px" id="heroCount">live demo ↓</span></div>
         <div class="win-body"><span class="tok-c">$ pool-anything proxy</span><br />via key <span class="tok-s">1</span> (gsk_…ab): <span class="tok-g">HTTP 200</span>, 25 tokens<br />via key <span class="tok-s">2</span> (gsk_…9f): <span class="tok-g">HTTP 200</span>, 25 tokens<br />via key <span class="tok-s">3</span> (gsk_…c4): <span class="tok-g">HTTP 200</span>, 25 tokens<br /><span class="cursor-blink"></span></div>
       </div>
     </div>
@@ -431,7 +434,7 @@
       </div>
       <div>
         <div class="change"><span class="tag">proxy</span><h4>One POST does pick, inject, forward</h4><p>Send path, method, body. The pool adds the right key — header or query param — and reports which key served you.</p></div>
-        <div class="change"><span class="tag">rotation</span><h4>Cursor math you can audit</h4><p>Next key is <span style="font-family:'IBM Plex Mono',monospace">cursor % keys.length</span>. Every call returns key_id and label so turn-taking is visible.</p></div>
+        <div class="change"><span class="tag">rotation</span><h4>Cursor math you can audit</h4><p>Next key is <span style="font-family:var(--font-mono)">cursor % keys.length</span>. Every call returns key_id and label so turn-taking is visible.</p></div>
         <div class="change"><span class="tag">usage</span><h4>Every request leaves a row</h4><p>Tokens per key, rolled up per pool. /usage shows used, quota, and remaining at a glance.</p></div>
       </div>
     </div>
@@ -464,12 +467,12 @@
       <div class="dial-wrap">
         <div class="dial" aria-hidden="true">
           <svg viewBox="0 0 210 210" id="dialSvg">
-            <circle cx="105" cy="105" r="86" fill="none" stroke="#d1cfc5" stroke-width="1.5" stroke-dasharray="3 6"/>
-            <circle cx="105" cy="105" r="58" fill="none" stroke="#d1cfc5" stroke-width="1.5"/>
-            <circle cx="105" cy="105" r="6" fill="#141413"/>
+            <circle cx="105" cy="105" r="86" fill="none" stroke="#D6D0C4" stroke-width="1.5" stroke-dasharray="3 6"/>
+            <circle cx="105" cy="105" r="58" fill="none" stroke="#D6D0C4" stroke-width="1.5"/>
+            <circle cx="105" cy="105" r="6" fill="#1B1917"/>
             <g id="slots"></g>
             <g id="cursor" class="cursor-dot">
-              <circle id="cursorDot" cx="105" cy="19" r="7" fill="#d97757" stroke="#fff" stroke-width="2"/>
+              <circle id="cursorDot" cx="105" cy="19" r="7" fill="#C15F3C" stroke="#fff" stroke-width="2"/>
             </g>
           </svg>
         </div>
@@ -667,12 +670,12 @@
       pts.push([x, y]);
       var c = document.createElementNS(NS, 'circle');
       c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', '13');
-      c.setAttribute('fill', '#fff'); c.setAttribute('stroke', '#141413'); c.setAttribute('stroke-width', '2');
+      c.setAttribute('fill', '#fff'); c.setAttribute('stroke', '#1B1917'); c.setAttribute('stroke-width', '2');
       slots.appendChild(c);
       var t2 = document.createElementNS(NS, 'text');
       t2.setAttribute('x', x); t2.setAttribute('y', y + 4.5);
       t2.setAttribute('text-anchor', 'middle'); t2.setAttribute('font-size', '10');
-      t2.setAttribute('font-family', 'IBM Plex Mono, monospace'); t2.setAttribute('fill', '#141413');
+      t2.setAttribute('font-family', "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"); t2.setAttribute('fill', '#1B1917');
       t2.textContent = (i + 1);
       slots.appendChild(t2);
     }
