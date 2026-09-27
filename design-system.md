@@ -545,3 +545,30 @@ Cross-cutting consequences: admin body 13px stays (density — Phase 4 adjustmen
 | Landing `.btn-dark/.btn-light` | `.open-btn` / `.lang`-adjacent light | Phase 4: dark→ink solid r8 (already r8 ✓, pad 9/16 kept — density exception, hover `#000` kept as docs precedent) |
 | Landing `.win/.plan/.well/.run-card` (r12–20) | `.ep` r10 / `.code` r8 | Phase 4: converge to r10/r12, keep hero `lg` shadow (docs drawer precedent covers `0 20px 60px` only for drawers — hero keeps `0 12px 40px` as documented exception) |
 | 404 `.go a.primary/.secondary` | `.open-btn` / bordered light | Phase 4: full re-skin (simplest surface) |
+
+---
+
+## 13. Surface decisions & density adjustments (Phases 4–5)
+
+> No copy, layout structure, or behavior changed — selectors, markup, IDs, and JS are identical; only declarations. Verified: `tsc --noEmit` clean, all 6 admin routes 200, zero old-hex leaks in rendered HTML (only allowlisted JS chart consts `BLUE #3b82f6`, red `#ef4444`, grid `#EFEAE1`, empty `#E8E3D9`).
+
+### Admin density adjustments (proposed, not silently forced)
+- **Body 13px + card pad 18px kept.** Docs article is 14.5px / ep pad 13/15, but admin is a dense dashboard (stat lists, key rows, playground panes); 13px + tabular-nums preserved, colors/dividers converge. Revisit only if readability complaints arise.
+- **`ana-value` 22/26px numerals kept** (no docs equiv — data-viz, fallback most-used per §11).
+- **Form labels stay `ink-soft`, not faint.** Docs `th` precedent is 12/600/faint, but admin's 11px labels at `#8A8680` would sit at ~4.3:1; `ink-soft` keeps ~5.5:1. Conscious deviation.
+- **`.chart-tip` keeps r10.** No docs tooltip exists; shadow already matches `md`.
+- **`.pill` count badges → `paper-2`, not `active-pill`.** Matches docs `.change .tag` (cream-2 chip) precedent; `active-pill` reserved for selected states.
+- **Sidebar active is the boldest change:** `.mi.active` goes `#ececec` → accent-soft wash + accent text (docs sidenav). Headings go sans-600 → Georgia-500 (docs h-mapping carried exactly). Both are high-visibility; flag for visual review.
+- **Pre-existing tree state note:** `src/admin/pages.ts` + `src/admin/shell.ts` already had uncommitted modifications before Phase 4 (see worktree status at Phase 0 start); the Phase 4 commit includes that prior diff alongside the token migration. `landing/*`, `scripts/tools-api-base.js`, and all new files are pure per-phase diffs.
+
+### Landing exceptions (editorial surface)
+- **Keeps `max-width:1180px` page + larger display type** (`clamp(40px,4.6vw,58px)` hero). Body, buttons, cards, spacing, focus, and radii converge; headline *scale* stays editorial. Typefaces converge (Georgia/mono/sans vars); terminal/illustration categoricals (`#8AB4FF`, `#7BD88F`, bands, shot tints, conduit) kept — no docs equiv.
+- **Breakpoints:** 1100→**1120** (merged to canonical); **960 kept** (top-nav density needs its own collapse — logged exception, not merged to 860).
+
+### 404 (fully in line)
+Serif h1 (500, size clamp kept), eyebrow-style status (11/700/.08em/faint, exact docs eyebrow), 1px borders, accent focus, `#000` primary-hover (open-btn precedent). Bricolage/Inter/Plex webfont link retained (zero-risk; Inter still reachable via font stack on Linux).
+
+### Layout decisions (Phase 5)
+- Containers per-surface: docs **1440** (chrome) / 760 article / 70ch measure · admin **1400** wrap (kept) · landing **1180** page / 1020 wells / 720 faq (kept editorial) · 404 **560** (kept).
+- Canonical breakpoint set: **520 / 640 / 720 / 860 / 900 / 1120** (+reduced-motion). Exceptions: landing **960** (nav), admin `min-901` sticky pair (structural, not a breakpoint addition).
+- Card padding: admin **18px** both breakpoints (no responsive step — matches docs behavior of fixed card padding; the "16px mobile" convention from §3 was aspirational, never implemented).
