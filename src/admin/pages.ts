@@ -1,7 +1,7 @@
 import { LOGO_V, DOCS_URL, ICONS } from "./branding.js";
 import { shellCss, shellNav, shellJs, sharedHeader, sharedLayoutCss } from "./shell.js";
 import { tokensCss } from "./tokens.js";
-import { docsComponentsCss } from "./components.js";
+import { docsComponentsCss, ddSelect } from "./components.js";
 
 // Web UI pages. Server-side interpolations are LOGO_V (cache-buster), DOCS_URL,
 // ICONS, and shell partials; all client-side JS runs in the browser.
@@ -16,6 +16,20 @@ const clientCoreJs = `async function j(r){const t=await r.text();try{return JSON
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 const err=t=>document.getElementById('err').textContent=t||'';
 function logoSrc(img,file){if(!img)return;if(file){img.src='/logos/'+file+'?v=${LOGO_V}';img.onerror=()=>img.remove();}else img.remove();}`;
+
+// Custom dropdowns (vanilla shadcn-style menus). Each `.dd` wraps a hidden
+// native select that stays the state source of truth: the menu is built from
+// its options, choosing dispatches real input/change events, and ddSync(id)
+// rebuilds the menu after options are (re)populated programmatically.
+// Bodies contain no backticks or ${, so they are safe to interpolate.
+const clientDropdownJs = `const DD_TICK='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.5 5 5 10-11"/></svg>';
+function ddClose(id){var w=document.getElementById('dd-'+id);if(!w)return;w.classList.remove('open');var b=w.querySelector('.dd-btn');if(b)b.setAttribute('aria-expanded','false');var m=w.querySelector('.dd-menu');if(m)m.hidden=true;}
+function ddCloseAll(except){var ws=document.querySelectorAll('.dd.open');for(var i=0;i<ws.length;i++){if(ws[i].id!=='dd-'+except)ddClose(ws[i].id.slice(3));}}
+function ddSync(id){var s=document.getElementById(id),w=document.getElementById('dd-'+id);if(!s||!w)return;var m=w.querySelector('.dd-menu');m.innerHTML='';var cur=s.value;for(var i=0;i<s.options.length;i++){var o=s.options[i];var it=document.createElement('button');it.type='button';it.className='dd-item';it.setAttribute('role','option');var t=document.createElement('span');t.className='dd-txt';t.textContent=o.textContent;it.appendChild(t);var k=document.createElement('span');k.className='tick';k.innerHTML=DD_TICK;it.appendChild(k);if(o.value===cur)it.setAttribute('aria-selected','true');if(o.disabled)it.disabled=true;(function(v,dis){it.addEventListener('click',function(){if(dis)return;ddChoose(id,v);});})(o.value,o.disabled);m.appendChild(it);}var lab=w.querySelector('.dd-val');var sel=s.options[s.selectedIndex];lab.textContent=sel?sel.textContent:'';var trg=w.querySelector('.dd-btn');if(trg)trg.disabled=s.disabled;}
+function ddChoose(id,v){var s=document.getElementById(id),w=document.getElementById('dd-'+id);if(!s||!w||s.disabled)return;if(s.value!==v){s.value=v;ddSync(id);s.dispatchEvent(new Event('input',{bubbles:true}));s.dispatchEvent(new Event('change',{bubbles:true}));}ddClose(id);var b=w.querySelector('.dd-btn');if(b)b.focus();}
+function ddToggle(id){var w=document.getElementById('dd-'+id),s=document.getElementById(id);if(!w||!s||s.disabled)return;var willOpen=!w.classList.contains('open');ddCloseAll(id);var m=w.querySelector('.dd-menu'),b=w.querySelector('.dd-btn');if(willOpen){w.classList.add('open');if(b)b.setAttribute('aria-expanded','true');m.hidden=false;var cur=m.querySelector('.dd-item[aria-selected="true"]')||m.querySelector('.dd-item:not(:disabled)');if(cur)cur.focus();}else ddClose(id);}
+function ddMove(id,dir){var w=document.getElementById('dd-'+id);if(!w)return;var items=w.querySelectorAll('.dd-item:not(:disabled)');if(!items.length)return;var at=Array.prototype.indexOf.call(items,document.activeElement);var n=dir>0?(at<0?0:(at+1)%items.length):(at<0?items.length-1:(at-1+items.length)%items.length);items[n].focus();}
+function initDropdowns(){var ws=document.querySelectorAll('.dd');for(var i=0;i<ws.length;i++)(function(w){if(w.dataset.ddInit)return;w.dataset.ddInit='1';var id=w.id.slice(3);var b=w.querySelector('.dd-btn'),m=w.querySelector('.dd-menu');b.addEventListener('click',function(){ddToggle(id);});b.addEventListener('keydown',function(e){if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!w.classList.contains('open'))ddToggle(id);else ddMove(id,e.key==='ArrowDown'?1:-1);}else if(e.key==='Escape')ddClose(id);});m.addEventListener('keydown',function(e){if(e.key==='ArrowDown'){e.preventDefault();ddMove(id,1);}else if(e.key==='ArrowUp'){e.preventDefault();ddMove(id,-1);}else if(e.key==='Home'){e.preventDefault();var f=m.querySelector('.dd-item:not(:disabled)');if(f)f.focus();}else if(e.key==='End'){e.preventDefault();var all=m.querySelectorAll('.dd-item:not(:disabled)');if(all.length)all[all.length-1].focus();}else if(e.key==='Escape'){e.preventDefault();ddClose(id);b.focus();}else if(e.key==='Tab')ddClose(id);});ddSync(id);})(ws[i]);document.addEventListener('pointerdown',function(e){if(!e.target.closest||!e.target.closest('.dd'))ddCloseAll('');});}`;
 
 const clientChartsJs = `function fmtCompact(n) {
   n = Number(n) || 0;
@@ -185,7 +199,7 @@ export const page = `<!doctype html>
   .hero-logo { width:40px; height:40px; object-fit:contain; flex-shrink:0; }
   .hero-row { display:flex; align-items:center; justify-content:center; gap:4px; }
   .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px; box-shadow:none; overflow:hidden; }
-  .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  .search-card:focus-within { border-color:var(--ink-faint); box-shadow:none; }
   .search-box { display:flex; align-items:center; gap:0; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; height:var(--ctl-xl); padding:0 4px 0 10px; box-shadow:none; overflow:hidden; }
   .search-box svg { flex-shrink:0; color:var(--ink-soft); }
   .search-box input { flex:1; min-width:0; height:100%; border:0; outline:0; background:transparent; font-size:14px; font-weight:500; padding:0 16px; }
@@ -217,7 +231,7 @@ export const page = `<!doctype html>
   .p-foot button { margin-left:auto; }
   .perr { color:var(--danger-ink); font-size:13px; min-height:18px; }
   button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  .search-card:focus-within { border-color:var(--ink-faint); box-shadow:none; }
   .hero-row, .search-card { max-width:400px; }
   .hero-row h1, .hero-row { gap:2px; }
   h1 { font-family:var(--font-serif); font-size:clamp(20px, 4vw, 26px); font-weight:500; }

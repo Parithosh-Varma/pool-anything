@@ -117,7 +117,7 @@ export const docsComponentsCss = `
   /* home search → docs search idiom (§11 #10, #15); ring lives on the outer
      card so overflow:hidden containment never clips the focus affordance */
   .search-card { overflow:hidden; }
-  .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  .search-card:focus-within { border-color:var(--ink-faint); box-shadow:none; }
   .search-box { background:var(--card); border-radius:var(--radius-md); overflow:hidden; }
   .search-box input { height:100%; }
   .kbd { align-items:center; }
@@ -143,4 +143,50 @@ export const docsComponentsCss = `
   .cap-note.ok { color:var(--green-ink); background:var(--green-bg); border-color:var(--green-line); }
   .ana-delta.up { color:var(--green-ink); } .ana-delta.down { color:var(--danger-ink); }
   .submit { border-color:var(--danger-ink); box-shadow:0 0 0 3px var(--danger-ring); }
-  .meter { background:var(--line); } .meter i { background:var(--chart-blue); }`;
+  .meter { background:var(--line); } .meter i { background:var(--chart-blue); }
+
+  /* ══ custom dropdown: trigger + menu over a hidden native select ══ */
+  /* trigger mirrors .ctl geometry; menu mirrors endpoint-plate cards */
+  .dd { position:relative; display:inline-flex; min-width:0; vertical-align:middle; }
+  .dd-block { display:flex; width:100%; }
+  .dd-btn { display:inline-flex; align-items:center; gap:8px; width:100%;
+    border:1px solid var(--line); background:var(--card); border-radius:8px;
+    min-height:34px; padding:0 10px; font-size:13px; color:var(--ink);
+    font-family:inherit; cursor:pointer; text-align:left; }
+  .dd-btn:hover { background:var(--paper-2); }
+  .dd-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .dd-ghost .dd-btn { border-color:transparent; font-weight:600; }
+  .dd-ghost .dd-btn:hover { background:var(--paper-2); border-color:var(--line); }
+  .dd-val { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dd-btn .chev { display:inline-flex; flex-shrink:0; color:var(--ink-faint);
+    transition:transform .18s ease; }
+  .dd.open .dd-btn .chev { transform:rotate(180deg); }
+  .dd-menu { position:absolute; top:calc(100% + 4px); left:0; min-width:100%;
+    max-height:240px; overflow:auto; background:var(--card);
+    border:1px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow-md); padding:4px; z-index:60; margin:0; }
+  .dd-item { display:flex; align-items:center; gap:8px; width:100%; border:0;
+    background:none; font-family:inherit; font-size:13px; color:var(--ink);
+    border-radius:6px; padding:7px 8px; cursor:pointer; text-align:left; }
+  .dd-item:hover { background:var(--paper-2); }
+  .dd-item:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+  .dd-item:disabled { opacity:.4; cursor:not-allowed; }
+  .dd-item .dd-txt { flex:1; min-width:0; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .dd-item .tick { display:inline-flex; flex-shrink:0; width:14px; opacity:0; }
+  .dd-item[aria-selected="true"] { font-weight:600; }
+  .dd-item[aria-selected="true"] .tick { opacity:1; }
+  .row>.dd { flex:1 1 auto; min-width:140px; }
+  .pg-top>.dd { max-width:220px; }`;
+
+const DD_CHEV = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+/** Custom dropdown markup: visible trigger + menu over a hidden native select.
+ *  Client JS (clientDropdownJs in pages.ts) builds the menu from the select's
+ *  options and dispatches real input/change events, so existing `.value`
+ *  reads, `.onchange` handlers, and option-population code keep working.
+ *  wrapClass: "dd-block" (full-width, e.g. form rows + studio fields) or
+ *  "dd-ghost" (borderless, e.g. the code-language picker). */
+export function ddSelect(id: string, ariaLabel: string, options: string, wrapClass = ""): string {
+  return `<span class="dd${wrapClass ? " " + wrapClass : ""}" id="dd-${id}"><select id="${id}" aria-label="${ariaLabel}" hidden>${options}</select><button type="button" class="dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="${ariaLabel}"><span class="dd-val"></span><span class="chev">${DD_CHEV}</span></button><div class="dd-menu" role="listbox" hidden></div></span>`;
+}
