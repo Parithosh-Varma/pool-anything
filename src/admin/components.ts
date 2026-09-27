@@ -114,9 +114,13 @@ export const docsComponentsCss = `
   /* nav active → docs sidenav [data-active] (§11 #4) */
   .mi.active { background:var(--accent-soft); color:var(--accent); }
   .mi.active .ic { opacity:1; }
-  /* home search → docs search idiom (§11 #10, #15) */
-  .search-box { background:var(--card); border-radius:var(--radius-md); }
-  .search-box:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  /* home search → docs search idiom (§11 #10, #15); ring lives on the outer
+     card so overflow:hidden containment never clips the focus affordance */
+  .search-card { overflow:hidden; }
+  .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  .search-box { background:var(--card); border-radius:var(--radius-md); overflow:hidden; }
+  .search-box input { height:100%; }
+  .kbd { align-items:center; }
   .kbd kbd { border-radius:var(--radius-xs); color:var(--ink-soft); border-color:var(--line); }
   /* tips banner → callout.info geometry */
   .tips-banner { background:var(--paper-2); border-radius:var(--radius-md); padding:11px 14px; }

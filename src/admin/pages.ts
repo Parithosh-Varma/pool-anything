@@ -184,11 +184,12 @@ export const page = `<!doctype html>
   }
   .hero-logo { width:40px; height:40px; object-fit:contain; flex-shrink:0; }
   .hero-row { display:flex; align-items:center; justify-content:center; gap:4px; }
-  .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px; box-shadow:none; }
-  .search-box { display:flex; align-items:center; gap:0; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; height:34px; padding:0 4px 0 10px; box-shadow:none; }
+  .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px; box-shadow:none; overflow:hidden; }
+  .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  .search-box { display:flex; align-items:center; gap:0; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; height:34px; padding:0 4px 0 10px; box-shadow:none; overflow:hidden; }
   .search-box svg { flex-shrink:0; color:var(--ink-soft); }
-  .search-box input { flex:1; min-width:0; border:0; outline:0; background:transparent; font-size:14px; padding:0 12px; }
-  .kbd { display:flex; gap:4px; padding-right:10px; }
+  .search-box input { flex:1; min-width:0; height:100%; border:0; outline:0; background:transparent; font-size:14px; padding:0 12px; }
+  .kbd { display:flex; align-items:center; gap:4px; padding-right:10px; }
   .kbd kbd { height:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-family:inherit; background:var(--card); color:var(--ink-soft); border:1px solid var(--line); border-radius:5px; }
   #results { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
   .prov { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; width:100%; min-height:76px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 6px; cursor:pointer; font-size:11px; font-weight:500; text-align:center; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
@@ -216,7 +217,7 @@ export const page = `<!doctype html>
   .p-foot button { margin-left:auto; }
   .perr { color:var(--danger-ink); font-size:13px; min-height:18px; }
   button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .search-box:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
+  .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
   .hero-row, .search-card { max-width:400px; }
   .hero-row h1, .hero-row { gap:2px; }
   h1 { font-family:var(--font-serif); font-size:clamp(20px, 4vw, 26px); font-weight:500; }
@@ -1090,9 +1091,13 @@ details.params summary{cursor:pointer;color:var(--ink-soft);font-size:12px}
 .gal img{width:100%;display:block;aspect-ratio:1;object-fit:cover}
 .gal figcaption{font-size:11px;color:var(--ink-soft);padding:8px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .attach-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.attach-row .filebtn{border:1px solid var(--line);background:var(--card);border-radius:8px;min-height:30px;padding:0 10px;font-size:12.5px;cursor:pointer;color:var(--ink);font-family:inherit}
+.attach-row .filebtn{border:1px solid var(--line);background:var(--card);border-radius:8px;min-height:30px;padding:0 10px;font-size:12.5px;cursor:pointer;color:var(--ink);font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .attach-row .filebtn:hover{background:var(--paper-2)}
 .attach-row .filebtn.off{opacity:.4;cursor:not-allowed}
+.attach-row .filebtn svg{width:14px;height:14px;flex-shrink:0;display:block}
+.attach-row .filebtn.recording{border-color:var(--danger-line);background:var(--danger-bg);color:var(--danger-ink)}
+.attach-row .filebtn.recording svg{animation:recPulse 1.2s ease-in-out infinite}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:.35}}
 .cap-note{font-size:12.5px;color:var(--warn-ink);background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:8px;padding:8px 10px}
 .cap-note.ok{color:var(--green-ink);background:var(--green-bg);border-color:var(--green-line)}
 .mprev{display:flex;gap:8px;flex-wrap:wrap}
@@ -1138,10 +1143,10 @@ ${docsComponentsCss}
 <button class="submit" id="submit" type="button">Submit <span class="hint">⌘↵</span></button>
 </div>
 <div class="attach-row" id="attachRow">
-<button class="filebtn" id="attachImg" type="button" title="Attach image (png/jpg/webp)">🖼 Image</button>
-<button class="filebtn" id="attachAudio" type="button" title="Attach audio">🎙 Audio</button>
-<button class="filebtn" id="attachVideo" type="button" title="Attach video (Gemini video models)">🎬 Video</button>
-<button class="filebtn" id="recAudio" type="button" title="Record audio with microphone">● Rec</button>
+<button class="filebtn" id="attachImg" type="button" title="Attach image (png/jpg/webp)">${ICONS.image}Image</button>
+<button class="filebtn" id="attachAudio" type="button" title="Attach audio">${ICONS.audio}Audio</button>
+<button class="filebtn" id="attachVideo" type="button" title="Attach video (Gemini video models)">${ICONS.video}Video</button>
+<button class="filebtn" id="recAudio" type="button" title="Record audio with microphone">${ICONS.rec}Rec</button>
 <input type="file" id="fileImg" accept="image/png,image/jpeg,image/webp" hidden/>
 <input type="file" id="fileAudio" accept="audio/*" hidden/>
 <input type="file" id="fileVideo" accept="video/mp4,video/webm" hidden/>
@@ -1309,6 +1314,8 @@ let lastImgDefault='⌁';
 let lastAudDefault='⌁';
 let lastVidDefault='⌁';
 let mediaRecorder=null,recChunks=[],recording=false;
+const REC_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3" fill="#B3261E" stroke="#B3261E"/></svg>';
+const STOP_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><rect x="9.6" y="9.6" width="4.8" height="4.8" rx="1.2" fill="#B3261E" stroke="#B3261E"/></svg>';
 async function toggleRec(){
   const btn=document.getElementById('recAudio');
   if(recording&&mediaRecorder){mediaRecorder.stop();return;}
@@ -1320,14 +1327,14 @@ async function toggleRec(){
     mediaRecorder=new MediaRecorder(stream);
     mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
     mediaRecorder.onstop=()=>{
-      recording=false;btn.textContent='● Rec';
+      recording=false;btn.classList.remove('recording');btn.innerHTML=REC_SVG+'Rec';
       stream.getTracks().forEach(t=>t.stop());
       const blob=new Blob(recChunks,{type:mediaRecorder.mimeType||'audio/webm'});
       const f=new File([blob],'recording.'+(blob.type.indexOf('mp4')>=0?'mp4':'webm'),{type:blob.type||'audio/webm'});
       addMediaFile(f,'audio');
       mediaRecorder=null;
     };
-    mediaRecorder.start();recording=true;btn.textContent='■ Stop';
+    mediaRecorder.start();recording=true;btn.classList.add('recording');btn.innerHTML=STOP_SVG+'Stop';
     err('');
   }catch{err('Microphone permission denied.');}
 }
