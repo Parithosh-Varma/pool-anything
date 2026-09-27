@@ -98,7 +98,8 @@
   "controlHeight": {
     "sm": { "value": "26px", "uses": "icon-only copy buttons" },
     "icon": { "value": "30px", "uses": "icon buttons, search bar" },
-    "md": { "value": "34px", "uses": "text inputs, buttons" }
+    "md": { "value": "34px", "uses": "text inputs, buttons" },
+    "xl": { "value": "40px", "uses": "hero search bar (ports kumo h-10 idiom; logged exception to the {26,30,34} set)" }
   },
   "shadow": {
     "sm": { "value": "0 1px 2px rgba(0,0,0,.15)", "uses": "segmented .on (kept, no docs equivalent)" },

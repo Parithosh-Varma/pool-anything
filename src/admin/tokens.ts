@@ -25,7 +25,7 @@ export const tokensCss = `
     --radius-md:8px; --radius-lg:10px; --radius-xl:12px; --radius-pill:999px;
     --shadow-sm:0 1px 2px rgba(0,0,0,.15); --shadow-md:0 8px 24px rgba(0,0,0,.12);
     --shadow-drawer:0 20px 60px rgba(0,0,0,.18);
-    --ctl-sm:26px; --ctl-icon:30px; --ctl-md:34px;
+    --ctl-sm:26px; --ctl-icon:30px; --ctl-md:34px; --ctl-xl:40px;
     --font-sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     --font-serif:Georgia,"Times New Roman",serif;
     --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;

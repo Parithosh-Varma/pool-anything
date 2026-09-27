@@ -184,13 +184,13 @@ export const page = `<!doctype html>
   }
   .hero-logo { width:40px; height:40px; object-fit:contain; flex-shrink:0; }
   .hero-row { display:flex; align-items:center; justify-content:center; gap:4px; }
-  .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px; box-shadow:none; overflow:hidden; }
+  .search-card { width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:6px; box-shadow:none; overflow:hidden; }
   .search-card:focus-within { border-color:transparent; box-shadow:0 0 0 1.5px var(--accent); }
-  .search-box { display:flex; align-items:center; gap:0; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; height:34px; padding:0 4px 0 10px; box-shadow:none; overflow:hidden; }
+  .search-box { display:flex; align-items:center; gap:0; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; height:var(--ctl-xl); padding:0 4px 0 10px; box-shadow:none; overflow:hidden; }
   .search-box svg { flex-shrink:0; color:var(--ink-soft); }
-  .search-box input { flex:1; min-width:0; height:100%; border:0; outline:0; background:transparent; font-size:14px; padding:0 12px; }
+  .search-box input { flex:1; min-width:0; height:100%; border:0; outline:0; background:transparent; font-size:14px; font-weight:500; padding:0 16px; }
   .kbd { display:flex; align-items:center; gap:4px; padding-right:10px; }
-  .kbd kbd { height:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-family:inherit; background:var(--card); color:var(--ink-soft); border:1px solid var(--line); border-radius:5px; }
+  .kbd kbd { height:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; font-size:12px; font-weight:500; font-family:inherit; background:var(--card); color:var(--ink-soft); border:1px solid var(--line); border-radius:5px; }
   #results { width:100%; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
   .prov { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; width:100%; min-height:76px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 6px; cursor:pointer; font-size:11px; font-weight:500; text-align:center; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
   .prov:hover { background:var(--paper-2); }
