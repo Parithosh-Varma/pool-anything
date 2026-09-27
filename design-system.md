@@ -571,4 +571,35 @@ Serif h1 (500, size clamp kept), eyebrow-style status (11/700/.08em/faint, exact
 ### Layout decisions (Phase 5)
 - Containers per-surface: docs **1440** (chrome) / 760 article / 70ch measure · admin **1400** wrap (kept) · landing **1180** page / 1020 wells / 720 faq (kept editorial) · 404 **560** (kept).
 - Canonical breakpoint set: **520 / 640 / 720 / 860 / 900 / 1120** (+reduced-motion). Exceptions: landing **960** (nav), admin `min-901` sticky pair (structural, not a breakpoint addition).
+### Layout decisions (Phase 5)
+- Containers per-surface: docs **1440** (chrome) / 760 article / 70ch measure · admin **1400** wrap (kept) · landing **1180** page / 1020 wells / 720 faq (kept editorial) · 404 **560** (kept).
+- Canonical breakpoint set: **520 / 640 / 720 / 860 / 900 / 1120** (+reduced-motion). Exceptions: landing **960** (nav), admin `min-901` sticky pair (structural, not a breakpoint addition).
 - Card padding: admin **18px** both breakpoints (no responsive step — matches docs behavior of fixed card padding; the "16px mobile" convention from §3 was aspirational, never implemented).
+
+---
+
+## 14. Gap closure + verification (Phase 6)
+
+### Gap status vs §9 (framed against docs's component set)
+| # | Gap | Status |
+|---|---|---|
+| 1 | No central theme file | **Closed** — `design-tokens.json` + `src/admin/tokens.ts` + `scripts/check-tokens.ts` (53 values verified) + `src/admin/components.ts` |
+| 2 | No dark mode | **Open** — explicitly out of scope; `color-scheme:light`, all tokens light-only |
+| 3 | No spacing scale | **Closed as documentation** — `space` scale + canonical gaps in JSON/§10c; no automated enforcement (no linter) |
+| 4 | No button hierarchy | **Closed** — solid/icon/copy/pill/ghost + {26,30,34} heights mapped (§12); destructive still reuses ghost (docs has no destructive variant either) — partial by inheritance |
+| 5 | No input error state | **Open** — docs has none; errors remain `.err` text, now `danger-ink`. Unchanged capability |
+| 6 | No table component | **Closed** — `table.ds-grid` shared + stat-list bridged to table idiom |
+| 7 | No toast/tooltip/popover | **Partial** — chart-tip kept + shadow-tokenized; toast system still absent (docs has none) |
+| 8 | Hardcoded colors | **Closed** — zero old-hex leaks in rendered admin HTML; landing/404 converge except illustration categoricals (logged, §13) and standalone contexts (widget CSS, SVG attrs use canonical literals) |
+| 9 | No type scale | **Closed** — `fontSize` scale in JSON + §10b; fractional strays retired except intentional 12.5/13.5/14.5 steps |
+| 10 | No icon contract | **Open** — untouched (no docs equivalent beyond chev rotation, now `.18s`) |
+| 11 | No elevation scale | **Closed** — `shadow.sm/md/drawer` + danger/accent rings as tokens |
+| 12 | A11y gaps | **Partial** — focus standardized to 2px accent (all surfaces), `outline:none` removed; faint microcopy still borderline by design (docs parity); icon opacity untouched |
+
+### Verification performed
+- `npx tsc --noEmit` clean; `node --check scripts/tools-api-base.js` clean; `npx tsx scripts/check-tokens.ts` → 53 values OK.
+- All 6 admin routes 200 (`/`, `/pools`, `/keys`, `/playground`, `/analytics`, `/provider/groq`); grep over rendered HTML: **zero** old-hex leaks (only allowlisted JS chart consts).
+- `landing/docs.html`: **zero diff** — reference byte-identical in behavior and appearance.
+- Screenshots (Chrome headless, /tmp/pa-shots): 4 surfaces × 3 widths (1440/900/480) = 12 PNGs, all visually reviewed: docs unchanged; admin/landing/404 read as the same family (serif headings, accent actives, warm lines, r8–r12 geometry); admin icon-rail collapse (480), docs drawer + hamburger (480), docs TOC-hide (900), landing hero stack (900) all behave as before.
+- Net-new shared components introduced (11, §12): `ds-callout`, `ds-code`, `ds-ptabs/subtabs`, `ds-toc`, `ds-table`, `ds-ep`+`ds-m`, `ds-acc`, `ds-search`, `ds-feedback`, `ds-eyebrow`, `ds-inline` (+`ds-code-tools`, `ds-plabel`, `ds-tbl-wrap` helpers).
+- Changelog: §11 is the final docs-tiebreaker record (replaces §8, retained as findings).
