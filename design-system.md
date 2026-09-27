@@ -272,7 +272,30 @@ Motion: `grid-template-columns 250ms cubic-bezier(0.77,0,0.175,1)` (sidebar); `o
 
 ---
 
-## 7. Token export — `:root` CSS + Tailwind theme seed
+## 7. Token export — canonical files (Phase 2 — docs-derived, supersedes the draft below)
+
+- **`design-tokens.json`** — single source of truth (all values,with `uses` + provenance). Verified against:
+- **`src/admin/tokens.ts`** — `tokensCss` `:root` block interpolated by admin pages at runtime. Parity enforced by **`scripts/check-tokens.ts`** (`npx tsx scripts/check-tokens.ts` → "tokens OK — 53 values").
+- Key excerpts (see files for the full set):
+```css
+:root {
+  --paper:#FFFFFF; --paper-2:#F5F5F4; --card:#FFFFFF; --bg:#FFFFFF;
+  --ink:#1B1917; --ink-soft:#57534E; --ink-faint:#8A8680; --body-copy:#3F3B36;
+  --line:#E8E3D9; --line-soft:#EFEAE1; --active-pill:#E9E5DB;
+  --accent:#C15F3C; --accent-ink:#9A4A2E; --accent-soft:rgba(193,95,60,0.1);
+  --green-bg:#EBF6EC; --green-line:#BFE3C4; --green-ink:#1E6B32;
+  --danger-bg:#FDECEC; --danger-line:#F5C6C2; --danger-ink:#B3261E;
+  --radius-xs:5px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px; --radius-xl:12px; --radius-pill:999px;
+  --ctl-sm:26px; --ctl-icon:30px; --ctl-md:34px;
+  --font-sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-serif:Georgia,"Times New Roman",serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+```
+Tailwind seed: map `design-tokens.json` keys 1:1 (`colors.ink`, `fontFamily.serif`, `borderRadius.xl`, `height.ctl-md`, …) — no separate seed kept, the JSON *is* the seed.
+
+### 7x. Superseded draft — pre-docs `:root`/tailwind seed (kept for history, do not use)
 
 ### 7a. `:root` CSS variables (admin app — paste-ready; drift resolved toward the majority value, alternatives in §8)
 

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "pool-anything design tokens",
+  "sourceOfTruth": "landing/docs.html (:root at lines 10-27, 100-104). See design-system.md sections 10-11.",
+  "color": {
+    "paper": { "value": "#FFFFFF", "uses": "page bg (docs), light text on dark" },
+    "paper-2": { "value": "#F5F5F4", "uses": "hover surfaces, callout-info bg, code bg" },
+    "card": { "value": "#FFFFFF", "uses": "cards, header, sidebar, inputs" },
+    "bg": { "value": "#FFFFFF", "uses": "app background (docs canonical; admin migrates from #fafafa)" },
+    "ink": { "value": "#1B1917", "uses": "primary text, solid-button bg" },
+    "ink-soft": { "value": "#57534E", "uses": "secondary text (replaces #737373 and #525252)" },
+    "ink-faint": { "value": "#8A8680", "uses": "microcopy, placeholders (replaces #a3a3a3)" },
+    "body-copy": { "value": "#3F3B36", "uses": "prose paragraphs in article contexts" },
+    "line": { "value": "#E8E3D9", "uses": "all 1px borders, meter track" },
+    "line-soft": { "value": "#EFEAE1", "uses": "soft dividers, inline-code border" },
+    "active-pill": { "value": "#E9E5DB", "uses": "selected pill / tag backgrounds" },
+    "accent": { "value": "#C15F3C", "uses": "primary accent: focus, toc rail, ptabs underline, links hover" },
+    "accent-ink": { "value": "#9A4A2E", "uses": "text on accent-tinted surfaces" },
+    "accent-soft": { "value": "rgba(193, 95, 60, 0.1)", "uses": "active nav background" },
+    "code-bg": { "value": "#F5F5F4", "uses": "inline code background" },
+    "code-ink": { "value": "#23201C", "uses": "code block text on light" },
+    "code-dark-bg": { "value": "#1C1917", "uses": "dark code block / media background (replaces #000)" },
+    "code-dark-ink": { "value": "#EDE6DA", "uses": "dark code block text" },
+    "green-bg": { "value": "#EBF6EC", "uses": "success surfaces (replaces #f0fdf4)" },
+    "green-line": { "value": "#BFE3C4", "uses": "success borders (replaces #bbf7d0)" },
+    "green-ink": { "value": "#1E6B32", "uses": "success text (replaces #15803d, #166534)" },
+    "green-chip": { "value": "#22A355", "uses": "success icon chip bg" },
+    "info-chip-bg": { "value": "#E2DED4", "uses": "info callout icon chip" },
+    "warn-bg": { "value": "#FFF3E4", "uses": "warning surfaces" },
+    "warn-line": { "value": "#F0D9B5", "uses": "warning borders" },
+    "warn-ink": { "value": "#9A5A00", "uses": "warning text, code numbers" },
+    "danger-bg": { "value": "#FDECEC", "uses": "error surfaces (replaces #fff5f4)" },
+    "danger-line": { "value": "#F5C6C2", "uses": "error borders (replaces #f3b7b3)" },
+    "danger-ink": { "value": "#B3261E", "uses": "error text (replaces #dc2626, #b00, #f04438)" },
+    "danger-ring": { "value": "rgba(179, 38, 30, 0.15)", "uses": "destructive CTA glow (retinted from #f04438)" },
+    "link-blue-bg": { "value": "#EAF1FE", "uses": "GET badge background" },
+    "link-blue": { "value": "#2456C6", "uses": "GET badge text, link/token blue, code functions" },
+    "link-blue-line": { "value": "#C9DAFA", "uses": "GET badge border" },
+    "underline": { "value": "#C9C2B4", "uses": "link underline resting state" },
+    "nav-hover": { "value": "rgba(87, 83, 78, 0.07)", "uses": "nav row hover wash" },
+    "scrollbar": { "value": "#D6D0C4", "uses": "scrollbar thumb on hover" },
+    "chev": { "value": "#A8A29E", "uses": "chevron buttons" },
+    "code-cmd": { "value": "#B3401E", "uses": "shell commands in code" },
+    "code-str": { "value": "#0E6E3E", "uses": "code strings (replaces #50a14f)" },
+    "code-kw": { "value": "#7A3DC0", "uses": "code keywords (replaces #a626a4)" },
+    "code-com": { "value": "#9B9489", "uses": "code comments (replaces #9ca3af)" },
+    "chart-blue": { "value": "#3b82f6", "uses": "admin-only: chart lines, meter fill (no docs equivalent, most-used wins)" },
+    "chart-blue-fill": { "value": "rgba(59, 130, 246, 0.10)", "uses": "admin-only: chart area fill" },
+    "chart-red": { "value": "#ef4444", "uses": "admin-only: error chart lines (paired fill below)" },
+    "chart-red-fill": { "value": "rgba(239, 68, 68, 0.08)", "uses": "admin-only: error chart area fill" },
+    "scrim": { "value": "rgba(0, 0, 0, 0.3)", "uses": "modal/drawer scrim, dialog backdrop" },
+    "overlay-strong": { "value": "rgba(0, 0, 0, 0.55)", "uses": "floating remove buttons on thumbnails" }
+  },
+  "font": {
+    "sans": {
+      "value": "-apple-system, BlinkMacSystemFont, \"Inter\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "uses": "body + UI (docs.html:32; Inter is fallback, effectively system)"
+    },
+    "serif": { "value": "Georgia, \"Times New Roman\", serif", "uses": "h1/h2 only, weight 500" },
+    "mono": {
+      "value": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+      "uses": "code, badges, tabular metadata"
+    }
+  },
+  "fontSize": {
+    "micro": { "value": "11px", "uses": "eyebrow (700/.08em), pills, thumb tags, field labels" },
+    "xs": { "value": "12px", "uses": "table headers, hints, icon labels" },
+    "meta": { "value": "12.5px", "uses": "code, toc, captions, secondary buttons" },
+    "sm": { "value": "13px", "uses": "base UI: rows, buttons, nav, callouts-core" },
+    "callout": { "value": "13.5px", "uses": "callouts, tables, endpoint plates" },
+    "md": { "value": "14px", "uses": "inputs, nav emphasis" },
+    "body": { "value": "14.5px", "uses": "article body, h3" },
+    "lg": { "value": "15px", "uses": "card titles, section heads" },
+    "xl": { "value": "16px", "uses": "dialog/page titles" },
+    "h3": { "value": "14.5px", "weight": 650, "uses": "h3 only (650 blessed here)" },
+    "h2": { "value": "23px", "weight": 500, "family": "serif" },
+    "h1": { "value": "34px", "weight": 500, "family": "serif", "mobile": "29px" }
+  },
+  "radius": {
+    "xs": { "value": "5px", "uses": "method badges, kbd" },
+    "sm": { "value": "6px", "uses": "inline code, small icon buttons, text buttons" },
+    "copy": { "value": "7px", "uses": "copy-page button (single use, kept)" },
+    "md": { "value": "8px", "uses": "code blocks, callouts, inputs, primary buttons, icon buttons (= --radius)" },
+    "lg": { "value": "10px", "uses": "endpoint plates, accordions, tiles, key rows" },
+    "xl": { "value": "12px", "uses": "page cards, dialogs, nav rows (docs max)" },
+    "pill": { "value": "999px", "uses": "pills, segmented controls, meters" }
+  },
+  "space": {
+    "xs": { "value": "4px" },
+    "sm": { "value": "6px" },
+    "md": { "value": "8px" },
+    "lg": { "value": "10px" },
+    "xl": { "value": "12px" },
+    "2xl": { "value": "16px" },
+    "3xl": { "value": "24px" },
+    "4xl": { "value": "32px" }
+  },
+  "controlHeight": {
+    "sm": { "value": "26px", "uses": "icon-only copy buttons" },
+    "icon": { "value": "30px", "uses": "icon buttons, search bar" },
+    "md": { "value": "34px", "uses": "text inputs, buttons" }
+  },
+  "shadow": {
+    "sm": { "value": "0 1px 2px rgba(0,0,0,.15)", "uses": "segmented .on (kept, no docs equivalent)" },
+    "md": { "value": "0 8px 24px rgba(0,0,0,.12)", "uses": "tooltips" },
+    "drawer": { "value": "0 20px 60px rgba(0,0,0,.18)", "uses": "open drawer (docs canonical)" }
+  },
+  "focus": {
+    "ring": { "value": "2px solid #C15F3C", "offset": "2px", "radius": "4px" },
+    "ring-inset": { "value": "2px solid #C15F3C", "offset": "-1px", "uses": "rows on tinted backgrounds" }
+  },
+  "motion": {
+    "chev": { "value": "transform .18s ease", "uses": "chevron rotation (docs canonical)" },
+    "fade": { "value": "opacity .15s ease", "uses": "hints, anchors" },
+    "drawer": { "value": "transform .22s ease", "uses": "drawer slide" },
+    "sidebar": { "value": "grid-template-columns 250ms cubic-bezier(0.77,0,0.175,1)", "uses": "admin sidebar collapse (kept, no docs equivalent)" },
+    "enter": { "value": "fadeSlide .28s cubic-bezier(.2,.7,.3,1)", "uses": "admin card entrance (kept, no docs equivalent)" }
+  },
+  "breakpoint": {
+    "sm": { "value": "520px", "uses": "stack stat rows, hero wrap (admin, kept)" },
+    "md": { "value": "640px", "uses": "analytics grid (admin, kept)" },
+    "nav": { "value": "720px", "uses": "admin sidebar collapse (kept)" },
+    "drawer": { "value": "860px", "uses": "docs: sidenav becomes drawer, h1 29px (canonical)" },
+    "split": { "value": "900px", "uses": "admin grids stack (kept)" },
+    "toc": { "value": "1120px", "uses": "docs: toc hides (canonical)" },
+    "wide": { "value": "1440px", "uses": "docs max container (canonical)" }
+  },
+  "layout": {
+    "max-wide": { "value": "1440px", "uses": "docs chrome + footer" },
+    "max-admin": { "value": "1400px", "uses": "admin wrap (kept, Phase 5 decision)" },
+    "max-article": { "value": "760px", "uses": "docs article column" },
+    "measure": { "value": "70ch", "uses": "docs prose/table/callout measure" }
+  }
+}
