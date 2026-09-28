@@ -10,6 +10,14 @@ tools-site/
 # OS / Editor
 .DS_Store
 *.log
+# Marketing / landing page (local only, never push to GitHub)
+landing/
+REferences/
+brag-output/
+# Loose media artifacts (launch videos, screenshots)
+*.mp4
+*.webm
+/playground-*.png
 # Local-only sqlite (D1 stand-in, never commit the binary)
 data/*.db
 data/*.db-journal
