@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-export function readJson(req: IncomingMessage): Promise<unknown> {
+export function readJson(req: IncomingMessage, maxBytes = 1_000_000): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let bytes = 0;
     const chunks: Buffer[] = [];
@@ -16,7 +16,7 @@ export function readJson(req: IncomingMessage): Promise<unknown> {
     };
     req.on("data", (c: Buffer) => {
       bytes += c.length;
-      if (bytes > 1_000_000) {
+      if (bytes > maxBytes) {
         req.destroy();
         done(() => reject(new Error("too large")));
         return;

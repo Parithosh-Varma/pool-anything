@@ -33,21 +33,33 @@
   },
   "license": "Apache-2.0",
   "author": "Parithosh Varma",
-  "private": true,
   "type": "module",
   "engines": {
     "node": ">=22.5.0"
   },
+  "bin": {
+    "pool-anything": "./bin/pool-anything.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "data/providers.json",
+    "public/logos/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
     "db:init": "tsx src/db/init.ts",
+    "export:tools": "tsx scripts/export-tools-ui.ts",
+    "tools:daemon": "tsx scripts/tools-watch.ts",
     "test": "tsx --test \"tests/**/*.test.ts\"",
     "start:dist": "node dist/server.js"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.7.4",
     "tsx": "^4.19.1",

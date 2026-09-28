@@ -1,8 +1,10 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { HOST, PORT, startupWarnings } from "./config/env.js";
+import { HOST, PORT, isAllowedOrigin, startupWarnings } from "./config/env.js";
+import { logoPngPath, publicDir } from "./config/paths.js";
 import { readJson, send } from "./common/http.js";
+import { MAX_PROXY_BODY_BYTES } from "./media/capabilities.js";
 import { isAuthorized, requiresAuth } from "./middleware/auth.js";
 import { sdb, PROVIDERS, mask, maskCredentials, normalizeCredentials, parseCredentials, providerKeyFields, getPool, poolSummary } from "./pool/index.js";
 import { nextKey, recordUsage } from "./pool/rotation.js";
@@ -14,6 +16,27 @@ import { health, readiness, analyticsSnapshot } from "./observability/health.js"
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
+  // CORS: only the hosted Pages tools UI (plus http loopback dev and
+  // ALLOWED_ORIGINS) may read API responses cross-origin. Arbitrary origins
+  // get no ACAO header so browsers block the read — reflecting any Origin
+  // would let any site the operator visits exfiltrate keys from a
+  // token-less loopback backend.
+  const origin = req.headers.origin;
+  const allowedOrigin =
+    typeof origin === "string" && origin && isAllowedOrigin(origin) ? origin : null;
+  if (allowedOrigin) {
+    res.setHeader("access-control-allow-origin", allowedOrigin);
+    res.setHeader("vary", "Origin");
+  }
+  res.setHeader("access-control-allow-methods", "GET, POST, PATCH, DELETE, OPTIONS");
+  res.setHeader("access-control-allow-headers", "content-type, authorization");
+  if ((req.method ?? "GET") === "OPTIONS") {
+    // Preflight: succeed at the HTTP layer but only advertise CORS to
+    // allowlisted callers; others get no ACAO header and stay blocked.
+    res.writeHead(204);
+    res.end();
+    return;
+  }
   try {
     if (requiresAuth(req.method ?? "GET", url.pathname) && !isAuthorized(req)) {
       send(res, 401, { error: "unauthorized: missing or invalid bearer token" });
@@ -26,7 +49,7 @@ const server = http.createServer(async (req, res) => {
     }
   if (req.method === "GET" && (url.pathname === "/logo.png" || url.pathname === "/favicon.ico" || url.pathname === "/favicon.png")) {
     try {
-      const p = path.join(process.cwd(), "src", "logo.png");
+      const p = logoPngPath();
       const buf = fs.readFileSync(p);
       res.writeHead(200, { "content-type": "image/png", "cache-control": "public, max-age=3600" });
       res.end(buf);
@@ -141,12 +164,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === "POST" && sub === "/proxy") {
-      const b = (await readJson(req)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string> };
+      // Media-aware limit: base64 image/audio/video payloads ride inside JSON.
+      const b = (await readJson(req, MAX_PROXY_BODY_BYTES)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string> };
       if (b === null || typeof b !== "object" || Array.isArray(b))
         return send(res, 400, { error: "proxy body must be an object" });
       const r = await forward(poolId, b);
       if ("error" in r) return send(res, r.status === 200 ? 400 : r.status, r);
-      send(res, 200, { key_id: r.key_id, label: r.label, masked: r.masked, status: r.upstreamStatus, body: r.body, truncated: r.truncated ?? false, tried: r.tried });
+      send(res, 200, { key_id: r.key_id, label: r.label, masked: r.masked, status: r.upstreamStatus, body: r.body, encoding: (r as { encoding?: string }).encoding ?? "text", contentType: (r as { contentType?: string }).contentType ?? "", truncated: r.truncated ?? false, tried: r.tried });
       return;
     }
   }
@@ -291,7 +315,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     try {
-      const buf = fs.readFileSync(path.join(process.cwd(), "public", "logos", name));
+      const buf = fs.readFileSync(path.join(publicDir(), "logos", name));
       res.writeHead(200, {
         "content-type": name.endsWith(".png") ? "image/png" : "image/svg+xml",
         "cache-control": "public, max-age=3600",

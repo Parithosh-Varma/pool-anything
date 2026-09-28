@@ -1,0 +1,41 @@
+name: Deploy tools UI to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/export-tools-ui.ts
+      - scripts/tools-api-base.js
+      - src/admin/**
+      - src/server.ts
+      - src/media/**
+      - src/proxy/**
+      - src/common/**
+      - src/config/**
+      - src/logo.png
+      - public/logos/**
+      - data/providers.json
+      - .github/workflows/pages-tools.yml
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Export static tools UI
+        run: npm run export:tools
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy tools-site --project-name pool-anything-tools

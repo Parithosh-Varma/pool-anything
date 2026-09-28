@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import { DB_PATH } from "../config/env.js";
+import { providersJsonPath } from "../config/paths.js";
 
 export { DB_PATH };
 
@@ -96,7 +97,7 @@ const FALLBACK_PROVIDERS: Provider[] = [
 
 function loadProviders(): Provider[] {
   try {
-    const raw = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "providers.json"), "utf8")) as Record<string, unknown>[];
+    const raw = JSON.parse(fs.readFileSync(providersJsonPath(), "utf8")) as Record<string, unknown>[];
     if (!Array.isArray(raw)) throw new Error("not an array");
     return raw
       .filter((p) => typeof p.id === "string" && typeof p.name === "string" && typeof p.baseUrl === "string")

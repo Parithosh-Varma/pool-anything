@@ -29,7 +29,7 @@ function ddSync(id){var s=document.getElementById(id),w=document.getElementById(
 function ddChoose(id,v){var s=document.getElementById(id),w=document.getElementById('dd-'+id);if(!s||!w||s.disabled)return;if(s.value!==v){s.value=v;ddSync(id);s.dispatchEvent(new Event('input',{bubbles:true}));s.dispatchEvent(new Event('change',{bubbles:true}));}ddClose(id);var b=w.querySelector('.dd-btn');if(b)b.focus();}
 function ddToggle(id){var w=document.getElementById('dd-'+id),s=document.getElementById(id);if(!w||!s||s.disabled)return;var willOpen=!w.classList.contains('open');ddCloseAll(id);var m=w.querySelector('.dd-menu'),b=w.querySelector('.dd-btn');if(willOpen){w.classList.add('open');if(b)b.setAttribute('aria-expanded','true');m.hidden=false;var cur=m.querySelector('.dd-item[aria-selected="true"]')||m.querySelector('.dd-item:not(:disabled)');if(cur)cur.focus();}else ddClose(id);}
 function ddMove(id,dir){var w=document.getElementById('dd-'+id);if(!w)return;var items=w.querySelectorAll('.dd-item:not(:disabled)');if(!items.length)return;var at=Array.prototype.indexOf.call(items,document.activeElement);var n=dir>0?(at<0?0:(at+1)%items.length):(at<0?items.length-1:(at-1+items.length)%items.length);items[n].focus();}
-function initDropdowns(){var ws=document.querySelectorAll('.dd');for(var i=0;i<ws.length;i++)(function(w){if(w.dataset.ddInit)return;w.dataset.ddInit='1';var id=w.id.slice(3);var b=w.querySelector('.dd-btn'),m=w.querySelector('.dd-menu');b.addEventListener('click',function(){ddToggle(id);});b.addEventListener('keydown',function(e){if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!w.classList.contains('open'))ddToggle(id);else ddMove(id,e.key==='ArrowDown'?1:-1);}else if(e.key==='Escape')ddClose(id);});m.addEventListener('keydown',function(e){if(e.key==='ArrowDown'){e.preventDefault();ddMove(id,1);}else if(e.key==='ArrowUp'){e.preventDefault();ddMove(id,-1);}else if(e.key==='Home'){e.preventDefault();var f=m.querySelector('.dd-item:not(:disabled)');if(f)f.focus();}else if(e.key==='End'){e.preventDefault();var all=m.querySelectorAll('.dd-item:not(:disabled)');if(all.length)all[all.length-1].focus();}else if(e.key==='Escape'){e.preventDefault();ddClose(id);b.focus();}else if(e.key==='Tab')ddClose(id);});ddSync(id);})(ws[i]);document.addEventListener('pointerdown',function(e){if(!e.target.closest||!e.target.closest('.dd'))ddCloseAll('');});}`;
+function initDropdowns(){if(!document.__paDdOutside){document.__paDdOutside=1;document.addEventListener('pointerdown',function(e){if(!e.target.closest||!e.target.closest('.dd'))ddCloseAll('');});}var ws=document.querySelectorAll('.dd');for(var i=0;i<ws.length;i++)(function(w){if(w.dataset.ddInit)return;w.dataset.ddInit='1';var id=w.id.slice(3);var b=w.querySelector('.dd-btn'),m=w.querySelector('.dd-menu');b.addEventListener('click',function(){ddToggle(id);});b.addEventListener('keydown',function(e){if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!w.classList.contains('open'))ddToggle(id);else ddMove(id,e.key==='ArrowDown'?1:-1);}else if(e.key==='Escape')ddClose(id);});m.addEventListener('keydown',function(e){if(e.key==='ArrowDown'){e.preventDefault();ddMove(id,1);}else if(e.key==='ArrowUp'){e.preventDefault();ddMove(id,-1);}else if(e.key==='Home'){e.preventDefault();var f=m.querySelector('.dd-item:not(:disabled)');if(f)f.focus();}else if(e.key==='End'){e.preventDefault();var all=m.querySelectorAll('.dd-item:not(:disabled)');if(all.length)all[all.length-1].focus();}else if(e.key==='Escape'){e.preventDefault();ddClose(id);b.focus();}else if(e.key==='Tab')ddClose(id);});ddSync(id);})(ws[i]);}`;
 
 const clientChartsJs = `function fmtCompact(n) {
   n = Number(n) || 0;
@@ -737,15 +737,18 @@ ${docsComponentsCss}
 <div class="page-head"><a href="/"><img src="/logo.png" alt="pool-anything" width="28" height="28"/></a><h1>API key manager</h1></div>
 <a class="back" href="/">← pool search</a>
 <div class="err" id="err"></div>
-<div class="card"><div class="row"><select id="prov" aria-label="Provider"></select><input id="pname" placeholder="Pool name" aria-label="Pool name"/></div><div class="row"><input id="pbase" placeholder="base_url override (custom / self-host)" aria-label="Base URL override"/><input id="phead" placeholder="key header (default X-API-Key)" aria-label="Key header"/><input id="pprefix" placeholder="key prefix, e.g. Bearer " aria-label="Key prefix"/></div><div class="row"><button id="create">New pool</button></div></div>
+<div class="card"><div class="row">${ddSelect("prov", "Provider", "", "dd-block")}<input id="pname" placeholder="Pool name" aria-label="Pool name"/></div><div class="row"><input id="pbase" placeholder="base_url override (custom / self-host)" aria-label="Base URL override"/><input id="phead" placeholder="key header (default X-API-Key)" aria-label="Key header"/><input id="pprefix" placeholder="key prefix, e.g. Bearer " aria-label="Key prefix"/></div><div class="row"><button id="create">New pool</button></div></div>
 <div id="pools" style="display:flex;flex-direction:column;gap:12px"></div>
 </div>
 </main><script>
 let provs=[];
 ${clientCoreJs}
+${clientDropdownJs}
 async function init(){
+  initDropdowns();
   provs=await j(await fetch('/api/providers'));
   document.getElementById('prov').innerHTML=provs.map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join('');
+  ddSync('prov');
   refresh();
 }
 async function refresh(){
@@ -1135,7 +1138,7 @@ ${docsComponentsCss}
 <div class="pg-top">
 <div class="seg"><button id="tabChat" class="on" type="button">Chat</button><button id="tabStudio" type="button">Studio</button></div>
 <div class="spacer"></div>
-<select class="ctl" id="pool" aria-label="Pool"></select>
+${ddSelect("pool", "Pool")}
 <input class="ctl model" id="model" value="" placeholder="model id" aria-label="Model" spellcheck="false" autocomplete="off"/>
 <button class="btn" id="copyTop" type="button" title="Copy code">⧉</button>
 <button class="btn" id="hideCode" type="button">&lt;/&gt; Hide code</button>
@@ -1170,7 +1173,7 @@ ${docsComponentsCss}
 </div>
 <div class="code" id="codePane">
 <div class="code-head">
-<select class="ctl" id="codeLang" aria-label="Code language" style="border:0;font-weight:600"><option value="python">Python</option><option value="curl">cURL</option></select>
+${ddSelect("codeLang", "Code language", '<option value="python">Python</option><option value="curl">cURL</option>', "dd-ghost")}
 <div class="spacer"></div>
 <button class="btn" id="copyCode" type="button" style="border:0">⧉ Copy</button>
 </div>
@@ -1186,7 +1189,7 @@ ${docsComponentsCss}
 <div class="fld" style="margin-top:12px"><label>PROMPT</label><textarea class="ghost" id="imgPrompt" rows="2" placeholder="Describe the image you want to generate..."></textarea></div>
 <div class="params-grid" style="margin-top:12px">
 <label>Model<input class="ctl" id="imgModel" value="" placeholder="image model id" spellcheck="false" autocomplete="off"/></label>
-<label>Size<select class="ctl" id="imgSize"><option>1024x1024</option><option>1792x1024</option><option>1024x1792</option><option>512x512</option></select></label>
+<label>Size${ddSelect("imgSize", "Size", "<option>1024x1024</option><option>1792x1024</option><option>1024x1792</option><option>512x512</option>", "dd-block")}</label>
 </div>
 <div class="chat-foot" style="justify-content:center">
 <button class="submit" id="generate" type="button">Generate <span class="hint">⌘↵</span></button>
@@ -1198,7 +1201,7 @@ ${docsComponentsCss}
 <div class="params-grid" style="margin-top:12px">
 <label>Model<input class="ctl" id="audModel" value="" placeholder="audio model id" spellcheck="false" autocomplete="off"/></label>
 <label>Voice<input class="ctl" id="audVoice" value="alloy" spellcheck="false" autocomplete="off"/></label>
-<label>Format<select class="ctl" id="audFormat"><option>mp3</option><option>wav</option><option>opus</option></select></label>
+<label>Format${ddSelect("audFormat", "Format", "<option>mp3</option><option>wav</option><option>opus</option>", "dd-block")}</label>
 </div>
 <div class="chat-foot" style="justify-content:center">
 <button class="submit" id="genAudio" type="button">Synthesize <span class="hint">⌘↵</span></button>
@@ -1209,8 +1212,8 @@ ${docsComponentsCss}
 <div class="fld" style="margin-top:12px"><label>PROMPT</label><textarea class="ghost" id="vidPrompt" rows="2" placeholder="Describe the video you want to generate..."></textarea></div>
 <div class="params-grid" style="margin-top:12px">
 <label>Model<input class="ctl" id="vidModel" value="" placeholder="video model id" spellcheck="false" autocomplete="off"/></label>
-<label>Duration<select class="ctl" id="vidDur"><option>4s</option><option>8s</option><option>12s</option></select></label>
-<label>Resolution<select class="ctl" id="vidRes"><option>720p</option><option>1080p</option><option>480p</option></select></label>
+<label>Duration${ddSelect("vidDur", "Duration", "<option>4s</option><option>8s</option><option>12s</option>", "dd-block")}</label>
+<label>Resolution${ddSelect("vidRes", "Resolution", "<option>720p</option><option>1080p</option><option>480p</option>", "dd-block")}</label>
 </div>
 <div class="chat-foot" style="justify-content:center">
 <button class="submit" id="genVideo" type="button">Generate video <span class="hint">⌘↵</span></button>
@@ -1221,6 +1224,7 @@ ${docsComponentsCss}
 </div>
 </main><script>
 ${clientCoreJs}
+${clientDropdownJs}
 const MODELS={groq:'openai/gpt-oss-120b',openai:'gpt-4o-mini',openrouter:'meta-llama/llama-3.3-70b-instruct:free',mistral:'mistral-small-latest',fireworks:'accounts/fireworks/models/llama-v3p3-70b-instruct',together:'meta-llama/Llama-3.3-70B-Instruct-Turbo',gemini:'gemini-2.0-flash',anthropic:'claude-sonnet-4-20250514',perplexity:'sonar',cohere:'command-r',replicate:'ibm-granite/granite-3.3-8b-instruct',huggingface:'meta-llama/Llama-3.3-70B-Instruct',deepgram:'nova-3',elevenlabs:'eleven_multilingual_v2',cartesia:'sonic-2',tavily:'tavily-search',anyscale:'meta-llama/Llama-3.3-70B-Instruct'};
 const IMG_MODELS={openai:'gpt-image-1',together:'FLUX.1-schnell',fireworks:'accounts/fireworks/models/flux-1-schnell',replicate:'black-forest-labs/flux-schnell',huggingface:'black-forest-labs/FLUX.1-schnell',openrouter:'black-forest-labs/flux-1-schnell:free',gemini:'imagen-3.0-generate-002',mistral:'mistral-medium'};
 const AUD_MODELS={openai:'tts-1',elevenlabs:'eleven_multilingual_v2',cartesia:'sonic-2',deepgram:'aura-2-thalia-en',gemini:'gemini-2.5-flash-preview-tts'};
@@ -1634,6 +1638,7 @@ async function send(){
   }finally{btn.disabled=false;updateCode();}
 }
 async function init(){
+  initDropdowns();
   const provs=await j(await fetch('/api/providers'));
   const pools=await j(await fetch('/api/pools'));
   const sel=document.getElementById('pool');
@@ -1654,6 +1659,7 @@ async function init(){
   const pre=new URLSearchParams(location.search).get('pool');
   if(pre)sel.value=pre;
   if(sel.selectedIndex<0||sel.options[sel.selectedIndex].disabled)sel.selectedIndex=[...sel.options].findIndex(o=>!o.disabled);
+  ddSync('pool');
   const applyDefault=()=>{
     const m=document.getElementById('model');
     if(m.value===lastDefault){m.value=MODELS[pmap[sel.value]]||'';lastDefault=m.value;}

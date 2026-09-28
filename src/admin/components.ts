@@ -114,8 +114,9 @@ export const docsComponentsCss = `
   /* nav active → docs sidenav [data-active] (§11 #4) */
   .mi.active { background:var(--accent-soft); color:var(--accent); }
   .mi.active .ic { opacity:1; }
-  /* home search → docs search idiom (§11 #10, #15); ring lives on the outer
-     card so overflow:hidden containment never clips the focus affordance */
+  /* home search: neutral focus border, no accent ring (explicit choice;
+     see home-focus test). Containment stays on the outer card so the inner
+     input never overflows it. */
   .search-card { overflow:hidden; }
   .search-card:focus-within { border-color:var(--ink-faint); box-shadow:none; }
   .search-box { background:var(--card); border-radius:var(--radius-md); overflow:hidden; }
@@ -169,7 +170,6 @@ export const docsComponentsCss = `
     background:none; font-family:inherit; font-size:13px; color:var(--ink);
     border-radius:6px; padding:7px 8px; cursor:pointer; text-align:left; }
   .dd-item:hover { background:var(--paper-2); }
-  .dd-item:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
   .dd-item:disabled { opacity:.4; cursor:not-allowed; }
   .dd-item .dd-txt { flex:1; min-width:0; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
@@ -187,6 +187,6 @@ const DD_CHEV = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" str
  *  reads, `.onchange` handlers, and option-population code keep working.
  *  wrapClass: "dd-block" (full-width, e.g. form rows + studio fields) or
  *  "dd-ghost" (borderless, e.g. the code-language picker). */
-export function ddSelect(id: string, ariaLabel: string, options: string, wrapClass = ""): string {
+export function ddSelect(id: string, ariaLabel: string, options = "", wrapClass = ""): string {
   return `<span class="dd${wrapClass ? " " + wrapClass : ""}" id="dd-${id}"><select id="${id}" aria-label="${ariaLabel}" hidden>${options}</select><button type="button" class="dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="${ariaLabel}"><span class="dd-val"></span><span class="chev">${DD_CHEV}</span></button><div class="dd-menu" role="listbox" hidden></div></span>`;
 }

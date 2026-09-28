@@ -14,6 +14,12 @@
   <a href="package.json"><img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Dependencies" /></a>
 </p>
 
+<p align="center">
+  🖥️ <a href="https://pool-anything-tools.pages.dev"><b>Live demo: tools UI</b></a>
+  ·
+  📖 <a href="https://pool-anything.pages.dev/docs"><b>Docs</b></a>
+</p>
+
 <hr />
 
 Most AI/API providers hand you a free tier: a rate limit, a daily quota, a handful of trial tokens. One key's worth is small — but *several* keys, rotated, adds up. **pool-anything** lets you gather N keys for the same provider into a pool, then serves them through a single endpoint that round-robins across them and tracks usage per key.
@@ -26,6 +32,22 @@ Most AI/API providers hand you a free tier: a rate limit, a daily quota, a handf
 - 🧰 **Zero runtime dependencies** — Node built-ins + TypeScript only, `node:sqlite` for storage
 
 ## Quick start
+
+### Run it globally (recommended)
+
+```bash
+npm install -g pool-anything
+pool-anything
+```
+
+That's it — the whole system starts and the web UI + API listen on **http://localhost:3000**. Data (SQLite) lives in `~/.pool-anything/` so it works from any directory and survives upgrades.
+
+```bash
+pool-anything --port 4000 --open   # custom port + open the browser
+pool-anything --help               # all options (-p/--port, -H/--host, --db, --data-dir, --open)
+```
+
+### Run from source
 
 ```bash
 git clone https://github.com/Parithosh-Varma/pool-anything.git
@@ -68,6 +90,16 @@ curl -X POST http://localhost:3000/api/pools/1/proxy \
 ```
 
 A **pool** is a named group of keys for one provider. Rotation is a simple cursor over the key list (`cursor % keys.length`), so keys are used evenly. Usage rows record how many tokens each key consumed, and `/usage` rolls that up per key and per pool against the provider's quota.
+
+## Screenshots
+
+| Pools | Analytics |
+| --- | --- |
+| ![Pools page](docs/screenshots/title-pools.png) | ![Analytics page](docs/screenshots/title-analytics.png) |
+
+| Key manager | Playground |
+| --- | --- |
+| ![API key manager](docs/screenshots/title-keys.png) | ![Playground](docs/screenshots/title-playground.png) |
 
 ## API reference
 
@@ -139,12 +171,27 @@ The response reports which key was used and the upstream status:
 | Route | Page |
 | --- | --- |
 | `/` | Provider search + setup panel + Analytics dashboard |
+| `/provider/:id` | Gather keys for one provider, per-key usage, proxy snippet |
 | `/pools` | Pools holding keys, with usage |
 | `/keys` | API key manager — add, view, edit, remove keys |
+| `/playground` | Chat + image playground against a pooled key |
 | `/analytics` | Analytics dashboard (totals, 7-day deltas, 14-day charts) |
 | `/docs` | Redirect → canonical docs on Cloudflare Pages |
 
 The home page also shows an Analytics dashboard driven by `GET /api/analytics`; the same dashboard lives on its own `/analytics` page.
+
+### Hosting the UI on Cloudflare Pages
+
+The same UI ships as a static site ([pool-anything-tools](https://pool-anything-tools.pages.dev), `pool-anything-tools` Pages project) that talks to a backend you run anywhere:
+
+```bash
+npm run export:tools   # builds tools-site/ from src/admin
+npx wrangler pages deploy tools-site --project-name pool-anything-tools
+```
+
+Pushes to `main` redeploy automatically via [pages-tools.yml](.github/workflows/pages-tools.yml); locally, `npm run tools:daemon` watches `src/admin` and redeploys on every save.
+
+Open the Pages URL with `?api=https://your-backend` once (or use the Backend pill, bottom-left) to point it at your server. If the backend sets `POOL_API_TOKEN`, prefer the Backend pill for the token; `?token=…` works but places the bearer in the URL (server logs/history). The server only sends CORS headers to the hosted Pages origins, `http://localhost` dev, and `ALLOWED_ORIGINS`, so cross-origin calls work without exposing the API to arbitrary sites. Keys stay on your backend — the Pages site is UI only.
 
 ## Configuration
 
@@ -152,7 +199,10 @@ The home page also shows an Analytics dashboard driven by `GET /api/analytics`; 
 | --- | --- | --- |
 | `HOST` | `127.0.0.1` | Interface to bind (loopback by default; no auth, so keep it local) |
 | `PORT` | `3000` | Main server port |
-| `LOCAL_DB_PATH` | `data/pool-anything.db` | SQLite database location |
+| `POOL_API_TOKEN` | _(unset)_ | Bearer token gate for raw-key reads, writes, rotation, and proxy |
+| `ALLOWED_ORIGINS` | Pages hosts | Comma-separated CORS allowlist for browser API reads (default: `pool-anything-tools.pages.dev`, `pool-anything.pages.dev`; `http://localhost`/`127.0.0.1` always allowed; set explicitly when self-hosting the UI) |
+| `LOCAL_DB_PATH` | `data/pool-anything.db` (checkout) / `~/.pool-anything/*.db` (global) | SQLite database location (exact file; `--db` flag equivalent) |
+| `POOL_DATA_DIR` | _(unset)_ | Data directory holding the SQLite file (`<dir>/pool-anything.db`; `--data-dir` flag equivalent) |
 | `PROXY_TIMEOUT_MS` | `30000` | Per-attempt upstream timeout for `/proxy` |
 | `ALLOW_PRIVATE_UPSTREAM` | _(unset)_ | `1` disables SSRF protections — tests/loopback only, never in prod |
 
@@ -177,6 +227,10 @@ src/
   upstream/index.ts  Per-key auth injection (single + multi-field credentials)
   config/env.ts      PORT, HOST, POOL_API_TOKEN, DB path, timeouts
   db/                SQLite helpers + init script
+scripts/
+  export-tools-ui.ts Static export of the admin UI for Cloudflare Pages
+  tools-api-base.js  Backend shim (configurable API base + token)
+  tools-watch.ts     Watch daemon: re-export + redeploy on save
 data/
   providers.json     36 preconfigured providers
   pool-anything.db   SQLite database (git-ignored)
@@ -199,7 +253,7 @@ npm test             # run the test suite
 - Keys are stored in a local SQLite file (`data/pool-anything.db`), which is **git-ignored** — never commit it.
 - List endpoints return **masked** keys (`gsk_…ab`); raw keys are only returned by the single-key `GET`.
 - The server binds `127.0.0.1` by default; set `HOST` to another interface only behind your own auth layer.
-- pool-anything has **no authentication** — run it locally or behind your own auth layer, and don't expose it publicly with real keys inside.
+- Without `POOL_API_TOKEN` there is **no authentication** — run it locally or behind your own auth layer, and don't expose it publicly with real keys inside.
 
 ## License
 

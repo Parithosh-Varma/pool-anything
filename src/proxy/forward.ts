@@ -3,11 +3,12 @@ import { nextKeyRaw, markSuccess, markFailure } from "../pool/rotation.js";
 import { resolveTarget, resolveTargetForKey, effectiveApiKey, buildUpstreamRequest, validateQueryParams, type ForwardOpts } from "../upstream/index.js";
 import { allowPrivateUpstream, proxyTimeoutMs } from "../config/env.js";
 import { resolveAndCheck, hostnameOf } from "./dns.js";
+import { MAX_PROXY_BODY_BYTES, MAX_RELAY_CHARS, MAX_UPSTREAM_MEDIA_BYTES } from "../media/capabilities.js";
 
 /** Hard per-request abuse cap (see disk-fill note in SECURITY.md). */
 export const MAX_TOKENS_PER_REQUEST = 1_000_000;
-/** Cap on buffered upstream bytes before truncating (response to caller is still 4000 chars). */
-export const MAX_UPSTREAM_BYTES = 1_000_000;
+/** Cap on buffered upstream bytes before truncating (media-aware; JSON text is relayed up to MAX_RELAY_CHARS). */
+export const MAX_UPSTREAM_BYTES = MAX_UPSTREAM_MEDIA_BYTES;
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
@@ -147,7 +148,10 @@ export function validateProxyOpts(opts: ProxyOpts): { ok: boolean; error?: strin
   }
   if (opts.body !== undefined) {
     try {
-      JSON.stringify(opts.body);
+      const s = JSON.stringify(opts.body);
+      // Byte-accurate: JSON length undercounts non-ASCII, and readJson enforces bytes.
+      if (Buffer.byteLength(s, "utf8") > MAX_PROXY_BODY_BYTES)
+        return { ok: false, error: `proxy body too large (max ${Math.round(MAX_PROXY_BODY_BYTES / 1_000_000)}MB incl. base64 media)` };
     } catch {
       return { ok: false, error: "body must be JSON-serializable" };
     }
@@ -155,13 +159,21 @@ export function validateProxyOpts(opts: ProxyOpts): { ok: boolean; error?: strin
   return { ok: true };
 }
 
-/** Read at most `cap` bytes, then stop (prevents OOM on huge upstream bodies). */
-async function readCappedText(res: Response, cap: number): Promise<{ text: string; truncated: boolean }> {
+/** Read at most `cap` bytes. Textual (json/text) bodies decode as text; binary media (audio/video/image bytes) base64-encodes so Studio can render it.
+ *  Memory note: media caps are intentionally large (12MB upstream, 8M-char
+ *  relay) so Studio can render audio/image bytes. The body is buffered once
+ *  via Buffer.concat and relayed sliced to MAX_RELAY_CHARS — one large media
+ *  proxy holds ~2x peak (raw + base64) transiently; concurrent large media
+ *  proxies multiply that, so keep caps in capabilities.ts conservative. */
+async function readCappedBody(res: Response, cap: number): Promise<{ text?: string; b64?: string; contentType: string; truncated: boolean }> {
+  const contentType = res.headers.get("content-type") || "";
+  const textual = /json|text|event-stream|xml|urlencoded/i.test(contentType) || !contentType;
   if (!res.body || typeof res.body.getReader !== "function") {
     const buf = await res.arrayBuffer();
     const truncated = buf.byteLength > cap;
     const slice = truncated ? buf.slice(0, cap) : buf;
-    return { text: new TextDecoder().decode(slice), truncated };
+    if (textual) return { text: new TextDecoder().decode(slice), contentType, truncated };
+    return { b64: Buffer.from(slice).toString("base64"), contentType, truncated };
   }
   const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -178,13 +190,11 @@ async function readCappedText(res: Response, cap: number): Promise<{ text: strin
     }
     chunks.push(value);
   }
-  const flat = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
-  let off = 0;
-  for (const c of chunks) {
-    flat.set(c, off);
-    off += c.length;
-  }
-  return { text: new TextDecoder().decode(flat), truncated };
+  // Single concat (no intermediate flat copy retained): chunks are released here.
+  const buf = Buffer.concat(chunks.map((c) => Buffer.from(c.buffer, c.byteOffset, c.byteLength)));
+  const bounded = truncated ? buf.subarray(0, cap) : buf;
+  if (textual) return { text: new TextDecoder().decode(bounded), contentType, truncated };
+  return { b64: bounded.toString("base64"), contentType, truncated };
 }
 
 export function timeoutMs(): number {
@@ -267,11 +277,15 @@ export async function forward(poolId: number, opts: ProxyOpts) {
       tried.push({ key_id: sel.key_id, label: sel.label, status: upstream.status });
       return { status: 400 as const, error: `upstream redirected (HTTP ${upstream.status}, location not followed)`, tried };
     }
-    let text: string;
+    let text = "";
+    let b64: string | undefined;
+    let contentType = "";
     let truncated = false;
     try {
-      const r = await readCappedText(upstream, MAX_UPSTREAM_BYTES);
-      text = r.text;
+      const r = await readCappedBody(upstream, MAX_UPSTREAM_BYTES);
+      text = r.text ?? "";
+      b64 = r.b64;
+      contentType = r.contentType;
       truncated = r.truncated;
     } catch {
       markFailure(sel.key_id);
@@ -279,6 +293,12 @@ export async function forward(poolId: number, opts: ProxyOpts) {
       await upstream.body?.cancel().catch(() => undefined);
       continue;
     }
+    // Binary media (audio/video/image bytes) relays as base64 + content type so
+    // Studio can render a player; JSON/text relays as text up to MAX_RELAY_CHARS.
+    const rawLen = b64 !== undefined ? b64.length : text.length;
+    const relayBody = b64 !== undefined ? b64.slice(0, MAX_RELAY_CHARS) : text.slice(0, MAX_RELAY_CHARS);
+    truncated = truncated || rawLen > MAX_RELAY_CHARS;
+    const encoding: "base64" | "text" = b64 !== undefined ? "base64" : "text";
     if (upstream.status === 429 || upstream.status >= 500 || upstream.status === 401 || upstream.status === 403) {
       // 401/403 = invalid/revoked key: cool it so rotation skips it instead of
       // paying one dead upstream call on every subsequent request.
@@ -291,14 +311,14 @@ export async function forward(poolId: number, opts: ProxyOpts) {
       // Other 4xx: client/upstream error, not the key's fault. Passthrough
       // without cooling and without charging quota.
       tried.push({ key_id: sel.key_id, label: sel.label, status: upstream.status });
-      return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: text.slice(0, 4000), truncated, tried };
+      return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: relayBody, encoding, contentType, truncated, tried };
     }
     markSuccess(sel.key_id, Date.now() - started);
     const tok = opts.tokens;
     if (Number.isInteger(tok) && (tok as number) > 0) {
       sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, sel.key_id, tok as number);
     }
-    return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: text.slice(0, 4000), truncated, tried };
+    return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: relayBody, encoding, contentType, truncated, tried };
   }
   return { status: 400 as const, error: "all keys failed or cooling down", tried };
 }

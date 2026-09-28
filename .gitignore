@@ -3,6 +3,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+tools-site/
 # Env
 .env
 .env.local
@@ -17,3 +18,5 @@ data/*.db-shm
 # Test databases
 tests/**/tmp-*.db
 tests/**/tmp-*.db-journal
+tests/**/tmp-*.db-shm
+tests/**/tmp-*.db-wal

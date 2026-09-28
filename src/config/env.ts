@@ -1,4 +1,4 @@
-import path from "node:path";
+import { resolveDbPath } from "./paths.js";
 
 /** Port for the web UI + API (single server). */
 function parsePort(): number {
@@ -16,13 +16,11 @@ export const PORT = parsePort();
 export const HOST = process.env.HOST ?? "127.0.0.1";
 
 /**
- * SQLite file (D1 stand-in). Evaluated at import — callers construct their
- * DatabaseSync at module load, and tests set LOCAL_DB_PATH before importing.
+ * SQLite file. Precedence: LOCAL_DB_PATH > POOL_DATA_DIR > checkout-local
+ * default (./data/pool-anything.db) or global default (~/.pool-anything/).
+ * Evaluated at import — tests set LOCAL_DB_PATH before importing.
  */
-export const DB_PATH =
-  process.env.LOCAL_DB_PATH?.trim()
-    ? process.env.LOCAL_DB_PATH.trim()
-    : path.join(process.cwd(), "data", "pool-anything.db");
+export const DB_PATH = resolveDbPath();
 
 /** Proxy upstream timeout in ms. Read live so tests/CLI can override per run. */
 export function proxyTimeoutMs(): number {
@@ -43,6 +41,40 @@ export function apiToken(): string {
 
 export function authEnabled(): boolean {
   return apiToken().length > 0;
+}
+
+/**
+ * Cross-origin callers permitted to read API responses in the browser.
+ * Default: the hosted Pages tools UI + local dev origins only — never `*`
+ * and never an reflected arbitrary Origin. Operators self-hosting the UI on
+ * another domain set ALLOWED_ORIGINS="https://ui.example.com,...".
+ */
+const DEFAULT_ORIGINS = [
+  "https://pool-anything-tools.pages.dev",
+  "https://pool-anything.pages.dev",
+];
+
+export function allowedOrigins(): string[] {
+  const raw = (process.env.ALLOWED_ORIGINS ?? "").trim();
+  if (!raw) return [...DEFAULT_ORIGINS];
+  return raw
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+}
+
+/** True for the hosted UI, explicit allowlist entries, and http loopback dev. */
+export function isAllowedOrigin(origin: string): boolean {
+  if (allowedOrigins().includes(origin)) return true;
+  try {
+    const u = new URL(origin);
+    const host = u.hostname.toLowerCase();
+    if (u.protocol !== "http:") return false;
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /** Warn once at startup when running in an insecure configuration. */

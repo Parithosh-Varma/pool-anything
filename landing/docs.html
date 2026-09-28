@@ -478,12 +478,15 @@
     </div>
 
     <div class="tabpanel on" data-panel="terminal" data-variant="native">
-      <p class="plabel">macOS, Linux, WSL:</p>
+      <p class="plabel">Global install (recommended) — macOS, Linux, WSL, PowerShell, CMD:</p>
+      <div class="code"><div class="code-tools"><button data-copy="npm i -g pool-anything && pool-anything" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm i -g pool-anything</span> <span class="tok-com"># one-time install, zero runtime deps</span>
+<span class="tok-cmd">pool-anything</span>           <span class="tok-com"># → http://localhost:3000, data in ~/.pool-anything/</span></code></pre></div>
+      <p class="plabel">From source — macOS, Linux, WSL:</p>
       <div class="code"><div class="code-tools"><button data-copy="npm install && npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span> <span class="tok-com"># dev deps only: tsx, typescript</span>
 <span class="tok-cmd">npm run dev</span>     <span class="tok-com"># http://localhost:3000, reloads as you edit</span></code></pre></div>
-      <p class="plabel">Windows PowerShell:</p>
+      <p class="plabel">From source — Windows PowerShell:</p>
       <div class="code"><div class="code-tools"><button data-copy="npm install; npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span>; <span class="tok-cmd">npm run dev</span>  <span class="tok-com"># → http://localhost:3000</span></code></pre></div>
-      <p class="plabel">Windows CMD:</p>
+      <p class="plabel">From source — Windows CMD:</p>
       <div class="code"><div class="code-tools"><button data-copy="npm install && npm run dev" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span> &amp;&amp; <span class="tok-cmd">npm run dev</span></code></pre></div>
     </div>
     <div class="tabpanel" data-panel="terminal" data-variant="alt">
@@ -512,7 +515,7 @@
     <p>If the install command fails with syntax errors near unexpected token <code>'<'</code>, a 403, or another curl error, see <a class="u" href="#security">Troubleshoot installation</a> to match the error to a fix and for alternative install methods.</p>
     <p><a class="u" href="#registry"><strong>36 providers ship preconfigured</strong></a> so pool-anything can use the registry auth style. If a provider is missing, setups do not need a code change: a pool with your own <code>base_url</code> works instead.</p>
 
-    <div class="callout info"><span class="ic">ⓘ</span><span>Native installs automatically persist to <code>data/pool-anything.db</code> to keep you on the latest cursor. Override with <code>LOCAL_DB_PATH</code>.</span></div>
+    <div class="callout info"><span class="ic">ⓘ</span><span>Global installs persist to <code>~/.pool-anything/pool-anything.db</code>; source checkouts use <code>data/pool-anything.db</code> — so you stay on the latest cursor either way. Override with <code>LOCAL_DB_PATH</code> (or <code>pool-anything --db</code>).</span></div>
 
     <p>You can also install with <code>apt</code>, <code>dnf</code>, or <code>apk</code> equivalents for Node 22 on Debian, Fedora, RHEL, and Alpine.</p>
     <p>Then start pool-anything in any project. Replace <code>your-project</code> with the path to a project directory on your machine:</p>
@@ -591,8 +594,9 @@
     <section id="run">
       <h2>Run it</h2>
       <p>You need Node.js 22 or newer (the app uses the built-in <span class="inline">node:sqlite</span> module and native <span class="inline">fetch</span>). Nothing else — there are no runtime npm dependencies.</p>
-      <div class="code"><div class="code-tools"><button data-copy="npm install" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm install</span>     <span class="tok-com"># dev deps only: tsx, typescript</span>
-<span class="tok-cmd">npm run dev</span>     <span class="tok-com"># http://localhost:3000, reloads as you edit</span></code></pre></div>
+      <div class="code"><div class="code-tools"><button data-copy="npm i -g pool-anything && pool-anything" title="Copy">⧉</button></div><pre><code><span class="tok-cmd">npm i -g pool-anything</span> <span class="tok-com"># one-time install</span>
+<span class="tok-cmd">pool-anything</span>           <span class="tok-com"># http://localhost:3000 (--port, --open, --db, --data-dir)</span></code></pre></div>
+      <p>Prefer source? <span class="inline">npm install</span> then <span class="inline">npm run dev</span> serves the same UI with file watching.</p>
     </section>
 
     <section id="scripts">
@@ -609,7 +613,8 @@
       <div class="kv"><code>HOST</code><span>Interface to bind, default <span class="inline">127.0.0.1</span> (loopback — the API has no auth).</span></div>
       <div class="kv"><code>PROXY_TIMEOUT_MS</code><span>Per-attempt upstream timeout, default <span class="inline">30000</span>.</span></div>
       <div class="kv"><code>ALLOW_PRIVATE_UPSTREAM</code><span><span class="inline">1</span> disables SSRF protections — tests/loopback only, never in prod.</span></div>
-      <div class="kv"><code>LOCAL_DB_PATH</code><span>Override where the SQLite file lives, default <span class="inline">data/pool-anything.db</span>.</span></div>
+      <div class="kv"><code>LOCAL_DB_PATH</code><span>Override where the SQLite file lives — default <span class="inline">~/.pool-anything/pool-anything.db</span> for global installs, <span class="inline">data/pool-anything.db</span> in a checkout (<span class="inline">pool-anything --db</span> sets the same thing).</span></div>
+      <div class="kv"><code>POOL_DATA_DIR</code><span>Data-directory alternative: <span class="inline">&lt;dir&gt;/pool-anything.db</span> (<span class="inline">pool-anything --data-dir</span> sets the same thing).</span></div>
       <div class="callout tip"><span class="ic">✓</span><span><strong>Local by default:</strong> the server binds <span class="inline">127.0.0.1</span> and the API has no auth — set <span class="inline">HOST</span> to another interface only behind your own auth layer.</span></div>
     </section>
 

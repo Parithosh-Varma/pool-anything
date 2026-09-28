@@ -39,6 +39,9 @@
   }
 
   // ?api= / ?token= bootstrap (keeps other params like ?pool= intact).
+  // SECURITY: ?token= puts the bearer in the URL (Pages access logs, browser
+  // history, referers) before it is stripped below. Prefer the Backend pill
+  // for real tokens; use ?token= only for throwaway dev tokens.
   try {
     var qs = new URLSearchParams(location.search);
     var changed = false;

@@ -263,6 +263,10 @@
   .start2 h3 { font-family: var(--font-serif); font-size: 22px; margin: 0 0 8px; font-weight: 400; }
   .start2 ol { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 8px; }
   .start2 ol code { font-family: var(--font-mono); font-size: 12.5px; background: var(--cream-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+  .demo-video { max-width: 1020px; margin: 16px auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .demo-video video { display: block; width: 100%; border-radius: 8px; background: #000; }
+  .demo-video figcaption { font-size: 13px; color: var(--ink-soft); padding: 10px 10px 2px; }
+  .demo-video figcaption code { font-family: var(--font-mono); font-size: 12px; background: var(--cream-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
   pre.code { margin: 0; background: var(--dark); color: #d6d3c8; border-radius: 12px; padding: 14px; font-size: 12.3px; line-height: 1.6; font-family: var(--font-mono); overflow-x: auto; }
 
   /* dark footer cta */
@@ -345,7 +349,7 @@
         <button class="btn-light" id="fireTop" type="button">Fire a request</button>
       </div>
       <div class="install-pill">
-        <code id="installCmd">npm install &amp;&amp; npm run dev — :3000</code>
+        <code id="installCmd">npm i -g pool-anything &amp;&amp; pool-anything — :3000</code>
         <button type="button" id="copyBtn">Copy</button>
       </div>
       <p class="hero-meta">36 providers preconfigured · custom is one JSON row · keys stay local and masked. <a href="docs.html">Read the docs →</a></p>
@@ -559,7 +563,7 @@
       <div class="panel">
         <h3>Three steps</h3>
         <ol>
-          <li><code>npm install</code>, then <code>npm run dev</code>, open <code>http://localhost:3000</code>.</li>
+          <li><code>npm i -g pool-anything</code>, then <code>pool-anything</code>, open <code>http://localhost:3000</code>. (From source: <code>npm install</code>, then <code>npm run dev</code>.)</li>
           <li>Search a provider, paste keys, hit <code>Gather</code>.</li>
           <li>Send traffic through <code>/api/pools/:id/proxy</code> or watch the dashboard.</li>
         </ol>
@@ -574,6 +578,12 @@
        "tokens": 25}'</pre>
       </div>
     </div>
+    <figure class="demo-video">
+      <video controls preload="metadata" playsinline src="gather-keys.mp4">
+        Sorry, your browser can't play this video — install with <code>npm i -g pool-anything</code> and try it live instead.
+      </video>
+      <figcaption>Watch it work — five Groq keys gathered into one pool in 22 seconds. Paste keys, hit <b>Gather</b>, then proxy through <code>/api/pools/:id/proxy</code>.</figcaption>
+    </figure>
   </section>
 
   <!-- FAQ -->
@@ -581,14 +591,14 @@
     <div class="eyebrow"><span>?</span></div>
     <h2>FAQ</h2>
     <div class="faq">
-      <details open><summary>How do I get started with pool-anything?</summary><p>Install, run the dev server, open :3000, search your provider, paste keys, and send one request through /proxy. The docs walk the whole loop.</p></details>
+      <details open><summary>How do I get started with pool-anything?</summary><p>Install globally with <code>npm i -g pool-anything</code>, run <code>pool-anything</code>, open :3000, search your provider, paste keys, and send one request through /proxy. The docs walk the whole loop.</p></details>
       <details><summary>What kind of keys can I pool?</summary><p>Any provider in the 36-row registry, plus custom via base_url, key header, and prefix. Each pool holds keys for one provider.</p></details>
       <details><summary>How does rotation work with my existing code?</summary><p>Point your HTTP client at /api/pools/:id/proxy instead of the upstream. The pool picks cursor % keys.length, injects the key, forwards, and records usage.</p></details>
       <details><summary>Is it a proxy or a manager?</summary><p>Both. Manage keys in the UI or API key manager, then proxy live traffic through the same pools with per-key receipts.</p></details>
       <details><summary>What are the system requirements?</summary><p>Node 22+ for built-in SQLite and fetch. No runtime npm dependencies, one local .db file.</p></details>
       <details><summary>How much usage can it track?</summary><p>Every proxy or consume call appends a usage row with tokens. /usage rolls it up per key and pool with quota math where known.</p></details>
       <details><summary>Does it work with custom endpoints?</summary><p>Yes — create a pool with your own base_url, key_header (or query:param), and key_prefix. Provider extras merge automatically.</p></details>
-      <details><summary>Where do keys live?</summary><p>In data/pool-anything.db on your machine, plaintext, gitignored. Lists return masked values only; keep the API on localhost or behind your gate.</p></details>
+      <details><summary>Where do keys live?</summary><p>In a local SQLite file — <code>~/.pool-anything/pool-anything.db</code> for global installs, <code>data/pool-anything.db</code> in a source checkout — plaintext, gitignored. Lists return masked values only; keep the API on localhost or behind your gate.</p></details>
     </div>
   </section>
 
@@ -651,7 +661,7 @@
     document.getElementById('year').textContent = new Date().getFullYear();
     var copy = document.getElementById('copyBtn');
     copy.addEventListener('click', function () {
-      var t = 'npm install && npm run dev';
+      var t = 'npm i -g pool-anything && pool-anything';
       if (navigator.clipboard) navigator.clipboard.writeText(t);
       copy.textContent = 'Copied';
       setTimeout(function(){ copy.textContent = 'Copy'; }, 1200);
