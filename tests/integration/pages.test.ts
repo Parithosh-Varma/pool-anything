@@ -51,10 +51,22 @@ test("GET /docs redirects to the canonical Cloudflare docs", async () => {
 });
 
 test("sidebars link Docs out and Analytics in", async () => {
-  for (const path of ["/", "/pools", "/keys", "/analytics"]) {
+  for (const path of ["/", "/pools", "/keys", "/analytics", "/history"]) {
     const html = await (await fetch(`${BASE}${path}`)).text();
     assert.match(html, new RegExp(`href="${DOCS_URL}" target="_blank"`), `${path} docs link`);
     assert.match(html, /href="\/analytics"/, `${path} analytics link`);
+    assert.match(html, /href="\/history"/, `${path} history link`);
     assert.match(html, /<svg width="18" height="18" viewBox="0 0 24 24"/, `${path} svg icons`);
   }
+});
+
+test("GET /history serves the calls page", async () => {
+  const r = await fetch(`${BASE}/history`);
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.match(html, /<title>History — pool-anything<\/title>/);
+  assert.match(html, /<a class="mi active" href="\/history">/);
+  assert.match(html, /id="hpool"/);
+  assert.match(html, /id="hrows"/);
+  assert.match(html, /id="hrefresh"/);
 });

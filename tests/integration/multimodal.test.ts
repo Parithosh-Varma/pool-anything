@@ -64,6 +64,35 @@ test("playground markup: attach controls, studio modes, gating hooks", () => {
   assert.match(html, /source:\{type:'base64',media_type/);
 });
 
+test("audio player: custom player component with waveform seek", () => {
+  const html = playgroundPage();
+  assert.match(html, /audioPlayer/, "player builder present");
+  assert.match(html, /\.pa-wave/, "waveform styles present");
+  assert.match(html, /\.pa-play/, "play button styles present");
+  assert.match(html, /role.*slider.*Seek in audio|aria-label.*Seek in audio/, "seek slider labeled");
+  assert.match(html, /decodeAudioData/, "waveform decoded from real bytes");
+});
+
+test("playground tabs are hash-anchored and restore on load", () => {
+  const html = playgroundPage();
+  assert.match(html, /pgAnchor/, "anchor builder present");
+  assert.match(html, /pgSyncHash/, "hash sync present");
+  assert.match(html, /pgFromHash/, "hash restore present");
+  assert.match(html, /studio-'/, "studio anchors built");
+  assert.match(html, /m==='image'\|\|m==='audio'\|\|m==='video'/, "all three studio modes covered");
+  assert.match(html, /hashchange/, "manual hash edits handled");
+});
+
+test("model history: pasted ids persisted per provider+field", () => {
+  const html = playgroundPage();
+  for (const id of ["imgModelList", "audModelList", "vidModelList", "audVoiceList"]) {
+    assert.match(html, new RegExp(`id="${id}"`), `missing #${id}`);
+  }
+  assert.match(html, /pa-model-history/, "history store present");
+  assert.match(html, /histPush/, "history capture present");
+  assert.match(html, /histFill/, "history suggestions present");
+});
+
 // Echo upstream with a binary audio route.
 const echo = http.createServer((req, res) => {
   let s = "";

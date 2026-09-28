@@ -11,7 +11,7 @@
 // Deploy: npx wrangler pages deploy tools-site --project-name pool-anything-tools
 import fs from "node:fs";
 import path from "node:path";
-import { page, keysPage, poolsPage, analyticsPage, playgroundPage, providerPage } from "../src/admin/pages.js";
+import { page, keysPage, poolsPage, analyticsPage, historyPage, playgroundPage, providerPage } from "../src/admin/pages.js";
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "tools-site");
@@ -45,6 +45,7 @@ write("index.html", withShim(page));
 write("keys/index.html", withShim(keysPage()));
 write("pools/index.html", withShim(poolsPage()));
 write("analytics/index.html", withShim(analyticsPage()));
+write("history/index.html", withShim(historyPage()));
 write("playground/index.html", withShim(playgroundPage()));
 // Provider shell reads its id from location.pathname at runtime, so one copy
 // per known provider gives fully static /provider/:id routes with no rewrites.

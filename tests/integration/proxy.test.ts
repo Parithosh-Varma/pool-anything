@@ -77,4 +77,32 @@ test("invalid proxy input is rejected before keys are touched", async () => {
   assert.ok(rows.every((k) => k.c <= Date.now()), "no key cooled by bad input");
 });
 
+test("every upstream attempt is stored in calls (429 failover + success)", async () => {
+  sdb.prepare("UPDATE pool_keys SET cooldown_until = 0 WHERE pool_id = ?").run(pid);
+  sdb.prepare("DELETE FROM calls WHERE pool_id = ?").run(pid);
+  const r = await forward(pid, { path: "/v1/logged", method: "POST", body: { a: 1 }, tokens: 7 });
+  assert.equal(r.status, 200);
+  const rows = sdb.prepare("SELECT key_id, method, path, status, tokens, body, error FROM calls WHERE pool_id = ? ORDER BY id").all(pid) as
+    { key_id: number; method: string; path: string; status: number | null; tokens: number; body: string; error: string }[];
+  assert.equal(rows.length, 2, "429 attempt + 200 attempt both logged");
+  assert.equal(rows[0]!.status, 429);
+  assert.equal(rows[0]!.tokens, 0);
+  assert.match(rows[0]!.body, /rate limited/);
+  assert.equal(rows[1]!.status, 200);
+  assert.equal(rows[1]!.tokens, 7);
+  assert.match(rows[1]!.body, /"gotKey":"TWO"/);
+  assert.ok(rows.every((c) => c.method === "POST" && c.path === "/v1/logged" && c.error === ""));
+});
+
+test("redirect attempts are stored with an error note", async () => {
+  sdb.prepare("UPDATE pool_keys SET cooldown_until = 0 WHERE pool_id = ?").run(pid);
+  sdb.prepare("DELETE FROM calls WHERE pool_id = ?").run(pid);
+  const r = await forward(pid, { path: "/redirect", method: "GET" });
+  assert.equal(r.status, 400);
+  const rows = sdb.prepare("SELECT status, error FROM calls WHERE pool_id = ?").all(pid) as { status: number | null; error: string }[];
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0]!.status, 302);
+  assert.match(rows[0]!.error, /redirect/);
+});
+
 test.after(() => echo.close());

@@ -140,6 +140,7 @@ All responses are JSON. `:id` is a pool ID.
 | `GET` | `/api/pools/:id/next` | Rotate: return the next key (masked — never the raw key) |
 | `POST` | `/api/pools/:id/consume` | Record usage — `{ tokens: <positive int ≤ 1000000>, key_id? }` (with `key_id`, bills that key without rotating) |
 | `GET` | `/api/pools/:id/usage` | Usage rollup — `{ used, usedInWindow, quota, quotaWindow, remaining, perKey }` (`used` is lifetime; `remaining`/`usedInWindow`/`perKey` are windowed for monthly quotas) |
+| `GET` | `/api/pools/:id/calls?limit=` | Recent upstream attempts — status, tokens, response body (4000 chars text, ~2MB retained media), per key (default 50, max 200) |
 | `POST` | `/api/pools/:id/proxy` | Proxy a request through the pool (see below) |
 
 ### Keys

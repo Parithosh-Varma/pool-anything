@@ -10,7 +10,7 @@ import { sdb, PROVIDERS, mask, maskCredentials, normalizeCredentials, parseCrede
 import { nextKey, recordUsage } from "./pool/rotation.js";
 import { forward, MAX_TOKENS_PER_REQUEST, checkTarget } from "./proxy/forward.js";
 import { DOCS_URL } from "./admin/branding.js";
-import { page, keysPage, poolsPage, analyticsPage, playgroundPage, providerPage } from "./admin/pages.js";
+import { page, keysPage, poolsPage, analyticsPage, historyPage, playgroundPage, providerPage } from "./admin/pages.js";
 import { MAX_POOLS, MAX_KEYS_PER_POOL, MAX_API_KEY_CHARS, matchPoolRoute, matchKeyRoute } from "./router/api.js";
 import { health, readiness, analyticsSnapshot } from "./observability/health.js";
 
@@ -121,6 +121,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "DELETE" && !sub) {
       sdb.exec("BEGIN IMMEDIATE");
       try {
+        sdb.prepare("DELETE FROM calls WHERE pool_id = ?").run(poolId);
         sdb.prepare("DELETE FROM usage WHERE pool_id = ?").run(poolId);
         sdb.prepare("DELETE FROM pool_keys WHERE pool_id = ?").run(poolId);
         const r = sdb.prepare("DELETE FROM pools WHERE id = ?").run(poolId);
@@ -163,6 +164,13 @@ const server = http.createServer(async (req, res) => {
       send(res, 200, { pool_id: s.id, used: s.used, usedInWindow: s.usedInWindow, quota: s.quota, quotaWindow: s.quotaWindow, remaining: s.remaining, perKey: s.perKey });
       return;
     }
+    if (req.method === "GET" && sub === "/calls") {
+      const pool = getPool(poolId);
+      if (!pool) return send(res, 404, { error: "pool not found" });
+      const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
+      send(res, 200, sdb.prepare("SELECT id, pool_id, key_id, method, path, status, tokens, body, truncated, encoding, content_type, error, created_at FROM calls WHERE pool_id = ? ORDER BY id DESC LIMIT ?").all(poolId, limit));
+      return;
+    }
     if (req.method === "POST" && sub === "/proxy") {
       // Media-aware limit: base64 image/audio/video payloads ride inside JSON.
       const b = (await readJson(req, MAX_PROXY_BODY_BYTES)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string> };
@@ -182,13 +190,15 @@ const server = http.createServer(async (req, res) => {
       const pool = getPool(poolId);
       if (!pool) return send(res, 404, { error: "pool not found" });
       const fields = providerKeyFields(pool.provider);
+      const now = Date.now();
       const rows = sdb
-        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at FROM pool_keys WHERE pool_id = ? ORDER BY id")
-        .all(poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string }[];
+        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, cooldown_until FROM pool_keys WHERE pool_id = ? ORDER BY id")
+        .all(poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; cooldown_until: number }[];
       send(res, 200, rows.map((k) => {
         const creds = parseCredentials(k.credentials);
         return {
           id: k.id, label: k.label, masked: mask(k.api_key), info: k.info, created_at: k.created_at,
+          cooling: k.cooldown_until > now,
           keyFields: fields,
           credentials: Object.keys(creds).length > 0 ? maskCredentials(creds) : undefined,
         };
@@ -251,11 +261,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && keyId !== undefined) {
       const row = sdb
-        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at FROM pool_keys WHERE id = ? AND pool_id = ?")
-        .get(Number(keyId), poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string } | undefined;
+        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, cooldown_until FROM pool_keys WHERE id = ? AND pool_id = ?")
+        .get(Number(keyId), poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; cooldown_until: number } | undefined;
       if (!row) return send(res, 404, { error: "key not found" });
       const creds = parseCredentials(row.credentials);
-      send(res, 200, { ...row, credentials: Object.keys(creds).length > 0 ? creds : undefined, masked: mask(row.api_key), maskedCredentials: Object.keys(creds).length > 0 ? maskCredentials(creds) : undefined });
+      send(res, 200, { ...row, cooling: row.cooldown_until > Date.now(), credentials: Object.keys(creds).length > 0 ? creds : undefined, masked: mask(row.api_key), maskedCredentials: Object.keys(creds).length > 0 ? maskCredentials(creds) : undefined });
       return;
     }
     if (req.method === "PATCH" && keyId !== undefined) {
@@ -300,6 +310,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === "DELETE" && keyId !== undefined) {
+      sdb.prepare("DELETE FROM calls WHERE key_id = ?").run(Number(keyId));
       sdb.prepare("DELETE FROM usage WHERE key_id = ?").run(Number(keyId));
       const r = sdb.prepare("DELETE FROM pool_keys WHERE id = ? AND pool_id = ?").run(Number(keyId), poolId);
       if (r.changes === 0) return send(res, 404, { error: "key not found" });
@@ -340,6 +351,11 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/analytics") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(analyticsPage());
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/history") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(historyPage());
     return;
   }
   if (req.method === "GET" && url.pathname.startsWith("/provider/")) {

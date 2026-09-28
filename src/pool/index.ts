@@ -42,6 +42,22 @@ sdb.exec(`
   CREATE INDEX IF NOT EXISTS idx_usage_pool_created ON usage(pool_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_usage_key_created ON usage(key_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_pools_provider ON pools(provider);
+  CREATE TABLE IF NOT EXISTS calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pool_id INTEGER NOT NULL REFERENCES pools(id) ON DELETE CASCADE,
+    key_id INTEGER NOT NULL REFERENCES pool_keys(id) ON DELETE CASCADE,
+    method TEXT NOT NULL DEFAULT 'POST',
+    path TEXT NOT NULL DEFAULT '',
+    status INTEGER,
+    tokens INTEGER NOT NULL DEFAULT 0,
+    body TEXT NOT NULL DEFAULT '',
+    truncated INTEGER NOT NULL DEFAULT 0,
+    encoding TEXT NOT NULL DEFAULT 'text',
+    content_type TEXT NOT NULL DEFAULT '',
+    error TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_calls_pool_created ON calls(pool_id, created_at);
 `);
 
 export type Provider = {
@@ -129,6 +145,50 @@ export const PROVIDERS: Provider[] = loadProviders();
 export function mask(key: unknown): string {
   if (typeof key !== "string" || key.length <= 8) return "****";
   return `${key.slice(0, 4)}…${key.slice(-2)}`;
+}
+
+/** Max response chars kept per call row — bounds DB growth (media relays are MBs). */
+export const CALLS_BODY_CHARS = 4000;
+/** Higher cap for binary media (audio/video/image base64) so generated files
+ *  stay playable/renderable from History. Still bounded: ~2MB per row worst case. */
+export const CALLS_MEDIA_CHARS = 2_000_000;
+
+export type CallRow = {
+  pool_id: number;
+  key_id: number;
+  method: string;
+  path: string;
+  status: number | null;
+  tokens: number;
+  body: string;
+  truncated: boolean;
+  encoding: string;
+  contentType: string;
+  error: string;
+};
+
+/** Pick the storage slice for a relay body: text stays small, binary media
+ *  keeps enough bytes to stay playable/renderable. Pure (testable). */
+export function callBodyForStorage(relayBody: string, encoding: string, truncated: boolean): { body: string; truncated: boolean } {
+  const cap = encoding === "base64" ? CALLS_MEDIA_CHARS : CALLS_BODY_CHARS;
+  if (relayBody.length <= cap) return { body: relayBody, truncated };
+  return { body: relayBody.slice(0, cap), truncated: true };
+}
+export function logCall(c: CallRow): void {
+  try {
+    sdb
+      .prepare(
+        "INSERT INTO calls (pool_id, key_id, method, path, status, tokens, body, truncated, encoding, content_type, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+      .run(
+        c.pool_id, c.key_id,
+        c.method.slice(0, 16), c.path.slice(0, 2000), c.status, c.tokens,
+        c.body.slice(0, CALLS_MEDIA_CHARS), c.truncated ? 1 : 0,
+        c.encoding.slice(0, 16), c.contentType.slice(0, 256), c.error.slice(0, 500)
+      );
+  } catch {
+    // Call logging must never break proxying.
+  }
 }
 
 export type KeyFields = string[];

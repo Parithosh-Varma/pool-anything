@@ -1,4 +1,4 @@
-import { sdb, getPool } from "../pool/index.js";
+import { sdb, getPool, logCall, callBodyForStorage } from "../pool/index.js";
 import { nextKeyRaw, markSuccess, markFailure } from "../pool/rotation.js";
 import { resolveTarget, resolveTargetForKey, effectiveApiKey, buildUpstreamRequest, validateQueryParams, type ForwardOpts } from "../upstream/index.js";
 import { allowPrivateUpstream, proxyTimeoutMs } from "../config/env.js";
@@ -146,6 +146,24 @@ export function validateProxyOpts(opts: ProxyOpts): { ok: boolean; error?: strin
     const q = validateQueryParams(opts.query);
     if (!q.ok) return { ok: false, error: q.error };
   }
+  if (opts.body !== undefined && opts.form !== undefined)
+    return { ok: false, error: "body and form are mutually exclusive" };
+  if (opts.form !== undefined) {
+    if (typeof opts.form !== "object" || opts.form === null || Array.isArray(opts.form))
+      return { ok: false, error: "form must be an object" };
+    const entries = Object.entries(opts.form);
+    if (entries.length > 50) return { ok: false, error: "too many form fields" };
+    let bytes = 0;
+    for (const [k, v] of entries) {
+      if (typeof k !== "string" || k.length === 0 || k.length > 256 || /[\r\n\x00]/.test(k))
+        return { ok: false, error: "invalid form field name" };
+      if (typeof v !== "string" || v.length > 8000 || /[\r\n\x00]/.test(v))
+        return { ok: false, error: "invalid form field value" };
+      bytes += k.length + v.length;
+    }
+    if (bytes > MAX_PROXY_BODY_BYTES)
+      return { ok: false, error: `proxy form too large (max ${Math.round(MAX_PROXY_BODY_BYTES / 1_000_000)}MB)` };
+  }
   if (opts.body !== undefined) {
     try {
       const s = JSON.stringify(opts.body);
@@ -203,6 +221,14 @@ export function timeoutMs(): number {
 
 export type ProxyOpts = ForwardOpts & { tokens?: number };
 
+/** POOL_DEBUG=1: per-request proxy trace on stderr (method/path/pool and
+ *  upstream statuses). Never logs bodies or key material. */
+function dlog(poolId: number, opts: ProxyOpts, tried: { status?: number }[], extra = "") {
+  if (process.env.POOL_DEBUG !== "1") return;
+  const st = tried.map((t) => (t.status ?? "?")).join(",");
+  console.error(`[proxy] ${opts.method || "POST"} ${opts.path || "/"} pool=${poolId} tried=[${st}]${extra ? " " + extra : ""}`);
+}
+
 /**
  * Forward one request through the pool: rotate, send, fail over on
  * 429/5xx/network errors (key cools down, next key tried). Returns the
@@ -223,7 +249,10 @@ export async function forward(poolId: number, opts: ProxyOpts) {
     }
   }
   const valid = validateProxyOpts(opts);
-  if (!valid.ok) return { status: 400 as const, error: valid.error };
+  if (!valid.ok) {
+    dlog(poolId, opts, [], `invalid: ${valid.error}`);
+    return { status: 400 as const, error: valid.error };
+  }
 
   // Bound failover: one client request must not fan out to every key in a
   // large pool (100 keys x timeout each would starve the single-thread server).
@@ -234,6 +263,7 @@ export async function forward(poolId: number, opts: ProxyOpts) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const sel = nextKeyRaw(poolId);
     if ("error" in sel) {
+      dlog(poolId, opts, tried, `no-key: ${sel.error}`);
       return { status: 400 as const, error: sel.error, tried };
     }
     let req: { url: string; headers: Record<string, string>; body: string | undefined };
@@ -268,13 +298,16 @@ export async function forward(poolId: number, opts: ProxyOpts) {
       upstream = await fetch(url, { method: opts.method || "POST", headers, body, redirect: "manual", signal: AbortSignal.timeout(timeoutMs()) });
     } catch {
       markFailure(sel.key_id);
+      logCall({ pool_id: poolId, key_id: sel.key_id, method: opts.method || "POST", path: opts.path || "/", status: null, tokens: 0, body: "", truncated: false, encoding: "text", contentType: "", error: "upstream network error" });
       tried.push({ key_id: sel.key_id, label: sel.label, detail: "upstream network error" });
       continue;
     }
     if (upstream.status >= 300 && upstream.status < 400) {
       // Redirects are not followed and are not the key's fault: report without cooling.
       await upstream.body?.cancel().catch(() => undefined);
+      logCall({ pool_id: poolId, key_id: sel.key_id, method: opts.method || "POST", path: opts.path || "/", status: upstream.status, tokens: 0, body: "", truncated: false, encoding: "text", contentType: "", error: "redirect not followed" });
       tried.push({ key_id: sel.key_id, label: sel.label, status: upstream.status });
+      dlog(poolId, opts, tried, "redirect");
       return { status: 400 as const, error: `upstream redirected (HTTP ${upstream.status}, location not followed)`, tried };
     }
     let text = "";
@@ -289,6 +322,7 @@ export async function forward(poolId: number, opts: ProxyOpts) {
       truncated = r.truncated;
     } catch {
       markFailure(sel.key_id);
+      logCall({ pool_id: poolId, key_id: sel.key_id, method: opts.method || "POST", path: opts.path || "/", status: upstream.status, tokens: 0, body: "", truncated: false, encoding: "text", contentType: "", error: "upstream body error" });
       tried.push({ key_id: sel.key_id, label: sel.label, status: upstream.status, detail: "upstream body error" });
       await upstream.body?.cancel().catch(() => undefined);
       continue;
@@ -299,10 +333,13 @@ export async function forward(poolId: number, opts: ProxyOpts) {
     const relayBody = b64 !== undefined ? b64.slice(0, MAX_RELAY_CHARS) : text.slice(0, MAX_RELAY_CHARS);
     truncated = truncated || rawLen > MAX_RELAY_CHARS;
     const encoding: "base64" | "text" = b64 !== undefined ? "base64" : "text";
+    const stored = callBodyForStorage(relayBody, encoding, truncated);
+    const callBase = { pool_id: poolId, key_id: sel.key_id, method: opts.method || "POST", path: opts.path || "/", body: stored.body, truncated: stored.truncated, encoding, contentType };
     if (upstream.status === 429 || upstream.status >= 500 || upstream.status === 401 || upstream.status === 403) {
       // 401/403 = invalid/revoked key: cool it so rotation skips it instead of
       // paying one dead upstream call on every subsequent request.
       markFailure(sel.key_id);
+      logCall({ ...callBase, status: upstream.status, tokens: 0, error: "" });
       tried.push({ key_id: sel.key_id, label: sel.label, status: upstream.status });
       await upstream.body?.cancel().catch(() => undefined);
       continue;
@@ -311,6 +348,8 @@ export async function forward(poolId: number, opts: ProxyOpts) {
       // Other 4xx: client/upstream error, not the key's fault. Passthrough
       // without cooling and without charging quota.
       tried.push({ key_id: sel.key_id, label: sel.label, status: upstream.status });
+      logCall({ ...callBase, status: upstream.status, tokens: 0, error: "" });
+      dlog(poolId, opts, tried, "passthrough");
       return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: relayBody, encoding, contentType, truncated, tried };
     }
     markSuccess(sel.key_id, Date.now() - started);
@@ -318,7 +357,10 @@ export async function forward(poolId: number, opts: ProxyOpts) {
     if (Number.isInteger(tok) && (tok as number) > 0) {
       sdb.prepare("INSERT INTO usage (pool_id, key_id, tokens) VALUES (?, ?, ?)").run(poolId, sel.key_id, tok as number);
     }
+    logCall({ ...callBase, status: upstream.status, tokens: Number.isInteger(tok) && (tok as number) > 0 ? (tok as number) : 0, error: "" });
+    dlog(poolId, opts, tried, `ok upstream=${upstream.status}`);
     return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: relayBody, encoding, contentType, truncated, tried };
   }
+  dlog(poolId, opts, tried, "all-failed");
   return { status: 400 as const, error: "all keys failed or cooling down", tried };
 }

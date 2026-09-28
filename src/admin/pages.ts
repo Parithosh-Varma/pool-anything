@@ -1,4 +1,5 @@
 import { LOGO_V, DOCS_URL, ICONS } from "./branding.js";
+import { ADAPTERS } from "../playground/adapters.js";
 import { shellCss, shellNav, shellJs, sharedHeader, sharedLayoutCss } from "./shell.js";
 import { tokensCss } from "./tokens.js";
 import { docsComponentsCss, ddSelect } from "./components.js";
@@ -354,6 +355,7 @@ ${docsComponentsCss}
     <a class="mi" href="/keys"><span class="ic">${ICONS.keys}</span><span class="lbl">API key manager</span></a>
     <a class="mi" href="/playground"><span class="ic">${ICONS.playground}</span><span class="lbl">Playground</span></a>
     <a class="mi" href="/analytics"><span class="ic">${ICONS.analytics}</span><span class="lbl">Analytics</span></a>
+    <a class="mi" href="/history"><span class="ic">${ICONS.history}</span><span class="lbl">History</span></a>
     <a class="mi" href="${DOCS_URL}" target="_blank" rel="noopener" title="Opens external docs in a new tab"><span class="ic">${ICONS.docs}</span><span class="lbl">Docs</span><span class="ext">${ICONS.external}</span></a>
   </nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
@@ -775,7 +777,7 @@ async function refresh(){
       const li=document.createElement('li');
       li.innerHTML='<span></span><small></small>';
       li.querySelector('span').textContent=k.label+' · '+k.masked;
-      li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0);
+      li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0)+(k.cooling?' · cooling':'');
       const v=document.createElement('button');v.textContent='View';v.className='ghost sm';
       v.onclick=async()=>{
         if(v.dataset.open){
@@ -1044,13 +1046,146 @@ async function init(){
       const li=document.createElement('li');
       li.innerHTML='<span></span><small></small>';
       li.querySelector('span').textContent=k.label+' · '+k.masked;
-      li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0);
+      li.querySelector('small').textContent='used '+((us.perKey||[]).find(x=>x.id===k.id)?.used||0)+(k.cooling?' · cooling':'');
       ul.appendChild(li);
     });
     box.appendChild(card);
   }
   if(!shown) box.innerHTML='<div class="empty">No pools with keys yet — <a href="/">search providers and gather some</a>.</div>';
 }
+init();
+</script></div></div>${shellJs}</body></html>`;
+}
+
+export function historyPage(): string {
+return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>History — pool-anything</title>
+<link rel="icon" type="image/png" href="/logo.png" />
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
+${shellCss}
+${sharedLayoutCss}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+select{border:1px solid var(--line);border-radius:8px;min-height:34px;padding:0 10px;font-size:14px}
+button{border:1px solid var(--ink);background:var(--ink);color:var(--card);border-radius:8px;min-height:34px;padding:0 12px;font-size:14px;cursor:pointer}
+label.auto{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink-soft)}
+table.hist{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+table.hist th{text-align:left;font-size:12px;color:var(--ink-soft);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.hist td{padding:8px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+table.hist td.mono{font-family:var(--font-mono);font-size:12px}
+.st{display:inline-block;min-width:44px;text-align:center;font-family:var(--font-mono);font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
+.st2{background:#e6f4ea;color:#1F7A4D}.st4{background:#fef3e2;color:#B26A00}.st5{background:#fdecea;color:#B3261E}.st0{background:var(--paper-2);color:var(--ink-soft)}
+details.body{max-width:420px}details.body summary{cursor:pointer;color:var(--ink-soft);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+details.body pre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--paper-2);border-radius:8px;padding:8px;max-height:240px;overflow:auto}
+.empty{color:var(--ink-soft);font-size:14px;text-align:center;padding:24px 0}
+.err{color:var(--danger-ink);font-size:13px;min-height:18px}
+${docsComponentsCss}
+</style></head><body><div class="shell" id="shell">${shellNav("/history")}<div class="content">${sharedHeader}<main>
+<div class="wrap">
+<div class="page-head"><a href="/"><img src="/logo.png" alt="pool-anything" width="28" height="28"/></a><h1>History</h1></div>
+<a class="back" href="/">← pool search</a>
+<div class="err" id="err"></div>
+<div class="card"><div class="row"><select id="hpool" aria-label="Pool filter"></select><select id="hlimit" aria-label="Row limit"><option value="25">25 rows</option><option value="50" selected>50 rows</option><option value="100">100 rows</option><option value="200">200 rows</option></select><button id="hrefresh">Refresh</button><label class="auto"><input type="checkbox" id="hauto"/> auto-refresh 5s</label></div>
+<table class="hist"><thead><tr><th>Time (UTC)</th><th>Pool</th><th>Key</th><th>Request</th><th>Status</th><th>Tokens</th><th>Error</th><th>Response</th></tr></thead><tbody id="hrows"></tbody></table>
+<div class="empty" id="hempty" hidden>No proxy calls recorded yet — send traffic through <span style="font-family:var(--font-mono)">/api/pools/:id/proxy</span>.</div>
+</div>
+</div>
+</main><script>
+${clientCoreJs}
+var poolsById={};
+function stClass(s){if(s===null||s===undefined)return 'st0';if(s>=200&&s<300)return 'st2';if(s>=400&&s<500)return 'st4';if(s>=500)return 'st5';return 'st0';}
+function stLabel(s){return (s===null||s===undefined)?'—':String(s);}
+function mediaFor(c){
+  if(c.encoding==='base64'&&c.body&&!c.truncated){
+    var ct=String(c.content_type||'');
+    var src='data:'+(ct||'application/octet-stream')+';base64,'+c.body;
+    if(/audio/i.test(ct))return {kind:'audio',src:src};
+    if(/video/i.test(ct))return {kind:'video',src:src};
+    if(/image/i.test(ct))return {kind:'image',src:src};
+    return null;
+  }
+  if(c.encoding!=='base64'&&c.body&&!c.truncated){
+    try{
+      var d=JSON.parse(c.body);
+      var first=d&&d.data&&d.data[0];
+      var u=(first&&first.url)||d.url||'';
+      if(typeof u==='string'&&/^https?:\\/\\//.test(u))return {kind:'url',src:u};
+    }catch(e){}
+  }
+  return null;
+}
+async function loadPools(){
+  const pools=await j(await fetch('/api/pools'));
+  poolsById={};
+  const sel=document.getElementById('hpool');sel.innerHTML='';
+  const all=document.createElement('option');all.value='';all.textContent='All pools';sel.appendChild(all);
+  pools.forEach(function(p){poolsById[p.id]=p;var o=document.createElement('option');o.value=String(p.id);o.textContent='#'+p.id+' '+p.name+' ('+p.provider+')';sel.appendChild(o);});
+}
+async function refresh(){
+  err('');
+  const pid=document.getElementById('hpool').value;
+  const limit=document.getElementById('hlimit').value;
+  var rows=[];
+  if(pid){
+    rows=await j(await fetch('/api/pools/'+pid+'/calls?limit='+encodeURIComponent(limit)));
+    if(rows&&rows.error){err(rows.error);return;}
+  }else{
+    const pools=await j(await fetch('/api/pools'));
+    const lists=await Promise.all(pools.map(async function(p){return j(await fetch('/api/pools/'+p.id+'/calls?limit='+encodeURIComponent(limit)));}));
+    lists.forEach(function(l){if(Array.isArray(l))rows=rows.concat(l);});
+    rows.sort(function(a,b){return b.id-a.id;});
+    rows=rows.slice(0,Number(limit));
+  }
+  const tb=document.getElementById('hrows');tb.innerHTML='';
+  document.getElementById('hempty').hidden=rows.length>0;
+  rows.forEach(function(c){
+    var p=poolsById[c.pool_id]||{name:'#'+c.pool_id,provider:''};
+    var tr=document.createElement('tr');
+    var preview=c.body?(c.body.length>90?c.body.slice(0,90)+'…':c.body):'—';
+    tr.innerHTML='<td class="mono"></td><td></td><td class="mono"></td><td class="mono"></td><td><span></span></td><td class="mono"></td><td class="mono"></td><td></td>';
+    var tds=tr.querySelectorAll('td');
+    tds[0].textContent=c.created_at||'';
+    tds[1].textContent=p.name+(p.provider?' ('+p.provider+')':'');
+    tds[2].textContent='#'+c.key_id;
+    tds[3].textContent=c.method+' '+c.path;
+    var badge=tds[4].querySelector('span');badge.className='st '+stClass(c.status);badge.textContent=stLabel(c.status);
+    tds[5].textContent=c.tokens||'';
+    tds[6].textContent=c.error||'';
+    var cell=tds[7];
+    var media=mediaFor(c);
+    if(media&&(media.kind==='audio'||media.kind==='video'||media.kind==='image')){
+      var mel;
+      if(media.kind==='audio'){mel=document.createElement('audio');mel.controls=true;}
+      else if(media.kind==='video'){mel=document.createElement('video');mel.controls=true;mel.style.maxWidth='320px';}
+      else{mel=document.createElement('img');mel.alt='generated image';mel.style.maxWidth='240px';mel.style.borderRadius='8px';}
+      mel.src=media.src;mel.preload='metadata';cell.appendChild(mel);
+    }else if(media&&media.kind==='url'){
+      var link=document.createElement('a');link.href=media.src;link.target='_blank';link.rel='noopener';
+      if(/\.(png|jpe?g|webp|gif)(\\?|#|$)/i.test(media.src)){var th=document.createElement('img');th.src=media.src;th.alt='generated image';th.style.maxWidth='240px';th.style.borderRadius='8px';link.appendChild(th);}
+      else link.textContent=media.src.slice(0,90);
+      cell.appendChild(link);
+    }else if(c.body){
+      var d=document.createElement('details');d.className='body';
+      var s=document.createElement('summary');s.textContent=preview;d.appendChild(s);
+      var pre=document.createElement('pre');var cap=c.encoding==='base64'?'~2MB media cap':'4000 chars';pre.textContent=c.body+((c.truncated)?'\\n…(truncated at '+cap+', tail not retained)':'');d.appendChild(pre);
+      cell.appendChild(d);
+    }else cell.textContent='—';
+    tb.appendChild(tr);
+  });
+}
+var autoTimer=null;
+function setAuto(on){
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null;}
+  if(on)autoTimer=setInterval(refresh,5000);
+}
+document.getElementById('hrefresh').onclick=refresh;
+document.getElementById('hpool').onchange=refresh;
+document.getElementById('hlimit').onchange=refresh;
+document.getElementById('hauto').onchange=function(e){setAuto(e.target.checked);};
+async function init(){await loadPools();refresh();}
 init();
 </script></div></div>${shellJs}</body></html>`;
 }
@@ -1072,6 +1207,11 @@ ${sharedLayoutCss}
 .seg button.on{background:var(--card);box-shadow:var(--shadow-sm);color:var(--ink);font-weight:600}
 .ctl{border:1px solid var(--line);border-radius:8px;min-height:34px;padding:0 10px;font-size:13px;background:var(--card);color:var(--ink);font-family:inherit}
 select.ctl{max-width:220px}input.ctl.model{min-width:220px}
+.dd-combo{position:relative;display:inline-flex;align-items:stretch;min-width:0}
+.dd-combo input.ctl.model{border-radius:8px 0 0 8px;min-width:0}
+.model-chev{border:1px solid var(--line);border-left:0;background:var(--card);color:var(--ink-faint);border-radius:0 8px 8px 0;min-width:34px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:inherit}
+.model-chev:hover{background:var(--paper-2);color:var(--ink)}
+.dd-combo .dd-menu{left:auto;right:0;min-width:220px;max-width:340px}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:8px;min-height:34px;padding:0 12px;font-size:13px;cursor:pointer;color:var(--ink);font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{background:var(--paper-2)}
 .pg-grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;align-items:start;min-height:560px}
@@ -1129,6 +1269,20 @@ details.params summary{cursor:pointer;color:var(--ink-soft);font-size:12px}
 .modes button.off{opacity:.4;cursor:not-allowed}
 .media-out{margin-top:12px;display:flex;flex-direction:column;gap:10px}
 .media-out audio,.media-out video{width:100%;border-radius:10px;background:var(--code-dark)}
+.pa{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow-sm)}
+.pa-row{display:flex;align-items:center;gap:10px}
+.pa-play{width:40px;height:40px;flex-shrink:0;border:0;border-radius:50%;background:var(--green-bg);color:var(--green-ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-family:inherit}
+.pa-play:hover{filter:brightness(.96)}
+.pa-play svg{width:16px;height:16px;display:block}
+.pa-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600;color:var(--ink)}
+.pa-x{flex-shrink:0;border:0;background:none;color:var(--ink-faint);cursor:pointer;font-size:18px;line-height:1;border-radius:6px;padding:2px 6px;font-family:inherit}
+.pa-x:hover{color:var(--ink);background:var(--paper-2)}
+.pa-wave{display:flex;align-items:flex-end;gap:1px;height:56px;margin-top:10px;cursor:pointer;border-radius:6px}
+.pa-wave:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pa-bar{flex:1;min-width:1px;border-radius:2px;background:linear-gradient(to top,var(--line),var(--paper-2));min-height:4px;opacity:.85;transition:height .25s ease,background .2s ease,opacity .2s ease}
+.pa-bar.on{background:linear-gradient(to top,var(--green-ink),var(--green-chip));opacity:1}
+.pa-times{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.pa audio{display:none}
 .media-out .dl{font-size:13px;color:var(--ink)}
 ${docsComponentsCss}
 </style></head><body><div class="shell" id="shell">${shellNav("/playground")}<div class="content">${sharedHeader}<main>
@@ -1139,7 +1293,7 @@ ${docsComponentsCss}
 <div class="seg"><button id="tabChat" class="on" type="button">Chat</button><button id="tabStudio" type="button">Studio</button></div>
 <div class="spacer"></div>
 ${ddSelect("pool", "Pool")}
-<input class="ctl model" id="model" value="" placeholder="model id" aria-label="Model" spellcheck="false" autocomplete="off"/>
+<span class="dd-combo" id="dd-model"><input class="ctl model" id="model" value="" placeholder="model id" aria-label="Model" spellcheck="false" autocomplete="off"/><button type="button" class="model-chev" id="modelChev" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose model"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="dd-menu" id="modelMenu" role="listbox" hidden></div></span>
 <button class="btn" id="copyTop" type="button" title="Copy code">⧉</button>
 <button class="btn" id="hideCode" type="button">&lt;/&gt; Hide code</button>
 </div>
@@ -1153,6 +1307,20 @@ ${ddSelect("pool", "Pool")}
 <label>Temperature<input class="ctl" id="temp" value="1" inputmode="decimal"/></label>
 <label>Max tokens<input class="ctl" id="maxtokens" value="2048" inputmode="numeric"/></label>
 <label>Top P<input class="ctl" id="topp" value="1" inputmode="decimal"/></label>
+</div>
+<div class="params-grid" id="probeVars" hidden style="margin-top:8px">
+<label id="probeOrgWrap">Org<input class="ctl" id="probeOrg" value="" placeholder="turso org slug" spellcheck="false" autocomplete="off"/></label>
+<label id="probeSidWrap">Account SID<input class="ctl" id="probeSid" value="" placeholder="twilio AC… SID" spellcheck="false" autocomplete="off"/></label>
+<label id="probeDomainWrap">Domain<input class="ctl" id="probeDomain" value="" placeholder="mailgun domain" spellcheck="false" autocomplete="off"/></label>
+<label id="probeDepthWrap">Depth<select class="ctl" id="probeDepth"><option value="basic">basic (1 credit)</option><option value="advanced">advanced (2 credits)</option><option value="fast">fast (1 credit)</option><option value="ultra-fast">ultra-fast (1 credit)</option></select></label>
+<label id="probeTopicWrap">Topic<select class="ctl" id="probeTopic"><option value="general">general</option><option value="news">news</option><option value="finance">finance</option></select></label>
+<label id="probeTimeWrap">Time range<select class="ctl" id="probeTime"><option value="">any time</option><option value="day">day</option><option value="week">week</option><option value="month">month</option><option value="year">year</option></select></label>
+<label id="probeMaxWrap">Max results<input class="ctl" id="probeMax" value="5" inputmode="numeric"/></label>
+<label id="probeAnswerWrap">Answer<select class="ctl" id="probeAnswer"><option value="basic">answer: basic</option><option value="advanced">answer: advanced</option><option value="false">answer: off</option></select></label>
+<label id="probeChunksWrap">Chunks/source<select class="ctl" id="probeChunks"><option value="3">3</option><option value="1">1</option><option value="2">2</option></select></label>
+<label id="probeAutoWrap">Auto params<select class="ctl" id="probeAuto"><option value="false">off</option><option value="true">on (2 credits)</option></select></label>
+<label id="probeInclWrap">Include domains<input class="ctl" id="probeIncl" value="" placeholder="comma-separated" spellcheck="false" autocomplete="off"/></label>
+<label id="probeExclWrap">Exclude domains<input class="ctl" id="probeExcl" value="" placeholder="comma-separated" spellcheck="false" autocomplete="off"/></label>
 </div></details>
 <div class="chat-foot">
 <button class="iconbtn" id="addMsg" type="button" title="Add message">＋</button>
@@ -1188,7 +1356,8 @@ ${ddSelect("codeLang", "Code language", '<option value="python">Python</option><
 <div id="studioImage">
 <div class="fld" style="margin-top:12px"><label>PROMPT</label><textarea class="ghost" id="imgPrompt" rows="2" placeholder="Describe the image you want to generate..."></textarea></div>
 <div class="params-grid" style="margin-top:12px">
-<label>Model<input class="ctl" id="imgModel" value="" placeholder="image model id" spellcheck="false" autocomplete="off"/></label>
+<label>Model<input class="ctl" id="imgModel" value="" placeholder="image model id" spellcheck="false" autocomplete="off" list="imgModelList"/></label>
+<datalist id="imgModelList"></datalist>
 <label>Size${ddSelect("imgSize", "Size", "<option>1024x1024</option><option>1792x1024</option><option>1024x1792</option><option>512x512</option>", "dd-block")}</label>
 </div>
 <div class="chat-foot" style="justify-content:center">
@@ -1199,8 +1368,10 @@ ${ddSelect("codeLang", "Code language", '<option value="python">Python</option><
 <div id="studioAudio" hidden>
 <div class="fld" style="margin-top:12px"><label>TEXT TO SPEAK</label><textarea class="ghost" id="audText" rows="2" placeholder="Text for TTS / audio generation..."></textarea></div>
 <div class="params-grid" style="margin-top:12px">
-<label>Model<input class="ctl" id="audModel" value="" placeholder="audio model id" spellcheck="false" autocomplete="off"/></label>
-<label>Voice<input class="ctl" id="audVoice" value="alloy" spellcheck="false" autocomplete="off"/></label>
+<label>Model<input class="ctl" id="audModel" value="" placeholder="audio model id" spellcheck="false" autocomplete="off" list="audModelList"/></label>
+<datalist id="audModelList"></datalist>
+<label>Voice<input class="ctl" id="audVoice" value="alloy" spellcheck="false" autocomplete="off" list="audVoiceList"/></label>
+<datalist id="audVoiceList"></datalist>
 <label>Format${ddSelect("audFormat", "Format", "<option>mp3</option><option>wav</option><option>opus</option>", "dd-block")}</label>
 </div>
 <div class="chat-foot" style="justify-content:center">
@@ -1211,7 +1382,8 @@ ${ddSelect("codeLang", "Code language", '<option value="python">Python</option><
 <div id="studioVideo" hidden>
 <div class="fld" style="margin-top:12px"><label>PROMPT</label><textarea class="ghost" id="vidPrompt" rows="2" placeholder="Describe the video you want to generate..."></textarea></div>
 <div class="params-grid" style="margin-top:12px">
-<label>Model<input class="ctl" id="vidModel" value="" placeholder="video model id" spellcheck="false" autocomplete="off"/></label>
+<label>Model<input class="ctl" id="vidModel" value="" placeholder="video model id" spellcheck="false" autocomplete="off" list="vidModelList"/></label>
+<datalist id="vidModelList"></datalist>
 <label>Duration${ddSelect("vidDur", "Duration", "<option>4s</option><option>8s</option><option>12s</option>", "dd-block")}</label>
 <label>Resolution${ddSelect("vidRes", "Resolution", "<option>720p</option><option>1080p</option><option>480p</option>", "dd-block")}</label>
 </div>
@@ -1221,15 +1393,35 @@ ${ddSelect("codeLang", "Code language", '<option value="python">Python</option><
 <div class="media-out" id="videoOut"></div>
 </div>
 </div>
+<details class="params" style="margin-top:12px"><summary>Debug log</summary><div class="chat-foot" style="margin-top:8px">
+<button class="btn" id="copyDebug" type="button">⧉ Copy</button>
+<button class="btn" id="clearDebug" type="button">Clear</button>
+</div><pre id="debugLog" style="max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:12px">No requests yet.</pre></details>
 </div>
 </main><script>
 ${clientCoreJs}
 ${clientDropdownJs}
-const MODELS={groq:'openai/gpt-oss-120b',openai:'gpt-4o-mini',openrouter:'meta-llama/llama-3.3-70b-instruct:free',mistral:'mistral-small-latest',fireworks:'accounts/fireworks/models/llama-v3p3-70b-instruct',together:'meta-llama/Llama-3.3-70B-Instruct-Turbo',gemini:'gemini-2.0-flash',anthropic:'claude-sonnet-4-20250514',perplexity:'sonar',cohere:'command-r',replicate:'ibm-granite/granite-3.3-8b-instruct',huggingface:'meta-llama/Llama-3.3-70B-Instruct',deepgram:'nova-3',elevenlabs:'eleven_multilingual_v2',cartesia:'sonic-2',tavily:'tavily-search',anyscale:'meta-llama/Llama-3.3-70B-Instruct'};
-const IMG_MODELS={openai:'gpt-image-1',together:'FLUX.1-schnell',fireworks:'accounts/fireworks/models/flux-1-schnell',replicate:'black-forest-labs/flux-schnell',huggingface:'black-forest-labs/FLUX.1-schnell',openrouter:'black-forest-labs/flux-1-schnell:free',gemini:'imagen-3.0-generate-002',mistral:'mistral-medium'};
-const AUD_MODELS={openai:'tts-1',elevenlabs:'eleven_multilingual_v2',cartesia:'sonic-2',deepgram:'aura-2-thalia-en',gemini:'gemini-2.5-flash-preview-tts'};
-const VID_MODELS={gemini:'veo-3.0-generate-001',replicate:'stability-ai/stable-video-diffusion'};
-const CAPS={openai:{vision:1,audioIn:1,videoIn:0,imageOut:1,audioOut:1,videoOut:0},anthropic:{vision:1,audioIn:0,videoIn:0,imageOut:0,audioOut:0,videoOut:0},gemini:{vision:1,audioIn:1,videoIn:1,imageOut:1,audioOut:1,videoOut:1},groq:{vision:1,audioIn:1,videoIn:0,imageOut:0,audioOut:0,videoOut:0},openrouter:{vision:1,audioIn:0,videoIn:0,imageOut:1,audioOut:0,videoOut:0},mistral:{vision:1,audioIn:0,videoIn:0,imageOut:0,audioOut:0,videoOut:0},fireworks:{vision:1,audioIn:0,videoIn:0,imageOut:1,audioOut:0,videoOut:0},together:{vision:1,audioIn:0,videoIn:0,imageOut:1,audioOut:0,videoOut:0},huggingface:{vision:1,audioIn:0,videoIn:0,imageOut:1,audioOut:0,videoOut:0},replicate:{vision:1,audioIn:0,videoIn:0,imageOut:1,audioOut:0,videoOut:1},perplexity:{vision:1,audioIn:0,videoIn:0,imageOut:0,audioOut:0,videoOut:0},cohere:{vision:1,audioIn:0,videoIn:0,imageOut:0,audioOut:0,videoOut:0},elevenlabs:{vision:0,audioIn:0,videoIn:0,imageOut:0,audioOut:1,videoOut:0},deepgram:{vision:0,audioIn:1,videoIn:0,imageOut:0,audioOut:1,videoOut:0},cartesia:{vision:0,audioIn:0,videoIn:0,imageOut:0,audioOut:1,videoOut:0}};
+const ADAPTERS=${JSON.stringify(ADAPTERS)};
+// Derived defaults/caps from the adapter table (single source of truth —
+// edit src/playground/adapters.ts, not these maps).
+const MODELS={};const IMG_MODELS={};const AUD_MODELS={};const VID_MODELS={};const VOICE_DEFAULTS={};const CAPS={};
+for(var __pid in ADAPTERS){var __a=ADAPTERS[__pid];
+  if(__a.defaults.chat)MODELS[__pid]=__a.defaults.chat;
+  if(__a.defaults.image)IMG_MODELS[__pid]=__a.defaults.image;
+  if(__a.defaults.audio)AUD_MODELS[__pid]=__a.defaults.audio;
+  VOICE_DEFAULTS[__pid]=__a.voiceDefault||'alloy';
+  CAPS[__pid]={vision:__a.vision?1:0,audioIn:__a.audioIn?1:0,videoIn:__a.videoIn?1:0,imageOut:__a.image?1:0,audioOut:__a.audio?1:0,videoOut:__a.video?1:0};
+}
+function curAdapter(){var p=curProv();return (p&&ADAPTERS[p])||null;}
+function getPath(o,path){try{var parts=String(path).split('.');var cur=o;for(var i=0;i<parts.length;i++){if(cur==null)return undefined;var k=parts[i];if(k==='$')continue;cur=/^[0-9]+$/.test(k)?cur[Number(k)]:cur[k];}return cur;}catch(e){return undefined;}}
+function fillTpl(t,vars){if(typeof t==='string'){if(Object.prototype.hasOwnProperty.call(vars,t))return vars[t];var out=t;for(var k in vars){var v=vars[k];if(v===null||v===undefined||typeof v==='object')continue;out=out.split(k).join(v);}return out;}if(Array.isArray(t))return t.map(function(x){return fillTpl(x,vars);});if(t&&typeof t==='object'){var o={};for(var k in t){var fv=fillTpl(t[k],vars);if(fv!==null&&fv!==undefined)o[k]=fv;}return o;}return t;}
+function csvList(s){return String(s||'').split(',').map(function(x){return x.trim();}).filter(Boolean);}
+function probeVars(text){return {'<<QUERY>>':text,'<<TEXT>>':text,'<<MODEL>>':document.getElementById('model').value.trim(),'<<ORG>>':document.getElementById('probeOrg').value.trim(),'<<SID>>':document.getElementById('probeSid').value.trim(),'<<DOMAIN>>':document.getElementById('probeDomain').value.trim(),'<<DEPTH>>':document.getElementById('probeDepth').value,'<<TOPIC>>':document.getElementById('probeTopic').value,'<<TIME_RANGE>>':document.getElementById('probeTime').value||null,'<<MAX_RESULTS>>':Math.max(1,Math.min(20,parseInt(document.getElementById('probeMax').value,10)||5)),'<<ANSWER>>':document.getElementById('probeAnswer').value==='false'?false:document.getElementById('probeAnswer').value,'<<CHUNKS>>':Math.max(1,Math.min(3,parseInt(document.getElementById('probeChunks').value,10)||3)),'<<AUTO>>':document.getElementById('probeAuto').value==='true','<<INCL_DOMAINS>>':(function(){var l=csvList(document.getElementById('probeIncl').value);return l.length?l:null;})(),'<<EXCL_DOMAINS>>':(function(){var l=csvList(document.getElementById('probeExcl').value);return l.length?l:null;})(),'<<VOICE>>':document.getElementById('audVoice').value.trim(),'<<SIZE>>':(document.getElementById('imgSize')||{value:''}).value};}
+function extractText(d,paths){var list=(paths||[]).concat(['choices.0.message.content','content.0.text','candidates.0.content.parts.0.text']);for(var i=0;i<list.length;i++){if(list[i]==='$')continue;var v=getPath(d,list[i]);if(typeof v==='string'&&v)return v;if(typeof v==='number')return String(v);if(v&&typeof v==='object'){var s=JSON.stringify(v);if(s&&s!=='{}'&&s!=='[]')return s;}}return null;}
+function anthropicBody(p,msgs){var sys=[];var rest=[];msgs.forEach(function(m){if(m.role==='system'&&typeof m.content==='string')sys.push(m.content);else rest.push(m);});var b={model:p.model,max_tokens:p.maxtokens,messages:rest.length?rest:[{role:'user',content:'hi'}]};if(sys.length)b.system=sys.join('\\n\\n');return b;}
+function geminiBody(p,msgs){var sys=[];var contents=[];msgs.forEach(function(m){var parts=Array.isArray(m.content)?m.content:[{text:typeof m.content==='string'?m.content:JSON.stringify(m.content)}];if(m.role==='system')parts.forEach(function(x){if(x.text)sys.push(x.text);});else if(m.role==='assistant')contents.push({role:'model',parts:parts});else contents.push({role:'user',parts:parts});});if(!contents.length)contents.push({role:'user',parts:[{text:'hi'}]});var b={contents:contents};if(sys.length)b.system_instruction={parts:[{text:sys.join('\\n\\n')}]};return b;}
+function chatBodyFor(prov,p,msgs){var a=curAdapter();if(a&&a.chatStyle==='anthropic')return anthropicBody(p,msgs);if(a&&a.chatStyle==='gemini')return geminiBody(p,msgs);return {model:p.model,messages:msgs,temperature:p.temp,max_tokens:p.maxtokens,top_p:p.topp};}
+function chatPathFor(prov,model,fallback){var a=curAdapter();var t=(a&&a.chatPath)||fallback||'/chat/completions';return t.split('<<MODEL>>').join(model||'');}
 const NO_VISION_RE=/tts|whisper|transcri|embed|image|flux|diffusion|imagen|dall|sonic|nova|stt|audit/i;
 function capsFor(prov,model){
   const b=CAPS[prov]||{vision:0,audioIn:0,videoIn:0,imageOut:0,audioOut:0,videoOut:0};
@@ -1253,6 +1445,17 @@ const IMG_MIMES=['image/png','image/jpeg','image/webp'];
 const AUD_MIMES=['audio/mpeg','audio/wav','audio/webm','audio/ogg','audio/mp4'];
 const VID_MIMES=['video/mp4','video/webm'];
 const MAX_MEDIA_BYTES=8000000;
+// Debug log: last 20 playground proxy calls (request + upstream response).
+// Rendered into #debugLog; never includes API keys (auth is server-side).
+let pgLog=[];
+function pgLogAdd(e){
+  e.t=new Date().toISOString().slice(11,19);
+  pgLog.unshift(e);if(pgLog.length>20)pgLog.length=20;
+  var el=document.getElementById('debugLog');
+  if(el)el.textContent=pgLog.map(function(x){
+    return '['+x.t+'] '+x.tab+' '+x.method+' '+x.path+' prov='+x.prov+' model='+(x.model||'-')+' → up='+x.upstream+' key='+(x.key||'-')+' '+x.ms+'ms'+(x.err?' ERR='+x.err:'')+'\\n  req: '+x.req+'\\n  res: '+x.res;
+  }).join('\\n')||'No requests yet.';
+}
 let pendingMedia=[];
 function fmtKB(n){return Math.round(n/1024)+'KB';}
 function renderMediaPrev(){
@@ -1324,6 +1527,12 @@ function chatContentFor(prov,text,media){
     const nonImg=media.filter(function(a){return a.kind!=='image';});
     if(nonImg.length)return null;
     return anthropicBlocks(text,media);
+  }
+  var a=curAdapter();
+  if(a&&a.chatStyle==='gemini'){
+    const parts=[{text:text}];
+    media.forEach(function(x){if(x.kind==='image')parts.push({inline_data:{mime_type:x.mime,data:x.b64}});});
+    return parts;
   }
   return openAiParts(text,media);
 }
@@ -1427,6 +1636,9 @@ function updateCode(){
   const url=location.origin+'/api/pools/'+pid+'/proxy';
   const lang=document.getElementById('codeLang').value;
   const prov=curProv(),model=p.model;
+  const pa=curAdapter();
+  if(pa&&!pa.chatPath&&pa.probe){updateProbeCode();return;}
+  const effPath=p.path||chatPathFor(prov,p.model,'/chat/completions');
   const c=capsFor(prov,model);
   const bad=pendingMedia.filter(function(a){return (a.kind==='image'&&!c.vision)||(a.kind==='audio'&&!c.audioIn)||(a.kind==='video'&&!c.videoIn);});
   if(pendingMedia.length&&bad.length){
@@ -1435,10 +1647,11 @@ function updateCode(){
     document.getElementById('code').innerHTML='<span class="c">'+esc(rawSnippet)+'</span>';
     return;
   }
-  const body={model:p.model,messages:msgs,temperature:p.temp,max_tokens:p.maxtokens,top_p:p.topp};
+  const body=chatBodyFor(prov,p,msgs);
+  const style=(pa&&pa.chatStyle)||'openai';
   const shortMsgs=JSON.stringify(msgs,function(k,v){return k==='data'&&typeof v==='string'&&v.length>64?v.slice(0,64)+'…<base64 '+v.length+' chars>':k==='url'&&typeof v==='string'&&v.indexOf('base64,')>=0?v.slice(0,80)+'…<base64>':v;});
   if(lang==='curl'){
-    rawSnippet='curl -X POST '+url+' \\\\\\n  -H "Content-Type: application/json" \\\\\\n  -d '+pyStr(JSON.stringify({path:p.path,method:'POST',body}))+';\\n';
+    rawSnippet='curl -X POST '+url+' \\\\\\n  -H "Content-Type: application/json" \\\\\\n  -d '+pyStr(JSON.stringify({path:effPath,method:'POST',body}))+';\\n';
     document.getElementById('code').innerHTML='<span class="c"># runs through your pooled keys — auth injected server-side</span>\\n'+esc(rawSnippet);
     return;
   }
@@ -1447,8 +1660,9 @@ function updateCode(){
   lines.push('resp = requests.<span class="fn">post</span>(');
   lines.push('    '+pyStr(url)+',');
   lines.push('    json={');
-  lines.push('        '+pyStr('path')+': '+pyStr(p.path)+',');
+  lines.push('        '+pyStr('path')+': '+pyStr(effPath)+',');
   lines.push('        '+pyStr('method')+': '+pyStr('POST')+',');
+  if(style==='openai'){
   lines.push('        '+pyStr('body')+': {');
   lines.push('            '+pyStr('model')+': '+pyStr(p.model)+',');
   lines.push('            '+pyStr('messages')+': '+esc(shortMsgs)+',');
@@ -1456,6 +1670,9 @@ function updateCode(){
   lines.push('            '+pyStr('max_tokens')+': <span class="n">'+p.maxtokens+'</span>,');
   lines.push('            '+pyStr('top_p')+': <span class="n">'+p.topp+'</span>,');
   lines.push('        },');
+  }else{
+  lines.push('        '+pyStr('body')+': '+esc(JSON.stringify(body))+',');
+  }
   lines.push('    },');
   lines.push('    timeout=<span class="n">120</span>,');
   lines.push(')');
@@ -1463,7 +1680,7 @@ function updateCode(){
   lines.push('<span class="fn">print</span>(data[<span class="s">'+pyStr('status')+'</span>])');
   lines.push('<span class="fn">print</span>(data[<span class="s">'+pyStr('body')+'</span>])');
   document.getElementById('code').innerHTML=lines.join('\\n');
-  rawSnippet='import requests\\n\\nresp = requests.post(\\n    '+JSON.stringify(url)+',\\n    json='+JSON.stringify({path:p.path,method:'POST',body},null,4)+',\\n    timeout=120,\\n)\\ndata = resp.json()\\nprint(data["status"])\\nprint(data["body"])\\n';
+  rawSnippet='import requests\\n\\nresp = requests.post(\\n    '+JSON.stringify(url)+',\\n    json='+JSON.stringify({path:effPath,method:'POST',body},null,4)+',\\n    timeout=120,\\n)\\ndata = resp.json()\\nprint(data["status"])\\nprint(data["body"])\\n';
 }
 function studioMode(){if(document.getElementById('modeAudio').classList.contains('on'))return 'audio';if(document.getElementById('modeVideo').classList.contains('on'))return 'video';return 'image';}
 function setStudioMode(m){
@@ -1474,10 +1691,11 @@ function setStudioMode(m){
   document.getElementById('studioAudio').hidden=m!=='audio';
   document.getElementById('studioVideo').hidden=m!=='video';
   updateStudioModes();updateCode();
+  pgSyncHash();
 }
 function updateStudioModes(){
   const prov=curProv();
-  const im=document.getElementById('imgModel').value.trim()||AUD_MODELS[prov]||'';
+  const im=document.getElementById('imgModel').value.trim()||IMG_MODELS[prov]||'';
   const c=capsFor(prov,im);
   const mi=document.getElementById('modeImage'),ma=document.getElementById('modeAudio'),mv=document.getElementById('modeVideo');
   const note=document.getElementById('studioNote');
@@ -1503,9 +1721,22 @@ function studioParams(){
   };
 }
 function studioPayload(s){
-  if(s.mode==='audio')return {path:'/audio/speech',body:{model:s.model,input:s.prompt,voice:s.voice,response_format:s.format}};
-  if(s.mode==='video')return {path:'/videos/generations',body:{model:s.model,prompt:s.prompt,duration:s.duration,resolution:s.resolution,n:1}};
-  return {path:'/images/generations',body:{model:s.model,prompt:s.prompt,size:s.size,n:1}};
+  var a=curAdapter();
+  var spec=s.mode==='audio'?(a&&a.audio):s.mode==='video'?(a&&a.video):(a&&a.image);
+  if(!spec){
+    if(s.mode==='audio')return {path:'/audio/speech',body:{model:s.model,input:s.prompt,voice:s.voice,response_format:s.format}};
+    if(s.mode==='video')return {path:'/videos/generations',body:{model:s.model,prompt:s.prompt,duration:s.duration,resolution:s.resolution,n:1}};
+    return {path:'/images/generations',body:{model:s.model,prompt:s.prompt,size:s.size,n:1}};
+  }
+  var vars={'<<MODEL>>':s.model,'<<TEXT>>':s.prompt,'<<VOICE>>':s.voice||VOICE_DEFAULTS[curProv()]||'alloy','<<SIZE>>':s.size||'1024x1024'};
+  var usePath=spec.path;
+  if(spec.altPath&&spec.altMatch){try{if(new RegExp(spec.altMatch,'i').test(s.model))usePath=spec.altPath;}catch(e){}}
+  var out={path:fillTpl(usePath,vars),method:'POST'};
+  if(spec.query)out.query=fillTpl(spec.query,vars);
+  var b=fillTpl(spec.body,vars);
+  if(s.mode==='audio'&&s.format&&b&&typeof b==='object'&&curProv()==='openai')b.response_format=s.format;
+  if(a&&a.formOnly)out.form=b;else out.body=b;
+  return out;
 }
 function updateStudioCode(){
   const s=studioParams();
@@ -1513,9 +1744,13 @@ function updateStudioCode(){
   const url=location.origin+'/api/pools/'+pid+'/proxy';
   const lang=document.getElementById('codeLang').value;
   const pl=studioPayload(s);
-  const body=pl.body;
+  const shown={path:pl.path,method:'POST'};
+  if(pl.query)shown.query=pl.query;
+  if(pl.form)shown.form=pl.form;else shown.body=pl.body;
+  const bodyKey=pl.form?'form':'body';
+  const body=pl.form||pl.body;
   if(lang==='curl'){
-    rawSnippet='curl -X POST '+url+' \\\\\\n  -H "Content-Type: application/json" \\\\\\n  -d '+pyStr(JSON.stringify({path:pl.path,method:'POST',body}))+';\\n';
+    rawSnippet='curl -X POST '+url+' \\\\\\n  -H "Content-Type: application/json" \\\\\\n  -d '+pyStr(JSON.stringify(shown))+';\\n';
     document.getElementById('code').innerHTML='<span class="c"># runs through your pooled keys — auth injected server-side</span>\\n'+esc(rawSnippet);
     return;
   }
@@ -1524,9 +1759,9 @@ function updateStudioCode(){
   lines.push('resp = requests.<span class="fn">post</span>(');
   lines.push('    '+pyStr(url)+',');
   lines.push('    json={');
-  lines.push('        '+pyStr('path')+': '+pyStr(pl.path)+',');
+  lines.push('        '+pyStr('path')+': '+pyStr(shown.path)+',');
   lines.push('        '+pyStr('method')+': '+pyStr('POST')+',');
-  lines.push('        '+pyStr('body')+': '+esc(JSON.stringify(body,null,4))+',');
+  lines.push('        '+pyStr(bodyKey)+': '+esc(JSON.stringify(body,null,4))+',');
   lines.push('    },');
   lines.push('    timeout=<span class="n">120</span>,');
   lines.push(')');
@@ -1534,16 +1769,61 @@ function updateStudioCode(){
   lines.push('<span class="fn">print</span>(data[<span class="s">'+pyStr('status')+'</span>])');
   lines.push('<span class="fn">print</span>(data[<span class="s">'+pyStr('body')+'</span>])');
   document.getElementById('code').innerHTML=lines.join('\\n');
-  rawSnippet='import requests\\n\\nresp = requests.post(\\n    '+JSON.stringify(url)+',\\n    json='+JSON.stringify({path:pl.path,method:'POST',body},null,4)+',\\n    timeout=120,\\n)\\ndata = resp.json()\\nprint(data["status"])\\nprint(data["body"])\\n';
+  rawSnippet='import requests\\n\\nresp = requests.post(\\n    '+JSON.stringify(url)+',\\n    json='+JSON.stringify(shown,null,4)+',\\n    timeout=120,\\n)\\ndata = resp.json()\\nprint(data["status"])\\nprint(data["body"])\\n';
 }
 function mediaResultBox(id){return document.getElementById(id);}
+const PA_PLAY='<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+const PA_PAUSE='<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.6" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>';
+var __paCtx=null;
+function paContext(){try{if(!__paCtx)__paCtx=new (window.AudioContext||window.webkitAudioContext)();if(__paCtx.state==='suspended')__paCtx.resume();return __paCtx;}catch(e){return null;}}
+function fmtTime(s){if(!isFinite(s)||s<0)s=0;var m=Math.floor(s/60);var ss=Math.floor(s%60);return m+':'+(ss<10?'0':'')+ss;}
+function audioPlayer(src,title){
+  var wrap=document.createElement('div');wrap.className='pa';
+  var row=document.createElement('div');row.className='pa-row';
+  var pb=document.createElement('button');pb.type='button';pb.className='pa-play';pb.setAttribute('aria-label','Play audio');pb.innerHTML=PA_PLAY;
+  var tt=document.createElement('div');tt.className='pa-title';tt.textContent=title||'audio';
+  var x=document.createElement('button');x.type='button';x.className='pa-x';x.setAttribute('aria-label','Remove player');x.textContent='×';
+  row.appendChild(pb);row.appendChild(tt);row.appendChild(x);wrap.appendChild(row);
+  var wave=document.createElement('div');wave.className='pa-wave';wave.setAttribute('role','slider');wave.setAttribute('aria-label','Seek in audio');wave.tabIndex=0;
+  wrap.appendChild(wave);
+  var times=document.createElement('div');times.className='pa-times';
+  var cur=document.createElement('span');cur.textContent='0:00';
+  var dur=document.createElement('span');dur.textContent='0:00';
+  times.appendChild(cur);times.appendChild(dur);wrap.appendChild(times);
+  var au=document.createElement('audio');au.src=src;au.preload='metadata';wrap.appendChild(au);
+  var bars=[];
+  function paint(f){for(var i=0;i<bars.length;i++)bars[i].classList.toggle('on',bars[i]._f<=f);}
+  function buildBars(vals){wave.innerHTML='';bars=[];for(var i=0;i<vals.length;i++){var b=document.createElement('div');b.className='pa-bar';b._f=(i+1)/vals.length;b.style.height=Math.max(8,Math.round(vals[i]*100))+'%';bars.push(b);wave.appendChild(b);}}
+  var init=[];for(var k=0;k<150;k++)init.push(0.12);
+  buildBars(init);
+  function decode(){
+    var ctx=paContext();if(!ctx)return;
+    fetch(src).then(function(r){return r.arrayBuffer();}).then(function(buf){return ctx.decodeAudioData(buf);}).then(function(ab){
+      var ch=ab.getChannelData(0);var n=150;var step=Math.max(1,Math.floor(ch.length/n));
+      var vals=[];var mx=0.0001;
+      for(var i=0;i<n;i++){var m=0;for(var j=i*step;j<Math.min(ch.length,(i+1)*step);j+=7){var v=Math.abs(ch[j]);if(v>m)m=v;}vals.push(m);if(m>mx)mx=m;}
+      buildBars(vals.map(function(v){return v/mx;}));
+    }).catch(function(){});
+  }
+  pb.onclick=function(){if(au.paused){try{var pr=au.play();if(pr&&pr.catch)pr.catch(function(){});}catch(e){}}else au.pause();};
+  var raf=0;var lastSec=-1;
+  function tick(){if(au.paused)return;var s=Math.floor(au.currentTime);if(s!==lastSec){lastSec=s;cur.textContent=fmtTime(au.currentTime);}paint(au.duration?au.currentTime/au.duration:0);raf=requestAnimationFrame(tick);}
+  au.onplay=function(){pb.innerHTML=PA_PAUSE;pb.setAttribute('aria-label','Pause audio');cancelAnimationFrame(raf);lastSec=-1;tick();};
+  au.onpause=function(){pb.innerHTML=PA_PLAY;pb.setAttribute('aria-label','Play audio');cancelAnimationFrame(raf);};
+  au.onloadedmetadata=function(){dur.textContent=fmtTime(au.duration);};
+  au.ontimeupdate=function(){cur.textContent=fmtTime(au.currentTime);};
+  au.onended=function(){cancelAnimationFrame(raf);paint(0);cur.textContent=fmtTime(0);};
+  x.onclick=function(){try{au.pause();}catch(e){}wrap.remove();};
+  wave.onclick=function(e){var r=wave.getBoundingClientRect();var f=(e.clientX-r.left)/r.width;if(au.duration)au.currentTime=Math.max(0,Math.min(1,f))*au.duration;};
+  wave.onkeydown=function(e){if(!au.duration)return;if(e.key==='ArrowRight'){au.currentTime=Math.min(au.duration,au.currentTime+5);e.preventDefault();}else if(e.key==='ArrowLeft'){au.currentTime=Math.max(0,au.currentTime-5);e.preventDefault();}else if(e.key==='Home'){au.currentTime=0;e.preventDefault();}else if(e.key==='End'){au.currentTime=au.duration;e.preventDefault();}};
+  decode();
+  return wrap;
+}
 function appendMediaOut(boxId,kind,src,mime,caption,downloadName){
   const box=mediaResultBox(boxId);
   const wrap=document.createElement('div');
-  const el=document.createElement(kind==='audio'?'audio':'video');
-  el.controls=true;el.src=src;
-  if(kind==='video'){el.preload='metadata';}
-  wrap.appendChild(el);
+  if(kind==='audio')wrap.appendChild(audioPlayer(src,caption||downloadName||'audio'));
+  else{const el=document.createElement('video');el.controls=true;el.src=src;el.preload='metadata';wrap.appendChild(el);}
   const cap=document.createElement('div');cap.style.cssText='font-size:12px;color:var(--ink-soft)';cap.textContent=caption;
   wrap.appendChild(cap);
   const a=document.createElement('a');a.className='dl';a.href=src;a.download=downloadName;a.textContent='Download '+kind;
@@ -1570,12 +1850,40 @@ function detectMediaInBody(r){
       }
       if(first.url)return {kind:studioMode(),src:first.url,mime:'',json:true,caption:first.revised_prompt||''};
     }
+    if(Array.isArray(d.output)&&d.output.length&&typeof d.output[0]==='string'&&d.output[0].indexOf('http')===0)
+      return {kind:'image',src:d.output[0],mime:'',json:true};
     if(d.audio||d.audio_base64||d.data_base64){
       const b=d.audio||d.audio_base64||d.data_base64;
       return {kind:'audio',src:'data:audio/mpeg;base64,'+b,mime:'audio/mpeg',json:true};
     }
   }catch{}
   return null;
+}
+async function pollReplicate(r){
+  if(curProv()!=='replicate')return null;
+  let id=null;
+  try{const d=JSON.parse(r.body||'{}');if(d.status==='succeeded')return r;id=d.id||null;}catch(e){return null;}
+  if(!id)return null;
+  const pid=Number(document.getElementById('pool').value);
+  for(let i=0;i<45;i++){
+    await new Promise(function(res){setTimeout(res,2000);});
+    const p=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:'/predictions/'+id,method:'GET'})}));
+    if(p.error)continue;
+    try{const pd=JSON.parse(p.body||'{}');if(pd.status==='succeeded'||pd.status==='failed'||pd.status==='canceled')return p;}catch(e){return p;}
+  }
+  err('Replicate prediction timed out; check its dashboard for the result.');
+  return null;
+}
+function triedNote(r){
+  var t=r.tried;
+  if(!t||!t.length)return '';
+  var bits=t.map(function(x){
+    var what=x.status?('HTTP '+x.status):(x.detail||'skipped');
+    return '#'+x.key_id+' ('+(x.label||'?')+'): '+what;
+  });
+  var s=' — tried '+bits.join(', ');
+  if(r.error==='all keys failed or cooling down')s+='. Keys recover on their own (30s backoff, doubling); re-saving a key in the key manager clears its cooldown immediately.';
+  return s;
 }
 async function sendStudio(){
   err('');
@@ -1584,6 +1892,7 @@ async function sendStudio(){
   if(s.mode==='image'&&!s.prompt.trim()){err('Describe the image first.');return;}
   if(s.mode!=='image'&&!s.prompt.trim()){err(s.mode==='audio'?'Type text to synthesize first.':'Describe the video first.');return;}
   if(!s.model){err('Enter a model id.');return;}
+  if(/[{}]/.test(s.model)){err('Model "'+s.model+'" looks like a template — replace {...} with a real id (e.g. aura-2-thalia-en for Deepgram).');return;}
   const prov=curProv();
   const need=s.mode==='image'?'imageOut':s.mode==='audio'?'audioOut':'videoOut';
   if(!capsFor(prov,s.model)[need]){err(gateNote(need,prov,s.model));return;}
@@ -1592,10 +1901,17 @@ async function sendStudio(){
   const label=btn.innerHTML;
   btn.disabled=true;btn.textContent=s.mode==='image'?'Generating…':s.mode==='audio'?'Synthesizing…':'Rendering…';
   try{
-    const r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:pl.path,method:'POST',body:pl.body})}));
-    if(r.error){err(r.error);return;}
-    const hit=detectMediaInBody(r);
-    if(!hit){err('No media in upstream response (status '+r.status+').');return;}
+    const preq={path:pl.path,method:'POST'};
+    if(pl.query)preq.query=pl.query;
+    if(pl.form)preq.form=pl.form;else preq.body=pl.body;
+    const t0=Date.now();
+    const r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(preq)}));
+    pgLogAdd({tab:'studio-'+s.mode,method:'POST',path:preq.path,prov:prov,model:s.model,upstream:r.error?'ERR':r.status,key:r.key_id?('#'+r.key_id):'',ms:Date.now()-t0,err:r.error||'',req:JSON.stringify(preq).slice(0,1500),res:String(r.body||'').slice(0,800)});
+    if(r.error){err(r.error+(r.body?' — '+String(r.body).slice(0,300):'')+triedNote(r));return;}
+    const rep=await pollReplicate(r);
+    if(rep&&rep!==r)pgLogAdd({tab:'studio-poll',method:'GET',path:'replicate prediction',prov:prov,model:s.model,upstream:rep.error?'ERR':rep.status,key:'',ms:0,err:rep.error||'',req:'',res:String(rep.body||'').slice(0,800)});
+    const hit=detectMediaInBody(rep||r);
+    if(!hit){var said=String((rep||r).body||'');err('No media in upstream response (status '+r.status+', '+pl.path+'). Upstream said: '+(said?said.slice(0,300):'(empty — often a wrong path or model id for this provider)'));return;}
     if(s.mode==='image'){
       let src=hit.src;
       if(hit.kind!=='image'&&!hit.json){err('Unexpected media kind in response.');return;}
@@ -1604,11 +1920,81 @@ async function sendStudio(){
       const img=document.createElement('img');img.src=src;img.alt=s.prompt;img.loading='lazy';
       const cap=document.createElement('figcaption');cap.textContent=s.model+' · '+(hit.caption||s.prompt);
       fig.appendChild(img);fig.appendChild(cap);
+      histPush('imgModel',s.model);histFill('imgModel','imgModelList');
       gal.prepend(fig);
       return;
     }
+    if(s.mode==='audio'){histPush('audModel',s.model);histPush('audVoice',s.voice);histFill('audModel','audModelList');histFill('audVoice','audVoiceList');}
+    else{histPush('vidModel',s.model);histFill('vidModel','vidModelList');}
     appendMediaOut(s.mode==='audio'?'audioOut':'videoOut',s.mode,hit.src,hit.mime,s.model+' · '+s.prompt.slice(0,60),s.mode+'-output');
   }finally{btn.disabled=false;btn.innerHTML=label;updateCode();}
+}
+function probeQueryText(){
+  var out=[];
+  document.getElementById('turns').childNodes.forEach(function(n){
+    if(n.className&&n.className.indexOf('uturn')>=0){
+      var t=n.dataset.locked?(n.dataset.content||''):n.querySelector('textarea').value;
+      if(t.trim())out.push(t.trim());
+    }
+  });
+  return out.join('\\n');
+}
+function probeRequest(){
+  var a=curAdapter();var pr=a.probe;var q=probeQueryText()||'<<QUERY>>';
+  var vars=probeVars(q);
+  var path=fillTpl(pr.path,vars);
+  var req={path:path,method:pr.method||'POST'};
+  if(pr.query)req.query=fillTpl(pr.query,vars);
+  if(pr.body!==undefined&&pr.body!==null){
+    var b=fillTpl(pr.body,vars);
+    if(a.formOnly)req.form=b;else req.body=b;
+  }
+  var s=JSON.stringify(req);
+  var missing=['<<ORG>>','<<SID>>','<<DOMAIN>>'].filter(function(k){return s.indexOf(k)>=0;});
+  return {req:req,missing:missing};
+}
+async function sendProbe(){
+  err('');
+  var btn=document.getElementById('submit');
+  var a=curAdapter();
+  if(!probeQueryText()){err(a&&a.kind==='search'?'Type the search query first.':'Type the request text first.');return;}
+  var pr=probeRequest();
+  if(pr.missing.length){err('Fill '+pr.missing.join(', ')+' under Parameters first.');return;}
+  var pid=Number(document.getElementById('pool').value);
+  btn.disabled=true;lockComposers();
+  try{
+    var t0=Date.now();
+    var r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(pr.req)}));
+    pgLogAdd({tab:'probe',method:pr.req.method||'POST',path:pr.req.path,prov:curProv(),model:document.getElementById('model').value.trim(),upstream:r.error?'ERR':r.status,key:r.key_id?('#'+r.key_id):'',ms:Date.now()-t0,err:r.error||'',req:JSON.stringify(pr.req).slice(0,1500),res:String(r.body||'').slice(0,800)});
+    if(r.error){addAssistantTurn(r.error,true);addUserTurn('').focus();return;}
+    var text=r.body||'';
+    try{
+      var d=JSON.parse(text);
+      var hit=extractText(d,a.textPaths);
+      text=hit!==null?hit:text;
+      if(typeof text!=='string')text=JSON.stringify(text,null,2);
+    }catch(e){}
+    addAssistantTurn(text,r.status<200||r.status>=300);
+    addUserTurn('').focus();
+  }finally{btn.disabled=false;updateCode();}
+}
+function updateProbeCode(){
+  var pid=document.getElementById('pool').value||'1';
+  var url=location.origin+'/api/pools/'+pid+'/proxy';
+  var lang=document.getElementById('codeLang').value;
+  var pr=probeRequest();
+  if(pr.missing.length){
+    rawSnippet='# Fill '+pr.missing.join(', ')+' under Parameters first.\\n';
+    document.getElementById('code').innerHTML='<span class="c">'+esc(rawSnippet)+'</span>';
+    return;
+  }
+  if(lang==='curl'){
+    rawSnippet='curl -X POST '+url+' -H "Content-Type: application/json" -d '+pyStr(JSON.stringify(pr.req))+';\\n';
+    document.getElementById('code').innerHTML='<span class="c"># runs through your pooled keys — auth injected server-side</span>\\n'+esc(rawSnippet);
+    return;
+  }
+  rawSnippet='import requests\\n\\nresp = requests.post(\\n    '+JSON.stringify(url)+',\\n    json='+JSON.stringify(pr.req,null,4)+',\\n    timeout=120,\\n)\\ndata = resp.json()\\nprint(data["status"])\\nprint(data["body"])\\n';
+  document.getElementById('code').innerHTML='<span class="c"># probe via pooled keys — auth injected server-side</span>\\n'+esc(rawSnippet);
 }
 async function send(){
   err('');
@@ -1617,6 +2003,8 @@ async function send(){
   if(!msgs.some(m=>m.role==='user')){err('Type a user message first.');return;}
   if(!p.model){err('Enter a model id.');return;}
   const prov=curProv();
+  const pa0=curAdapter();
+  if(pa0&&!pa0.chatPath&&pa0.probe){return sendProbe();}
   const c=capsFor(prov,p.model);
   const bad=pendingMedia.filter(function(a){return (a.kind==='image'&&!c.vision)||(a.kind==='audio'&&!c.audioIn)||(a.kind==='video'&&!c.videoIn);});
   if(bad.length){err(gateNote(bad[0].kind==='image'?'vision':bad[0].kind==='audio'?'audioIn':'videoIn',prov,p.model));return;}
@@ -1624,18 +2012,130 @@ async function send(){
   btn.disabled=true;
   lockComposers();
   try{
-    const r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:p.path,method:'POST',body:{model:p.model,messages:msgs,temperature:p.temp,max_tokens:p.maxtokens,top_p:p.topp}})}));
+    const t0=Date.now();
+    const preq={path:chatPathFor(prov,p.model,p.path),method:'POST',body:chatBodyFor(prov,p,msgs)};
+    const r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(preq)}));
+    pgLogAdd({tab:'chat',method:'POST',path:preq.path,prov:prov,model:p.model,upstream:r.error?'ERR':r.status,key:r.key_id?('#'+r.key_id):'',ms:Date.now()-t0,err:r.error||'',req:JSON.stringify(preq).slice(0,1500),res:String(r.body||'').slice(0,800)});
     pendingMedia=[];renderMediaPrev();updateMediaUI();
     if(r.error){addAssistantTurn(r.error,true);addUserTurn('').focus();return;}
     let text=r.body||'';
     try{
       const d=JSON.parse(text);
-      text=(d.choices&&d.choices[0]&&(d.choices[0].message||{}).content)||(d.content&&d.content[0]&&d.content[0].text)||text;
+      const hit=extractText(d,(pa0&&pa0.textPaths)||[]);
+      text=hit!==null?hit:text;
       if(typeof text!=='string')text=JSON.stringify(text,null,2);
     }catch{}
+    if(r.status>=200&&r.status<300){histPush('model',p.model);modelMenuSync();}
     addAssistantTurn(text,r.status<200||r.status>=300);
     addUserTurn('').focus();
   }finally{btn.disabled=false;updateCode();}
+}
+// Pasted-model history: every id the user types is remembered per
+// provider+field (localStorage, max 10 each) and offered back as
+// datalist suggestions, ahead of live-listed models.
+function histKey(field){return curProv()+'::'+field;}
+function histGet(field){
+  try{var h=JSON.parse(localStorage.getItem('pa-model-history')||'{}');var l=h[histKey(field)];return Array.isArray(l)?l.filter(function(x){return typeof x==='string'&&x;}):[];}catch(e){return [];}
+}
+function histPush(field,val){
+  val=String(val||'').trim();if(!val)return;
+  try{
+    var h=JSON.parse(localStorage.getItem('pa-model-history')||'{}');
+    var k=histKey(field);var l=h[k]||[];
+    l=[val].concat(l.filter(function(x){return x!==val;}));
+    h[k]=l.slice(0,10);
+    localStorage.setItem('pa-model-history',JSON.stringify(h));
+  }catch(e){}
+}
+function histFill(field,listId,live){
+  var dl=document.getElementById(listId);if(!dl)return;dl.innerHTML='';
+  var seen={};
+  histGet(field).concat(live||[]).slice(0,200).forEach(function(id){
+    if(!id||seen[id])return;seen[id]=1;
+    var o=document.createElement('option');o.value=id;dl.appendChild(o);
+  });
+}
+var histTimers={};
+function histSoon(field){
+  if(histTimers[field])clearTimeout(histTimers[field]);
+  histTimers[field]=setTimeout(function(){
+    var el=document.getElementById(field);if(!el||!el.value.trim())return;
+    histPush(field,el.value);
+    if(field==='model')modelMenuSync();
+    else histFill(field,field+'List',undefined);
+  },800);
+}
+function modelMenuSync(){
+  var m=document.getElementById('modelMenu');if(!m)return;m.innerHTML='';
+  var pid=String(document.getElementById('pool').value);
+  var live=(window._pgModels&&window._pgModels[pid])||[];
+  var a=curAdapter();var def=a&&a.defaults&&a.defaults.chat;
+  var seen={};var cur=document.getElementById('model').value;
+  var seeds=histGet('model').concat(live);
+  if(def)seeds=seeds.concat([def]);
+  if(a&&a.defaults){if(a.defaults.image)seeds=seeds.concat([a.defaults.image]);if(a.defaults.audio)seeds=seeds.concat([a.defaults.audio]);}
+  seeds.slice(0,200).forEach(function(id){
+    if(!id||seen[id])return;seen[id]=1;
+    var it=document.createElement('button');it.type='button';it.className='dd-item';it.setAttribute('role','option');
+    var t=document.createElement('span');t.className='dd-txt';t.textContent=id;it.appendChild(t);
+    if(id===cur)it.setAttribute('aria-selected','true');
+    it.onclick=(function(v){return function(){
+      var box=document.getElementById('model');box.value=v;
+      box.dispatchEvent(new Event('input',{bubbles:true}));box.dispatchEvent(new Event('change',{bubbles:true}));
+      modelMenuClose();box.focus();
+    };})(id);
+    m.appendChild(it);
+  });
+  if(!m.childNodes.length){var d=document.createElement('div');d.className='dd-item';d.style.cursor='default';d.textContent='No saved models yet — paste an id into the field.';m.appendChild(d);}
+}
+function modelMenuClose(){var w=document.getElementById('dd-model');if(w)w.classList.remove('open');var m=document.getElementById('modelMenu');if(m)m.hidden=true;var c=document.getElementById('modelChev');if(c)c.setAttribute('aria-expanded','false');}
+function modelMenuToggle(){var w=document.getElementById('dd-model');var m=document.getElementById('modelMenu');var c=document.getElementById('modelChev');if(!w||!m)return;modelMenuSync();if(w.classList.contains('open'))modelMenuClose();else{w.classList.add('open');m.hidden=false;if(c)c.setAttribute('aria-expanded','true');}}
+async function refreshModels(){
+  const list=document.getElementById('modelList');
+  const box=document.getElementById('model');
+  if(list)list.innerHTML='';
+  const a=curAdapter();
+  if(!a||!a.modelsPath)return;
+  try{
+    const pid=document.getElementById('pool').value;
+    const r=await j(await fetch('/api/pools/'+pid+'/proxy',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:a.modelsPath,method:'GET'})}));
+    if(r.error||!r.body)return;
+    const d=JSON.parse(r.body);
+    let ids=[];
+    if(a.modelsStyle==='gemini'&&Array.isArray(d.models))
+      ids=d.models.map(function(m){return String(m.name||'').replace(/^models\\//,'');}).filter(Boolean);
+    else if(Array.isArray(d.data))
+      ids=d.data.map(function(m){return m.id||m.name||'';}).filter(Boolean);
+    window._pgModels=window._pgModels||{};
+    window._pgModels[String(pid)]=ids;
+    modelMenuSync();
+    if(box&&!box.value&&ids.length){
+      const pref=(a.defaults&&a.defaults.chat)||'';
+      box.value=ids.indexOf(pref)>=0?pref:ids[0];
+    }
+  }catch(e){}
+}
+function applyPoolDefaults(){
+  const prov=curProv();const a=curAdapter();
+  const pathBox=document.getElementById('path');
+  const modelBox=document.getElementById('model');
+  if(a&&a.chatPath)pathBox.value=chatPathFor(prov,modelBox.value||((a.defaults||{}).chat||''),'/chat/completions');
+  else if(a&&a.probe)pathBox.value=fillTpl(a.probe.path,probeVars(''));
+  const pv=document.getElementById('probeVars');
+  const pt=a&&a.probe?JSON.stringify(a.probe):'';
+  if(pv)pv.hidden=!(a&&a.probe&&/<<(ORG|SID|DOMAIN|DEPTH|TOPIC|TIME_RANGE|MAX_RESULTS|ANSWER|CHUNKS|AUTO|INCL_DOMAINS|EXCL_DOMAINS)>>/.test(pt));
+  var showPv=function(id,ph){var w=document.getElementById(id);if(w)w.hidden=pt.indexOf(ph)<0;};
+  showPv('probeOrgWrap','<<ORG>>');showPv('probeSidWrap','<<SID>>');showPv('probeDomainWrap','<<DOMAIN>>');showPv('probeDepthWrap','<<DEPTH>>');showPv('probeTopicWrap','<<TOPIC>>');showPv('probeTimeWrap','<<TIME_RANGE>>');showPv('probeMaxWrap','<<MAX_RESULTS>>');showPv('probeAnswerWrap','<<ANSWER>>');showPv('probeChunksWrap','<<CHUNKS>>');showPv('probeAutoWrap','<<AUTO>>');showPv('probeInclWrap','<<INCL_DOMAINS>>');showPv('probeExclWrap','<<EXCL_DOMAINS>>');
+  const mw=document.getElementById('dd-model');
+  if(mw)mw.hidden=!!(a&&!a.chatPath);
+  const av=document.getElementById('audVoice');
+  const vd=VOICE_DEFAULTS[prov]||'alloy';
+  if(av&&(!av.value||Object.keys(VOICE_DEFAULTS).map(function(k){return VOICE_DEFAULTS[k];}).indexOf(av.value)>=0))av.value=vd;
+  histFill('imgModel','imgModelList');
+  histFill('audModel','audModelList');
+  histFill('vidModel','vidModelList');
+  histFill('audVoice','audVoiceList');
+  refreshModels();
 }
 async function init(){
   initDropdowns();
@@ -1647,11 +2147,10 @@ async function init(){
   const pmap=window._pgPmap;
   for(const p of pools){
     const ks=await j(await fetch('/api/pools/'+p.id+'/keys'));
-    const prov=provs.find(x=>x.id===p.provider);
     pmap[p.id]=p.provider;
     const o=document.createElement('option');
     o.value=p.id;
-    o.textContent=(prov?prov.name:p.provider)+' · '+p.name+' ('+ks.length+' keys)';
+    o.textContent=p.name;
     o.disabled=ks.length===0;
     sel.appendChild(o);
   }
@@ -1684,12 +2183,16 @@ async function init(){
   lastImgDefault=document.getElementById('imgModel').value;
   lastAudDefault=document.getElementById('audModel').value;
   lastVidDefault=document.getElementById('vidModel').value;
-  sel.onchange=()=>{applyDefault();applyImgDefault();applyAudDefault();applyVidDefault();lastDefault=document.getElementById('model').value;lastImgDefault=document.getElementById('imgModel').value;lastAudDefault=document.getElementById('audModel').value;lastVidDefault=document.getElementById('vidModel').value;updateMediaUI();updateStudioModes();updateCode();};
+  sel.onchange=()=>{applyDefault();applyImgDefault();applyAudDefault();applyVidDefault();lastDefault=document.getElementById('model').value;lastImgDefault=document.getElementById('imgModel').value;lastAudDefault=document.getElementById('audModel').value;lastVidDefault=document.getElementById('vidModel').value;applyPoolDefaults();updateMediaUI();updateStudioModes();updateCode();};
+  applyPoolDefaults();
   addUserTurn('');
-  ['system','model','path','temp','maxtokens','topp'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='model')lastDefault='⌁';if(id==='model'){updateMediaUI();updateStudioModes();}updateCode();}));
-  ['imgPrompt','imgModel','imgSize'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='imgModel')lastImgDefault='⌁';updateStudioModes();updateCode();}));
-  ['audText','audModel','audVoice','audFormat'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='audModel')lastAudDefault='⌁';updateStudioModes();updateCode();}));
-  ['vidPrompt','vidModel','vidDur','vidRes'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='vidModel')lastVidDefault='⌁';updateStudioModes();updateCode();}));
+  ['system','model','path','temp','maxtokens','topp'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='model'){lastDefault='⌁';histSoon('model');updateMediaUI();updateStudioModes();}updateCode();}));
+  ['probeOrg','probeSid','probeDomain','probeDepth','probeTopic','probeTime','probeMax','probeAnswer','probeChunks','probeAuto','probeIncl','probeExcl'].forEach(id=>document.getElementById(id).addEventListener('input',updateCode));
+  ['probeOrg','probeSid','probeDomain','probeDepth','probeTopic','probeTime','probeMax','probeAnswer','probeChunks','probeAuto','probeIncl','probeExcl'].forEach(id=>document.getElementById(id).addEventListener('change',updateCode));
+  ['imgPrompt','imgModel','imgSize'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='imgModel'){lastImgDefault='⌁';histSoon('imgModel');}updateStudioModes();updateCode();}));
+  ['audText','audModel','audVoice','audFormat'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='audModel')lastAudDefault='⌁';if(id==='audModel')histSoon('audModel');if(id==='audVoice')histSoon('audVoice');updateStudioModes();updateCode();}));
+  ['vidPrompt','vidModel','vidDur','vidRes'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(id==='vidModel'){lastVidDefault='⌁';histSoon('vidModel');}updateStudioModes();updateCode();}));
+  [['model','model'],['imgModel','imgModel'],['audModel','audModel'],['vidModel','vidModel'],['audVoice','audVoice']].forEach(function(pair){document.getElementById(pair[0]).addEventListener('change',function(){histPush(pair[1],this.value);if(pair[1]==='model')modelMenuSync();else histFill(pair[1],pair[1]+'List',window._pgModels&&window._pgModels[String(document.getElementById('pool').value)]);});});
   document.getElementById('generate').onclick=()=>sendStudio();
   document.getElementById('genAudio').onclick=()=>sendStudio();
   document.getElementById('genVideo').onclick=()=>sendStudio();
@@ -1709,12 +2212,28 @@ async function init(){
   document.getElementById('addMsg').onclick=()=>{addUserTurn('').focus();};
   const copy=()=>{navigator.clipboard.writeText(rawSnippet).catch(()=>{});};
   document.getElementById('copyCode').onclick=copy;
+  document.getElementById('copyDebug').onclick=()=>{navigator.clipboard.writeText(JSON.stringify(pgLog,null,2)).catch(()=>{});};
+  document.getElementById('clearDebug').onclick=()=>{pgLog=[];document.getElementById('debugLog').textContent='No requests yet.';};
   document.getElementById('copyTop').onclick=copy;
   document.getElementById('hideCode').onclick=e=>{const g=document.getElementById('grid');g.classList.toggle('nocode');e.target.textContent=g.classList.contains('nocode')?'</> Show code':'</> Hide code';};
   document.getElementById('tabChat').onclick=()=>setTab(true);
   document.getElementById('tabStudio').onclick=()=>setTab(false);
+  document.getElementById('modelChev').onclick=function(e){e.stopPropagation();modelMenuToggle();};
+  document.getElementById('modelMenu').addEventListener('keydown',function(e){if(e.key==='Escape'){modelMenuClose();document.getElementById('model').focus();}});
+  document.addEventListener('pointerdown',function(e){var w=document.getElementById('dd-model');if(w&&w.classList.contains('open')&&!w.contains(e.target))modelMenuClose();});
   document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();if(document.getElementById('tabStudio').classList.contains('on'))sendStudio();else send();}});
+  window.addEventListener('hashchange',()=>{pgFromHash();});
   updateMediaUI();updateStudioModes();updateCode();
+  pgFromHash();
+}
+function pgAnchor(){return isStudio()?('studio-'+studioMode()):'chat';}
+function pgSyncHash(){try{history.replaceState(null,'','#'+pgAnchor());}catch(e){}}
+function pgFromHash(){
+  var h=String(location.hash||'').replace('#','');
+  if(h==='chat'){setTab(true);return true;}
+  if(h==='studio'){setStudioMode('image');setTab(false);return true;}
+  if(h.indexOf('studio-')===0){var m=h.slice(7);if(m==='image'||m==='audio'||m==='video'){setStudioMode(m);setTab(false);return true;}}
+  return false;
 }
 function setTab(chat){
   document.getElementById('tabChat').classList.toggle('on',chat);
@@ -1722,6 +2241,7 @@ function setTab(chat){
   document.getElementById('grid').hidden=!chat;
   document.getElementById('studioPane').hidden=chat;
   updateCode();
+  pgSyncHash();
 }
 init();
 </script></div></div>${shellJs}</body></html>`;
@@ -1815,7 +2335,7 @@ async function refresh(){
     const row=document.createElement('div');
     row.className='krow';row.style.animationDelay=Math.min(i*40,300)+'ms';
     const m=document.createElement('span');m.className='meta';m.textContent=k.label+' · '+k.masked;row.appendChild(m);
-    const u=document.createElement('span');u.className='use';u.textContent=(usageMap[k.id]||0)+' tokens';row.appendChild(u);
+    const u=document.createElement('span');u.className='use';u.textContent=(usageMap[k.id]||0)+' tokens'+(k.cooling?' · cooling':'');row.appendChild(u);
     const v=document.createElement('button');v.textContent='View';v.type='button';
     v.onclick=async()=>{
       if(v.dataset.open){delete v.dataset.open;v.textContent='View';m.textContent=k.label+' · '+k.masked;return;}

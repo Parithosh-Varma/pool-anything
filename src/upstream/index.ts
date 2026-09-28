@@ -103,6 +103,9 @@ export type ForwardOpts = {
   body?: unknown;
   /** Extra URL query params, encoded safely (e.g. PostgREST {select: "*"}). */
   query?: Record<string, string>;
+  /** Form fields for form-only upstreams (mailgun, twilio). Mutually
+   *  exclusive with body; sent as application/x-www-form-urlencoded. */
+  form?: Record<string, string>;
 };
 
 const QUERY_KEY_RE = /^[A-Za-z0-9_.~-]+$/;
@@ -149,5 +152,14 @@ export function buildUpstreamRequest(target: Target, apiKey: string, opts: Forwa
     headers[target.keyHeader] = target.keyPrefix + apiKey;
   }
   const base = target.baseUrl.endsWith("/") ? target.baseUrl.slice(0, -1) : target.baseUrl;
+  if (opts.form !== undefined) {
+    // Form-only upstreams: urlencode fields and override the JSON content type.
+    // Caller content-type is dropped so the header can't lie about the body.
+    for (const k of Object.keys(headers)) {
+      if (k.toLowerCase() === "content-type") delete headers[k];
+    }
+    headers["content-type"] = "application/x-www-form-urlencoded";
+    return { url: base + p, headers, body: new URLSearchParams(opts.form).toString() };
+  }
   return { url: base + p, headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) };
 }

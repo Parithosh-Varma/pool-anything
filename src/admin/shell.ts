@@ -41,7 +41,7 @@ export function shellNav(active: string): string {
   };
   return `<aside class="sidebar">
   <div class="sb-header"><a class="sb-logo" aria-label="pool-anything home" href="/"><img src="/logo.png" alt="pool-anything" width="36" height="36" /></a><div class="sb-acct" title="Local account"><span>Local account</span></div></div>
-  <nav class="sb-nav">${item("/", ICONS.home, "Home")}${item("/pools", ICONS.pools, "Pools")}${item("/keys", ICONS.keys, "API key manager")}${item("/playground", ICONS.playground, "Playground")}${item("/analytics", ICONS.analytics, "Analytics")}${item(DOCS_URL, ICONS.docs, "Docs")}</nav>
+  <nav class="sb-nav">${item("/", ICONS.home, "Home")}${item("/pools", ICONS.pools, "Pools")}${item("/keys", ICONS.keys, "API key manager")}${item("/playground", ICONS.playground, "Playground")}${item("/analytics", ICONS.analytics, "Analytics")}${item("/history", ICONS.history, "History")}${item(DOCS_URL, ICONS.docs, "Docs")}</nav>
   <div class="sb-footer"><button class="collapse-btn" id="collapseBtn" type="button" data-sidebar="trigger" aria-expanded="true" aria-label="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21.25 6.72v10.56a2.97 2.97 0 0 1-2.97 2.97H5.72a2.97 2.97 0 0 1-2.97-2.97V6.72a2.97 2.97 0 0 1 2.97-2.97h12.56a2.97 2.97 0 0 1 2.97 2.97"></path><path d="M6.25 7.25v9.5"></path></svg></button></div>
 </aside><script>
   (function () {

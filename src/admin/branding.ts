@@ -24,6 +24,7 @@ export const ICONS = {
   keys: svgIcon('<circle cx="8" cy="16" r="4.5"/><path d="m11.2 12.8 8.3-8.3"/><path d="M17 5.5l2.5 2.5M14.5 8l2.5 2.5"/>'),
   analytics: svgIcon('<path d="M3 21h18"/><path d="M6 21v-7M11 21V5M16 21v-11M21 21v-4"/>'),
   playground: svgIcon('<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5v-7Z"/>'),
+  history: svgIcon('<path d="M3.5 12a8.5 8.5 0 1 1 2.4 6"/><path d="M3.5 12H7"/><path d="M3.5 12V8.5"/><path d="M12 7.5V12l3 2"/>'),
   docs: svgIcon('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'),
   /** Attach-row media icons: same 24px stroke family as sidebar (currentColor, 1.8, round).
    *  Sized down to 14px via `.filebtn svg` in playground CSS. */

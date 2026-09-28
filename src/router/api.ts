@@ -3,12 +3,12 @@ export const MAX_POOLS = 1000;
 export const MAX_KEYS_PER_POOL = 100;
 export const MAX_API_KEY_CHARS = 4096;
 
-export type PoolRoute = { poolId: number; sub: "" | "/next" | "/consume" | "/usage" | "/proxy" };
+export type PoolRoute = { poolId: number; sub: "" | "/next" | "/consume" | "/usage" | "/proxy" | "/calls" };
 
-/** Match /api/pools/:id[/next|/consume|/usage|/proxy] (never /keys). */
+/** Match /api/pools/:id[/next|/consume|/usage|/proxy|/calls] (never /keys). */
 export function matchPoolRoute(pathname: string): PoolRoute | null {
   if (pathname.includes("/keys")) return null;
-  const m = pathname.match(/^\/api\/pools\/(\d+)(\/next|\/consume|\/usage|\/proxy)?$/);
+  const m = pathname.match(/^\/api\/pools\/(\d+)(\/next|\/consume|\/usage|\/proxy|\/calls)?$/);
   if (!m) return null;
   return { poolId: Number(m[1]), sub: (m[2] ?? "") as PoolRoute["sub"] };
 }
