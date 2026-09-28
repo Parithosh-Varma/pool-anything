@@ -1,7 +1,7 @@
 {
   "name": "pool-anything",
   "version": "0.1.0",
-  "description": "Gather free-tier API keys from any provider into one pool and rotate through them — round-robin key selection, usage/quota tracking, and a drop-in HTTP proxy with a built-in web UI. Zero dependencies, TypeScript + SQLite.",
+  "description": "Gather free-tier API keys from any provider into one pool and rotate through them — round-robin key selection, usage/quota tracking, and a drop-in HTTP proxy with a built-in web UI. Dependency-free server core, TypeScript + SQLite.",
   "keywords": [
     "api-key-pool",
     "key-rotation",
@@ -15,7 +15,7 @@
     "quota",
     "sqlite",
     "typescript",
-    "zero-dependency",
+    "ink-tui",
     "groq",
     "openrouter",
     "gemini",
@@ -38,7 +38,7 @@
     "node": ">=22.5.0"
   },
   "bin": {
-    "pool-anything": "./bin/pool-anything.js"
+    "pool-anything": "bin/pool-anything.js"
   },
   "files": [
     "dist/",
@@ -62,7 +62,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
+    "@types/react": "^19.3.0",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "ink": "^7.1.1",
+    "react": "^19.3.0"
   }
 }

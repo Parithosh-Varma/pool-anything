@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D22.5-brightgreen.svg" alt="Node" /></a>
   <a href="tsconfig.json"><img src="https://img.shields.io/badge/TypeScript-strict-blue.svg" alt="TypeScript" /></a>
-  <a href="package.json"><img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Dependencies" /></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/server%20core-0%20dependencies-brightgreen.svg" alt="Server core dependencies" /></a>
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@ Most AI/API providers hand you a free tier: a rate limit, a daily quota, a handf
 - 🌐 **Drop-in HTTP proxy** — point your client at pool-anything; it forwards with the right key, header, and auth scheme
 - 🔌 **36 providers preconfigured** — Groq, OpenRouter, Gemini, OpenAI, Anthropic, and more (plus any custom provider)
 - 🖥️ **Built-in web UI** — search providers, gather keys, watch usage on the Analytics dashboard
-- 🧰 **Zero runtime dependencies** — Node built-ins + TypeScript only, `node:sqlite` for storage
+- 🧰 **Dependency-free server core** — the proxy, API, and web UI run on Node built-ins + `node:sqlite` only; the interactive shell adds Ink + React
 
 ## Quick start
 
@@ -40,12 +40,30 @@ npm install -g pool-anything
 pool-anything
 ```
 
-That's it — the whole system starts and the web UI + API listen on **http://localhost:3000**. Data (SQLite) lives in `~/.pool-anything/` so it works from any directory and survives upgrades.
+That's it — an interactive assistant shell opens (`pool-anything >`). Type plain language like `list pools`, `add keys to groq`, or `show usage for groq`; type `.help` for all commands, `exit` to quit. Data (SQLite) lives in `~/.pool-anything/` so it works from any directory and survives upgrades.
 
 ```bash
-pool-anything --port 4000 --open   # custom port + open the browser
-pool-anything --help               # all options (-p/--port, -H/--host, --db, --data-dir, --open)
+pool-anything serve --port 4000 --open   # web UI + API on :4000, open the browser
+pool-anything "list pools"               # run one command without the shell
+echo "gsk_abc" | pool-anything -e "add keys to groq"   # pipe keys in
+pool-anything --help                     # all options (serve, -e/--exec, -p/--port, -H/--host, --db, --data-dir, --open)
 ```
+
+### Assistant shell
+
+No subcommands to memorize — just say what you want:
+
+| Say | It does |
+| --- | --- |
+| `list pools` | All pools with key counts + usage |
+| `show usage for groq` | Token usage, quota, per-key breakdown |
+| `add 5 keys to groq` | Paste keys, one per line (blank line finishes) |
+| `create pool Prod Groq for groq` | Make a new pool |
+| `watch groq` | Live usage, 2s refresh (`q` exits) |
+| `next for groq` / `consume 100 on groq` | Rotate / record usage |
+| `serve` | Start the web UI + API from inside the shell |
+
+Keys always print masked (`gsk_…ab`); misunderstood input gets a "Did you mean …?" nudge. The shell is a rich terminal UI (colors, bordered panels, live `watch` view, `↑`/`↓` history) with a plain-text fallback when Ink can't initialize.
 
 ### Run from source
 
@@ -56,7 +74,7 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:3000**, search for a provider (try `groq`), paste one or more API keys, and hit **Gather**. Your pool is live.
+Open **http://localhost:3000** (after `pool-anything serve`), search for a provider (try `groq`), paste one or more API keys, and hit **Gather**. Your pool is live. Prefer the terminal? The shell does it without a browser: `create pool Prod for groq`, then `add keys to groq`.
 
 Then proxy a request through it straight from `curl` (every proxy call reports the `key_id` that served it, so you can see keys take turns):
 
@@ -204,6 +222,7 @@ Open the Pages URL with `?api=https://your-backend` once (or use the Backend pil
 | `LOCAL_DB_PATH` | `data/pool-anything.db` (checkout) / `~/.pool-anything/*.db` (global) | SQLite database location (exact file; `--db` flag equivalent) |
 | `POOL_DATA_DIR` | _(unset)_ | Data directory holding the SQLite file (`<dir>/pool-anything.db`; `--data-dir` flag equivalent) |
 | `PROXY_TIMEOUT_MS` | `30000` | Per-attempt upstream timeout for `/proxy` |
+| `POOL_DEBUG` | _(unset)_ | `1` logs per-request proxy traces (`[proxy] METHOD path pool=N tried=[...]`) to stderr — no bodies/keys; playground also keeps a per-session Debug log pane |
 | `ALLOW_PRIVATE_UPSTREAM` | _(unset)_ | `1` disables SSRF protections — tests/loopback only, never in prod |
 
 Providers are defined in [`data/providers.json`](data/providers.json). See [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-provider) for the schema — adding a provider is a one-line JSON edit, no code changes.
@@ -213,6 +232,8 @@ Providers are defined in [`data/providers.json`](data/providers.json). See [CONT
 ```
 src/
   server.ts          Thin HTTP front door (delegates to router/admin/observability)
+  cli.ts             Entry dispatch: assistant shell (default) vs `serve` vs one-shot
+  cli/               Interactive shell — commands.ts (presentation-free core), nl.ts (parser), ui.ts (text rendering), repl.ts (plain fallback + one-shot), tui.tsx (Ink shell)
   router/api.ts      Route matchers + abuse caps (MAX_POOLS / MAX_KEYS_PER_POOL)
   admin/branding.ts  Logo version, docs URL, sidebar icons
   admin/shell.ts     Shared shell CSS/nav/JS
