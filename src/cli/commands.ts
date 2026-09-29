@@ -242,6 +242,18 @@ export async function dispatch(input: string, ask: (q: string) => Promise<string
       await import("../server.js");
       return { kind: "serve", already: false };
     }
+    case "update": {
+      const { performUpdate } = await import("../version.js");
+      const r = await performUpdate();
+      return { kind: "message", tone: r.ok ? (r.updated ? "ok" : "info") : "err", text: r.text };
+    }
+    case "uninstall": {
+      const ans = (await ask("Remove the pool-anything CLI (npm uninstall -g)? Your pools/keys in SQLite stay. [y/N] ")).trim().toLowerCase();
+      if (ans !== "y" && ans !== "yes") return { kind: "message", tone: "info", text: "Cancelled." };
+      const { performUninstall } = await import("../version.js");
+      const r = performUninstall();
+      return { kind: "message", tone: r.ok ? "ok" : "err", text: r.text };
+    }
     case "unknown": {
       const s = suggest(input, PROVIDERS.map((p) => p.id));
       return { kind: "message", tone: "err", text: `I didn't understand that.${s ? ` Did you mean '${s}'?` : ""} Type '.help' for commands.` };

@@ -62,6 +62,8 @@ export function shellNav(active: string): string {
 export const sharedHeader = `<header>
   <div></div>
   <div class="spacer">
+    <span class="ver-pill" id="verPill" title="pool-anything version">v…</span>
+    <button class="ver-update" id="verUpdate" type="button" hidden>Update</button>
     <a href="${DOCS_URL}" target="_blank" rel="noopener">Docs</a>
   </div>
 </header>`;
@@ -74,9 +76,13 @@ export const sharedLayoutCss = `
   ${tokensCss}
   .content { flex:1; min-width:0; display:flex; flex-direction:column; }
   header { height:56px; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 16px; gap:8px; position:sticky; top:0; z-index:5; }
-  header .spacer { margin-left:auto; display:flex; gap:4px; }
+  header .spacer { margin-left:auto; display:flex; gap:4px; align-items:center; }
   header a { font-size:14px; padding:6px 12px; border-radius:8px; border:0; background:inherit; color:var(--ink); text-decoration:none; cursor:pointer; }
   header a:hover { background:var(--paper-2); }
+  .ver-pill { font-size:12px; font-weight:600; color:var(--ink-soft); background:var(--paper-2); border:1px solid var(--line); border-radius:999px; padding:4px 10px; white-space:nowrap; }
+  .ver-update { font-size:12px; font-weight:600; border:1px solid var(--ink); background:var(--ink); color:var(--card); border-radius:999px; padding:4px 12px; cursor:pointer; white-space:nowrap; }
+  .ver-update[hidden] { display:none; }
+  .ver-update:disabled { opacity:.6; cursor:default; }
   main { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:32px 16px 24px; }
   .wrap { width:100%; max-width:1400px; margin:0 auto; display:flex; flex-direction:column; align-items:stretch; gap:16px; padding:0 8px; }
   .page-head { display:flex; align-items:center; gap:10px; }
@@ -131,5 +137,42 @@ export const shellJs = `<script>
     if (!shell.classList.contains('peeking')) return;
     finishCollapse(() => shell.classList.remove('peeking'));
   });
+  // Version pill + self-update. GET /api/version stays public so the pill
+  // renders without a token; POST /api/update is a write and needs the
+  // bearer when POOL_API_TOKEN is set (see middleware/auth.ts).
+  (function () {
+    var pill = document.getElementById('verPill');
+    var btn = document.getElementById('verUpdate');
+    if (!pill || !btn) return;
+    function txt(el, s) { if (el) el.textContent = s; }
+    fetch('/api/version').then(function (r) { return r.json(); }).then(function (v) {
+      if (!v || !v.current) return;
+      txt(pill, 'v' + v.current);
+      pill.title = v.latest ? ('current v' + v.current + ', latest v' + v.latest) : ('pool-anything v' + v.current);
+      if (v.updateAvailable) {
+        btn.hidden = false;
+        txt(btn, 'Update to v' + v.latest);
+      }
+    }).catch(function () {});
+    btn.addEventListener('click', function () {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      txt(btn, 'Updating…');
+      fetch('/api/update', { method: 'POST' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j && j.ok) {
+          txt(pill, 'v' + (j.current || j.latest || ''));
+          txt(btn, 'Updated — restart server');
+          pill.title = (j.text || 'updated');
+        } else {
+          txt(btn, 'Update failed — retry');
+          btn.disabled = false;
+          pill.title = ((j && (j.text || j.error)) || 'update failed');
+        }
+      }).catch(function () {
+        txt(btn, 'Update failed — retry');
+        btn.disabled = false;
+      });
+    });
+  })();
 </script>`;
 

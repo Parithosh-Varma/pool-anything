@@ -142,9 +142,13 @@ ${HOME_HEAD_EXTRA}
   * { box-sizing:border-box; }
   body { margin:0; font-family:var(--font-sans); background:var(--bg); color:var(--ink); }
   header { height:56px; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 16px; gap:8px; position:sticky; top:0; }
-  header .spacer { margin-left:auto; display:flex; gap:4px; }
+  header .spacer { margin-left:auto; display:flex; gap:4px; align-items:center; }
   header button, header a { font-size:14px; padding:6px 12px; border-radius:8px; border:0; background:inherit; color:var(--ink); text-decoration:none; cursor:pointer; }
   header button:hover, header a:hover { background:var(--paper-2); }
+  .ver-pill { font-size:12px; font-weight:600; color:var(--ink-soft); background:var(--paper-2); border:1px solid var(--line); border-radius:999px; padding:4px 10px; white-space:nowrap; }
+  .ver-update { font-size:12px !important; font-weight:600; border:1px solid var(--ink) !important; background:var(--ink) !important; color:var(--card) !important; border-radius:999px !important; padding:4px 12px !important; cursor:pointer; white-space:nowrap; }
+  .ver-update[hidden] { display:none; }
+  .ver-update:disabled { opacity:.6; cursor:default; }
   .shell { display:grid; grid-template-columns:var(--sbw,260px) 1fr; min-height:100vh; transition:grid-template-columns 250ms cubic-bezier(0.77,0,0.175,1); }
   .shell.collapsed { --sbw:57px; }
   .sidebar { background:var(--card); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:100vh; height:100vh; position:sticky; top:0; overflow:hidden; white-space:nowrap; }
@@ -386,6 +390,8 @@ ${docsComponentsCss}
 <header>
   <div></div>
   <div class="spacer">
+    <span class="ver-pill" id="verPill" title="pool-anything version">v…</span>
+    <button class="ver-update" id="verUpdate" type="button" hidden>Update</button>
     <a href="${DOCS_URL}" target="_blank" rel="noopener">Docs</a>
   </div>
 </header>
@@ -726,6 +732,40 @@ ${docsComponentsCss}
       setTimeout(() => document.getElementById('browseAll').scrollIntoView({ block: 'start' }), 100);
     }
   });
+  (function () {
+    var pill = document.getElementById('verPill');
+    var btn = document.getElementById('verUpdate');
+    if (!pill || !btn) return;
+    function txt(el, s) { if (el) el.textContent = s; }
+    fetch('/api/version').then(function (r) { return r.json(); }).then(function (v) {
+      if (!v || !v.current) return;
+      txt(pill, 'v' + v.current);
+      pill.title = v.latest ? ('current v' + v.current + ', latest v' + v.latest) : ('pool-anything v' + v.current);
+      if (v.updateAvailable) {
+        btn.hidden = false;
+        txt(btn, 'Update to v' + v.latest);
+      }
+    }).catch(function () {});
+    btn.addEventListener('click', function () {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      txt(btn, 'Updating…');
+      fetch('/api/update', { method: 'POST' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j && j.ok) {
+          txt(pill, 'v' + (j.current || j.latest || ''));
+          txt(btn, 'Updated — restart server');
+          pill.title = (j.text || 'updated');
+        } else {
+          txt(btn, 'Update failed — retry');
+          btn.disabled = false;
+          pill.title = ((j && (j.text || j.error)) || 'update failed');
+        }
+      }).catch(function () {
+        txt(btn, 'Update failed — retry');
+        btn.disabled = false;
+      });
+    });
+  })();
   loadProviders();
   loadAnalytics();
 </script>

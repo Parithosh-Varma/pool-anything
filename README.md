@@ -45,6 +45,8 @@ That's it — an interactive assistant shell opens (`pool-anything >`). Type pla
 ```bash
 pool-anything serve --port 4000 --open   # web UI + API on :4000, open the browser
 pool-anything "list pools"               # run one command without the shell
+pool-anything "update"                   # upgrade to the latest version (also an Update pill in the web UI header)
+pool-anything "uninstall"                # remove the global CLI (shell only, asks to confirm)
 echo "gsk_abc" | pool-anything -e "add keys to groq"   # pipe keys in
 pool-anything --help                     # all options (serve, -e/--exec, -p/--port, -H/--host, --db, --data-dir, --open)
 ```
@@ -62,6 +64,8 @@ No subcommands to memorize — just say what you want:
 | `watch groq` | Live usage, 2s refresh (`q` exits) |
 | `next for groq` / `consume 100 on groq` | Rotate / record usage |
 | `serve` | Start the web UI + API from inside the shell |
+| `update` (or `/update`) | Check npm and upgrade to the latest version |
+| `uninstall` (or `/uninstall`, CLI only) | Remove the global CLI (asks to confirm; pools/keys in SQLite stay) |
 
 Keys always print masked (`gsk_…ab`); misunderstood input gets a "Did you mean …?" nudge. The shell is a rich terminal UI (colors, bordered panels, live `watch` view, `↑`/`↓` history) with a plain-text fallback when Ink can't initialize.
 
@@ -184,6 +188,8 @@ The response reports which key was used and the upstream status:
 | `GET` | `/health` | Liveness check → `ok` |
 | `GET` | `/api/db/ping` | SQLite reachability → `{ ok: true }` |
 | `GET` | `/api/analytics` | Totals + 7-day deltas + 14-day daily series (drives the dashboard) |
+| `GET` | `/api/version` | Current vs latest npm version + `updateAvailable` (drives the header Update pill) |
+| `POST` | `/api/update` | Self-update via `npm install -g pool-anything@latest` (needs `POOL_API_TOKEN` bearer when auth is on) |
 
 ## Web UI
 
@@ -235,6 +241,7 @@ src/
   server.ts          Thin HTTP front door (delegates to router/admin/observability)
   cli.ts             Entry dispatch: assistant shell (default) vs `serve` vs one-shot
   cli/               Interactive shell — commands.ts (presentation-free core), nl.ts (parser), ui.ts (text rendering), repl.ts (plain fallback + one-shot), tui.tsx (Ink shell)
+  version.ts         Self-update (npm version check / install / uninstall) shared by the CLI and the web UI
   router/api.ts      Route matchers + abuse caps (MAX_POOLS / MAX_KEYS_PER_POOL)
   admin/branding.ts  Logo version, docs URL, sidebar icons
   admin/shell.ts     Shared shell CSS/nav/JS

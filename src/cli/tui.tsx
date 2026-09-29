@@ -245,6 +245,13 @@ function Shell({ version }: { version: string }) {
       clear();
       return;
     }
+    // A confirmed uninstall removes the binary — show the result, then leave
+    // the shell instead of prompting on a dead install.
+    if (parse(cmd).kind === "uninstall" && r.kind === "message" && r.tone === "ok") {
+      push(<ResultView result={r} />);
+      app.exit();
+      return;
+    }
     if (r.kind === "watch") {
       setMode({ t: "watch", pool: r.pool });
       return;

@@ -17,6 +17,8 @@ export type Intent =
   | { kind: "next"; ref: string }
   | { kind: "consume"; tokens: number; ref: string }
   | { kind: "serve" }
+  | { kind: "update" }
+  | { kind: "uninstall" }
   | { kind: "help" }
   | { kind: "clear" }
   | { kind: "version" }
@@ -61,6 +63,14 @@ export function parse(input: string): Intent {
   if (/^(version|--version|-v)$/.test(s)) return { kind: "version" };
   if (/^(serve|start|run|launch)( the)?( server| ui| web| app)?$/.test(s)) return { kind: "serve" };
   if (/^(server|web ui|dashboard)$/.test(s)) return { kind: "serve" };
+  // Self-maintenance: `update`/`/update` upgrades via npm; `uninstall` removes
+  // the global install (CLI only — no UI affordance by design).
+  if (/^[/.]?(update|upgrade)\b/.test(s) || /^(check for updates?|check updates?)$/.test(s)) return { kind: "update" };
+  if (
+    /^[/.]?uninstall\b/.test(s) ||
+    /\buninstall\b/.test(s) ||
+    /^(remove|delete) (self|pool-anything|the app)\b/.test(s)
+  ) return { kind: "uninstall" };
 
   // Keys before pools: "list keys ..." contains neither "pool" word necessarily.
   if (/\bkeys?\b/.test(s) && /\b(list|ls|show|display|get)\b/.test(s)) {
@@ -125,6 +135,8 @@ const CANONICAL = [
   "delete pool",
   "watch",
   "serve",
+  "update",
+  "uninstall",
   "help",
   "exit",
 ];

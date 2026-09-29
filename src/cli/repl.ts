@@ -105,6 +105,12 @@ export async function runLine(input: string, ask: (q: string) => Promise<string>
     return "ok";
   }
   const imp = renderResult(r);
+  // A confirmed uninstall removes the binary out from under us — show the
+  // result, then leave the shell instead of prompting on a dead install.
+  if (
+    parse(input).kind === "uninstall" &&
+    r.kind === "message" && r.tone === "ok"
+  ) return "exit";
   return imp ?? "ok";
 }
 

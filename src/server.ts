@@ -14,6 +14,7 @@ import { robotsTxt, sitemapXml } from "./admin/seo.js";
 import { page, keysPage, poolsPage, analyticsPage, historyPage, playgroundPage, providerPage } from "./admin/pages.js";
 import { MAX_POOLS, MAX_KEYS_PER_POOL, MAX_API_KEY_CHARS, matchPoolRoute, matchKeyRoute } from "./router/api.js";
 import { health, readiness, analyticsSnapshot } from "./observability/health.js";
+import { getVersionInfo, performUpdate } from "./version.js";
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
@@ -62,6 +63,15 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method === "GET" && url.pathname === "/api/providers") {
     send(res, 200, PROVIDERS);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/api/version") {
+    send(res, 200, await getVersionInfo());
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/api/update") {
+    const r = await performUpdate();
+    send(res, r.ok ? 200 : 500, r);
     return;
   }
   if (req.method === "GET" && url.pathname === "/api/analytics") {

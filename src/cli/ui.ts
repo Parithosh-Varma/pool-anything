@@ -93,6 +93,8 @@ export function helpBox(): string {
     ["next [for <pool>]", "rotate: show the next key (masked)"],
     ["consume <n> [on <pool>]", "record token usage"],
     ["serve", "start the web UI + API server"],
+    ["update", "check npm and upgrade to the latest version"],
+    ["uninstall", "remove the global CLI (asks to confirm, CLI only)"],
     ["clear", "clear the screen"],
     ["exit", "quit"],
   ];

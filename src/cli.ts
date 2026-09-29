@@ -48,7 +48,8 @@ Usage:
 Assistant commands (also inside the shell): list pools, list providers,
   list keys [for <pool>], show usage for <pool>, add [N] keys to <pool>,
   create pool <name> for <provider>, delete pool <name>, watch <pool>,
-  next [for <pool>], consume <n> [on <pool>], serve, exit. Type '.help' in-shell.
+  next [for <pool>], consume <n> [on <pool>], update, uninstall (CLI only),
+  serve, exit. Type '.help' in-shell.
 
 Options (server):
   -p, --port <n>      Port for the web UI + API (default: 3000, or $PORT)
