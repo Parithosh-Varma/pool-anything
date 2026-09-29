@@ -1063,7 +1063,7 @@ async function init(){
     card.style.animationDelay=Math.min(i*40,320)+'ms';
     card.innerHTML='<div class="chead"><img alt=""/><b></b><span class="pill"></span></div><ul></ul><div class="row" style="margin-top:10px"><a class="manage" href="/keys">Manage keys →</a></div>';
     logoSrc(card.querySelector('img'),prov.logoFile);
-    card.querySelector('b').textContent=prov.name+' · '+p.name;
+    card.querySelector('b').textContent=prov.name+' · '+p.name+' · #'+p.id;
     card.querySelector('.pill').textContent=ks.length+' key(s) · used '+(us.used||0);
     const ul=card.querySelector('ul');
     ks.forEach(k=>{
