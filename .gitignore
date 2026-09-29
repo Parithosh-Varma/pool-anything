@@ -10,10 +10,22 @@ tools-site/
 # OS / Editor
 .DS_Store
 *.log
+.vscode/
+.idea/
 # Marketing / landing page (local only, never push to GitHub)
 landing/
+landing-next/
 REferences/
 brag-output/
+# Local agent tooling state (skills, plugins, caches)
+.agents/
+.claude/
+.opencode/
+agent/
+data/skills/
+skills-lock.json
+# Cloudflare wrangler local state
+.wrangler/
 # Loose media artifacts (launch videos, screenshots)
 *.mp4
 *.webm

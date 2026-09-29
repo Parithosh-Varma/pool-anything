@@ -60,7 +60,7 @@ Running bare `pool-anything` (TTY) opens the interactive assistant shell instead
 2. Paste one or more keys, hit **Gather**.
 3. Pool is live. Manage at `/pools`, `/keys`, test at `/playground`, monitor at `/analytics`.
 
-Routes: `/` (search + dashboard), `/provider/:id`, `/pools`, `/keys`, `/playground`, `/analytics`.
+Routes: `/` (search + dashboard), `/provider/:id`, `/pools`, `/keys`, `/playground`, `/analytics`, `/history`.
 
 ### Assistant shell
 
@@ -74,6 +74,8 @@ No subcommands — plain language:
 | `show usage for groq` | Tokens, quota, per-key breakdown |
 | `next for groq` / `consume 100 on groq` | Rotate / record usage |
 | `watch groq` | Live usage, 2s refresh (`q` exits) |
+| `update` | Upgrade the global install via npm (also `upgrade`) |
+| `uninstall` | `npm uninstall -g pool-anything`; SQLite pools/keys are kept |
 | `serve` | Start web UI + API from inside shell |
 | `exit` | Quit |
 

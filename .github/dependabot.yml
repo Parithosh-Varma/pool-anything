@@ -1,0 +1,14 @@
+# Keeps the lockfile current. Dev tools are grouped so they arrive as one PR.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        patterns:
+          - tsx
+          - typescript
+          - "@types/*"

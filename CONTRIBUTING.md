@@ -17,15 +17,25 @@ Requires Node.js >= 22.5 (for the built-in `node:sqlite` module).
 
 1. Fork and create a branch from `main`.
 2. Make your change. Keep the project's conventions:
-   - **Zero runtime dependencies.** The point of this project is that it runs on Node built-ins + TypeScript only. Please don't add npm dependencies.
+   - **Zero runtime dependencies.** The server core runs on Node built-ins + `node:sqlite` and TypeScript only — this is the project's core constraint, so please don't add npm runtime dependencies. (`ink` + `react` are already deps for the interactive shell; nothing else should be.)
    - TypeScript strict mode is on; `npm run typecheck` must pass.
    - Provider definitions live in `data/providers.json` — see below.
-3. Test your change:
-   - `npm run typecheck`
-   - `npm test`
-   - `npm run build`
-   - Manually verify in the UI (`npm run dev`) — exercise the flow you touched.
+3. Work through the checklist below.
 4. Open a pull request using the template.
+
+## Before you open a PR
+
+- [ ] `npm run typecheck` passes (strict TS, `tsc --noEmit`)
+- [ ] `npm test` passes — tests live in `tests/unit/` and `tests/integration/`
+- [ ] `npm run build` passes (`tsc` + asset copy)
+- [ ] If you touched `src/admin/tokens.ts` or `design-tokens.json`: `npx tsx scripts/check-tokens.ts` passes
+- [ ] You verified your change in the UI (`npm run dev`) when it affects pages or flows
+
+Run a single test file while iterating:
+
+```bash
+npx tsx --test tests/unit/rotation.test.ts
+```
 
 ## Adding a provider
 

@@ -2,7 +2,7 @@
 
 ## Standing rules (always apply)
 
-- **Landing page:** `https://pool-anything.pages.dev/` (Pages project `pool-anything`, source dir `landing/`). Deploy with `npx wrangler pages deploy landing --project-name pool-anything`. Pushes to `main` touching `landing/**` redeploy automatically via `pages.yml`.
+- **Landing page:** `https://pool-anything.pages.dev/` (Pages project `pool-anything`, source dir `landing/`). `landing/` is gitignored — deploy is manual only: `npx wrangler pages deploy landing --project-name pool-anything`. There is no CI redeploy; a checkout can't contain `landing/`.
 - **GitHub repo:** `https://github.com/Parithosh-Varma/pool-anything`. Already authenticated — use `git`/`gh` directly, never ask for login.
 - **Browser autonomy:** browser / webfetch / websearch use is allowed and encouraged. Research and configure external services end-to-end yourself (e.g. Search Console SEO) instead of asking the user to do it manually.
 
