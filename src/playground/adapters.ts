@@ -5,7 +5,7 @@
 // baseUrl + path with auth injected server-side, so each adapter only needs:
 // which path to hit, which body shape to send, and where to find the output.
 // Placeholders in templates: <<MODEL>> <<TEXT>> <<QUERY>> <<VOICE>> <<SIZE>>
-// <<ORG>> <<SID>> <<DOMAIN>>. Filled client-side (see playgroundPage).
+// <<ORG>> <<SID>> <<DOMAIN>> <<FROM>> <<TO>> <<SUBJECT>>. Filled client-side (see playgroundPage).
 //
 // Researched against official docs (2026) in 6 parallel batches; keep this
 // table in sync with data/providers.json — every provider id must appear.
@@ -18,6 +18,7 @@ export type AdapterKind =
   | "tts"
   | "image"
   | "search"
+  | "email"
   | "rest";
 
 export type ProbeSpec = {
@@ -33,7 +34,7 @@ export type MediaSpec = {
   altPath?: string;
   altMatch?: string;
   query?: Record<string, string> | null;
-  /** Body template; <<MODEL>> <<TEXT>> <<VOICE>> <<SIZE>> filled client-side. */
+  /** Body template; <<MODEL>> <<TEXT>> <<VOICE>> <<SIZE>> <<FROM>> <<TO>> <<SUBJECT>> filled client-side. */
   body: unknown;
 };
 
@@ -257,36 +258,36 @@ export const ADAPTERS: Record<string, Adapter> = {
     notes: "key injected server-side as query param.",
   },
   resend: {
-    kind: "rest", chatPath: null, chatStyle: null,
+    kind: "email", chatPath: null, chatStyle: null,
     modelsPath: null, textPaths: ["id"],
     vision: false, audioIn: false, image: null, audio: null, video: null,
-    probe: { path: "/emails", method: "POST", body: { from: "test@example.com", to: ["to@example.com"], subject: "<<TEXT>>", text: "<<TEXT>>" } },
+    probe: { path: "/emails", method: "POST", body: { from: "<<FROM>>", to: ["<<TO>>"], subject: "<<SUBJECT>>", text: "<<TEXT>>" } },
     defaults: {},
-    notes: "Sends a real email; 200 returns {id}.",
+    notes: "Sends a real email; 200 returns {id}. Fill From/To/Subject under Parameters — sender must belong to a verified domain.",
   },
   sendgrid: {
-    kind: "rest", chatPath: null, chatStyle: null,
+    kind: "email", chatPath: null, chatStyle: null,
     modelsPath: null, textPaths: [],
     vision: false, audioIn: false, image: null, audio: null, video: null,
-    probe: { path: "/mail/send", method: "POST", body: { personalizations: [{ to: [{ email: "to@example.com" }] }], from: { email: "test@example.com" }, subject: "<<TEXT>>", content: [{ type: "text/plain", value: "<<TEXT>>" }] } },
+    probe: { path: "/mail/send", method: "POST", body: { personalizations: [{ to: [{ email: "<<TO>>" }] }], from: { email: "<<FROM>>" }, subject: "<<SUBJECT>>", content: [{ type: "text/plain", value: "<<TEXT>>" }] } },
     defaults: {},
-    notes: "Sends a real email; success is 202 with empty body.",
+    notes: "Sends a real email; success is 202 with empty body. Fill From/To/Subject under Parameters — sender must be a verified Single Sender.",
   },
   mailgun: {
-    kind: "rest", chatPath: null, chatStyle: null,
+    kind: "email", chatPath: null, chatStyle: null,
     modelsPath: null, textPaths: ["id", "message"],
     vision: false, audioIn: false, image: null, audio: null, video: null, formOnly: true,
-    probe: { path: "/<<DOMAIN>>/messages", method: "POST", body: { from: "test@example.com", to: "to@example.com", subject: "<<TEXT>>", text: "<<TEXT>>" } },
+    probe: { path: "/<<DOMAIN>>/messages", method: "POST", body: { from: "<<FROM>>", to: "<<TO>>", subject: "<<SUBJECT>>", text: "<<TEXT>>" } },
     defaults: {},
-    notes: "Form-only upstream; proxy sends form. <<DOMAIN>> is your mailgun domain.",
+    notes: "Form-only upstream; proxy sends form. <<DOMAIN>> is your mailgun domain. Fill From/To/Subject under Parameters — sender must belong to the domain.",
   },
   postmark: {
-    kind: "rest", chatPath: null, chatStyle: null,
+    kind: "email", chatPath: null, chatStyle: null,
     modelsPath: null, textPaths: ["MessageID"],
     vision: false, audioIn: false, image: null, audio: null, video: null,
-    probe: { path: "/email", method: "POST", body: { From: "test@example.com", To: "to@example.com", Subject: "<<TEXT>>", TextBody: "<<TEXT>>", MessageStream: "outbound" } },
+    probe: { path: "/email", method: "POST", body: { From: "<<FROM>>", To: "<<TO>>", Subject: "<<SUBJECT>>", TextBody: "<<TEXT>>", MessageStream: "outbound" } },
     defaults: {},
-    notes: "Sends a real email; 200 returns {MessageID,...}.",
+    notes: "Sends a real email; 200 returns {MessageID,...}. Fill From/To/Subject under Parameters — sender must be a verified signature.",
   },
   twilio: {
     kind: "rest", chatPath: null, chatStyle: null,
@@ -355,4 +356,4 @@ export const ADAPTERS: Record<string, Adapter> = {
 };
 
 /** Placeholder tokens filled client-side from playground inputs. */
-export const PLACEHOLDERS = ["<<MODEL>>", "<<TEXT>>", "<<QUERY>>", "<<VOICE>>", "<<SIZE>>", "<<ORG>>", "<<SID>>", "<<DOMAIN>>"] as const;
+export const PLACEHOLDERS = ["<<MODEL>>", "<<TEXT>>", "<<QUERY>>", "<<VOICE>>", "<<SIZE>>", "<<ORG>>", "<<SID>>", "<<DOMAIN>>", "<<FROM>>", "<<TO>>", "<<SUBJECT>>"] as const;
