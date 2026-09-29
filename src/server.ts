@@ -10,6 +10,7 @@ import { sdb, PROVIDERS, mask, maskCredentials, normalizeCredentials, parseCrede
 import { nextKey, recordUsage } from "./pool/rotation.js";
 import { forward, MAX_TOKENS_PER_REQUEST, checkTarget } from "./proxy/forward.js";
 import { DOCS_URL } from "./admin/branding.js";
+import { robotsTxt, sitemapXml } from "./admin/seo.js";
 import { page, keysPage, poolsPage, analyticsPage, historyPage, playgroundPage, providerPage } from "./admin/pages.js";
 import { MAX_POOLS, MAX_KEYS_PER_POOL, MAX_API_KEY_CHARS, matchPoolRoute, matchKeyRoute } from "./router/api.js";
 import { health, readiness, analyticsSnapshot } from "./observability/health.js";
@@ -388,6 +389,17 @@ const server = http.createServer(async (req, res) => {
     const h = health();
     res.writeHead(h.status, { "content-type": h.contentType });
     res.end(h.body);
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/robots.txt") {
+    res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" });
+    res.end(robotsTxt());
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/sitemap.xml") {
+    const ids = PROVIDERS.map((p) => (p as { id?: string }).id).filter((id): id is string => typeof id === "string");
+    res.writeHead(200, { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" });
+    res.end(sitemapXml(ids));
     return;
   }
   res.writeHead(404, { "content-type": "text/plain" });

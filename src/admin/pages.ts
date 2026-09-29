@@ -1,4 +1,5 @@
 import { LOGO_V, DOCS_URL, ICONS } from "./branding.js";
+import { HOME_HEAD_EXTRA, SEO_TITLE, subPageHead } from "./seo.js";
 import { ADAPTERS } from "../playground/adapters.js";
 import { shellCss, shellNav, shellJs, sharedHeader, sharedLayoutCss } from "./shell.js";
 import { tokensCss } from "./tokens.js";
@@ -130,7 +131,8 @@ export const page = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>pool-anything</title>
+<title>${SEO_TITLE}</title>
+${HOME_HEAD_EXTRA}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
   ${tokensCss}
@@ -236,6 +238,12 @@ export const page = `<!doctype html>
   .hero-row, .search-card { max-width:400px; }
   .hero-row h1, .hero-row { gap:2px; }
   h1 { font-family:var(--font-serif); font-size:clamp(20px, 4vw, 26px); font-weight:500; }
+  .hero-sub { width:100%; max-width:640px; margin:8px auto 0; text-align:center; font-size:14px; line-height:1.55; color:var(--ink-soft); }
+  .seo-foot { width:100%; max-width:640px; margin:28px auto 0; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; font-size:13.5px; line-height:1.6; color:var(--body-copy); }
+  .seo-foot h2 { font-size:14px; margin:14px 0 6px; color:var(--ink); }
+  .seo-foot h2:first-child { margin-top:0; }
+  .seo-foot ul { margin:6px 0; padding-left:18px; display:flex; flex-direction:column; gap:4px; }
+  .seo-foot a { color:var(--ink); }
   .sec-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 8px; }
   .conn-grid { width:100%; display:flex; flex-direction:column; gap:8px; }
   .prov-lg { display:flex; align-items:center; gap:10px; width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; font-size:13px; font-weight:600; text-align:left; animation:fadeSlide .28s cubic-bezier(.2,.7,.3,1) both; }
@@ -384,6 +392,7 @@ ${docsComponentsCss}
 <main>
   <div class="wrap">
     <div class="hero-row"><img class="hero-logo" src="/logo.png" alt="pool-anything logo" width="40" height="40" /><h1>What do you want to pool</h1></div>
+    <p class="hero-sub">Pool free-tier API keys and rotate through them — one endpoint, round-robin key rotation, usage &amp; quota tracking for Groq, OpenRouter, Gemini and 30+ providers.</p>
     <div class="search-card">
       <div class="search-box">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
@@ -432,6 +441,18 @@ ${docsComponentsCss}
       </div>
     </div>
     </div>
+    <section class="seo-foot" aria-label="About pool-anything">
+      <h2>Pool free-tier API keys into one endpoint</h2>
+      <p>Most AI and API providers hand you a small free tier — a rate limit, a daily quota, a handful of trial tokens. <strong>pool-anything</strong> gathers N keys for the same provider into a pool, then serves them through a single drop-in HTTP proxy that round-robins across keys and tracks usage per key in SQLite.</p>
+      <h2>Why pool keys?</h2>
+      <ul>
+        <li>Round-robin rotation evens out rate limits across all keys.</li>
+        <li>Per-key usage, quota windows, cooldown and failover keep pools healthy.</li>
+        <li>36 preconfigured providers: Groq, OpenRouter, Gemini, OpenAI, Anthropic, ElevenLabs, Tavily, Resend and more — plus any custom provider.</li>
+        <li>Self-hosted TypeScript + SQLite core with zero-dependency server, web UI, analytics dashboard and playground.</li>
+      </ul>
+      <p>Start in <a href="/pools">Pools</a>, gather keys in the <a href="/keys">API key manager</a>, try a pooled key in the <a href="/playground">Playground</a>, or read the <a href="https://pool-anything.pages.dev/docs">docs</a>.</p>
+    </section>
   </div>
 </main>
 </div>
@@ -716,6 +737,7 @@ return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>API key manager — pool-anything</title>
+${subPageHead("/keys/", "Add, view, edit and rotate pooled API keys per provider with masked storage and per-key usage.")}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
@@ -852,6 +874,7 @@ return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Analytics — pool-anything</title>
+${subPageHead("/analytics/", "Analytics dashboard: total requests, tokens tracked, pools, keys pooled and 14-day usage charts.")}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
@@ -1000,6 +1023,7 @@ return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Pools — pool-anything</title>
+${subPageHead("/pools/", "Pools holding API keys with per-pool usage, key counts and quota status.")}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
@@ -1062,6 +1086,7 @@ return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>History — pool-anything</title>
+${subPageHead("/history/", "History of proxied API calls per pool and key: status, tokens, errors and retained responses.")}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
@@ -1195,6 +1220,7 @@ return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Playground — pool-anything</title>
+${subPageHead("/playground/", "Chat, image, audio and video playground to try a pooled API key across providers.")}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
@@ -2252,6 +2278,7 @@ return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Provider — pool-anything</title>
+${subPageHead("/provider/", "Gather API keys for one provider, see per-key usage and copy a pooled proxy snippet.")}
 <link rel="icon" type="image/png" href="/logo.png" />
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper-2);color:var(--ink)}
