@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { page, keysPage, poolsPage, analyticsPage, historyPage, playgroundPage, providerPage } from "../src/admin/pages.js";
+import { robotsTxt, sitemapXml } from "../src/admin/seo.js";
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "tools-site");
@@ -52,14 +53,18 @@ write("playground/index.html", withShim(playgroundPage()));
 // _redirects stays as the catch-all for unknown ids.
 const providerShell = withShim(providerPage());
 write("provider/index.html", providerShell);
+let providerIds: string[] = [];
 try {
   const registry = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "providers.json"), "utf8")) as { id?: string }[];
   const ids = [...new Set(registry.map((p) => p.id).filter((id): id is string => typeof id === "string" && /^[a-z0-9-]+$/.test(id)))];
+  providerIds = ids;
   for (const id of ids) write(`provider/${id}/index.html`, providerShell);
   console.log(`provider routes: ${ids.length}`);
 } catch (e) {
   console.warn("provider pre-render skipped:", (e as Error).message);
 }
+write("robots.txt", robotsTxt());
+write("sitemap.xml", sitemapXml(providerIds));
 
 fs.copyFileSync(SHIM, path.join(OUT, "api-base.js"));
 fs.copyFileSync(path.join(ROOT, "src", "logo.png"), path.join(OUT, "logo.png"));
