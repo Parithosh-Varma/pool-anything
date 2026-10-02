@@ -61,10 +61,10 @@
     "start:dist": "node dist/server.js"
   },
   "devDependencies": {
-    "@types/node": "^22.7.4",
+    "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.2"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "ink": "^7.1.1",
