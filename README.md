@@ -15,6 +15,8 @@
 </p>
 
 <p align="center">
+  🌐 <a href="https://pool-anything.pages.dev"><b>Landing page</b></a>
+  ·
   🖥️ <a href="https://pool-anything-tools.pages.dev"><b>Live demo: tools UI</b></a>
   ·
   📖 <a href="https://pool-anything.pages.dev/docs"><b>Docs</b></a>
@@ -239,8 +241,81 @@ Open the Pages URL with `?api=https://your-backend` once (or use the Backend pil
 | `PROXY_TIMEOUT_MS` | `30000` | Per-attempt upstream timeout for `/proxy` |
 | `POOL_DEBUG` | _(unset)_ | `1` logs per-request proxy traces (`[proxy] METHOD path pool=N tried=[...]`) to stderr — no bodies/keys; playground also keeps a per-session Debug log pane |
 | `ALLOW_PRIVATE_UPSTREAM` | _(unset)_ | `1` disables SSRF protections — tests/loopback only, never in prod |
+| `POOL_ROTATION_STRATEGY` | `round-robin` | Default key-selection strategy for pools that don't set their own. An unknown value fails at startup and lists the valid names. See [Rotation strategies](#rotation-strategies) |
+| `POOL_ROTATION_OPTIONS` | _(unset)_ | JSON options for the active strategy, e.g. `{"health-aware":{"breakerAfter":5}}`. Malformed JSON is ignored with a warning, not a crash |
 
 Providers are defined in [`data/providers.json`](data/providers.json). See [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-provider) for the schema — adding a provider is a one-line JSON edit, no code changes.
+
+## Rotation strategies
+
+Which key serves the next request. Round-robin is the default and behaves exactly as it always has; everything else is opt-in per pool or globally.
+
+| Strategy | Use it when |
+| --- | --- |
+| `round-robin` | Default. You want an even spread across keys and nothing else. |
+| `random` | An even spread is fine but you'd rather not walk in a fixed order. |
+| `weighted-random` | Keys have different capacity — a paid key should take more traffic than a free one. |
+| `least-used` | You want the fewest total requests on each key, regardless of when it was used. |
+| `least-recently-used` | You want to spread by time, keeping individual keys from running hot. |
+| `sticky` | A session must keep hitting the same key (per-user rate limits, upstream state, caches). |
+| `health-aware` | Some keys are flaky. Skips recent failures, adds a circuit breaker. |
+| `time-based` | You want to park on one key and rotate every N seconds or N requests. |
+
+### Configuring
+
+```bash
+# Global default for every pool that doesn't set its own.
+POOL_ROTATION_STRATEGY=sticky
+
+# Per-strategy tuning.
+POOL_ROTATION_OPTIONS='{"health-aware":{"breakerAfter":5,"breakerMs":120000,"cooldownMs":30000},"time-based":{"everyMs":30000,"everyN":50}}'
+```
+
+```bash
+# Per pool, at creation or afterwards.
+curl -X POST localhost:3000/api/pools -H 'content-type: application/json' \
+  -d '{"provider":"groq","name":"main","strategy":"least-used"}'
+```
+
+```sql
+UPDATE pools SET strategy = 'time-based' WHERE id = 1;
+```
+
+Weights are per key. `0` means never picked, unless every key in the pool is `0`, in which case selection degrades to uniform rather than failing.
+
+```sql
+UPDATE pool_keys SET weight = 3 WHERE id = 7;   -- 3x the traffic
+```
+
+```bash
+curl -X POST localhost:3000/api/pools/1/keys -H 'content-type: application/json' \
+  -d '{"label":"paid","api_key":"sk-…","weight":5}'
+```
+
+### Sticky routing is stateless
+
+`sticky` stores **no session map**. It rendezvous-hashes: for a given session key it scores every eligible key by hashing `sessionKey + keyId` and takes the highest score.
+
+That buys three things a stored map cannot:
+
+- **No growth.** No table to grow, no eviction or TTL to get wrong.
+- **No writes.** A new session costs zero DB writes.
+- **No reshuffling.** When a key is removed or cooled down, only *its* sessions move — to their second-highest scoring key. Everyone else stays put, including across restarts, because the hash is a pure function of two strings.
+
+The trade-off: a cooled-down key's sessions move off it and move back when it rejoins. That brief flap is inherent to having no state. If you need sessions to sit still through a blip, use `health-aware` instead.
+
+Pass the session key as the `X-Pool-Sticky` header on `/proxy`, or `?sticky=` on `/next`:
+
+```bash
+curl localhost:3000/proxy/1 -H 'X-Pool-Sticky: user-42' -d '{"path":"/chat/completions", …}'
+curl 'localhost:3000/api/pools/1/next?sticky=user-42'
+```
+
+Omit it and the pool uses its own strategy. The key is never derived from `POOL_API_TOKEN`, so sharing one token does not silently pin every caller to the same key.
+
+### Adding a strategy
+
+One entry in `STRATEGIES` in [`src/pool/strategy.ts`](src/pool/strategy.ts). A strategy is a pure synchronous function of the already-filtered candidate list plus a context, so it needs no DB access and is unit-testable on its own. Cooldown and quota filtering stays in `eligibleKeys()`; strategies only narrow further.
 
 ## Project structure
 
