@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- 13 key-selection strategies per pool or globally: `round-robin`, `random`, `weighted-random`, `weighted-round-robin`, `least-connections`, `least-used`, `least-recently-used`, `sticky`, `power-of-two`, `tiered`, `shuffle-shard`, `time-based`, `health-aware`.
+- Per-key `weight` (0 = never) and `priority` (tiered overflow), plus `picks` / `last_used_at` counters; new `strategy` / `strategy_state` pool columns.
+- Sticky/session affinity via stateless rendezvous hashing (`X-Pool-Sticky` header, `?sticky=` on `/next`, `sticky` body field on `/consume` and `/proxy`).
+- In-process in-flight counters for `least-connections`; `POST /proxy/:id` alias for the pool proxy; `PATCH /api/pools/:id` to change strategy.
+
 <!-- Changes land here. Move them under a version heading at release time. -->
 
 ## [0.1.1] — 2026-09-29

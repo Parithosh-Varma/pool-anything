@@ -1,13 +1,14 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { HOST, PORT, isAllowedOrigin, startupWarnings } from "./config/env.js";
+import { HOST, PORT, isAllowedOrigin, rotationStrategy, startupWarnings } from "./config/env.js";
 import { logoPngPath, publicDir } from "./config/paths.js";
 import { readJson, send } from "./common/http.js";
 import { MAX_PROXY_BODY_BYTES } from "./media/capabilities.js";
 import { isAuthorized, requiresAuth } from "./middleware/auth.js";
 import { sdb, PROVIDERS, mask, maskCredentials, normalizeCredentials, parseCredentials, providerKeyFields, getPool, poolSummary } from "./pool/index.js";
 import { nextKey, recordUsage } from "./pool/rotation.js";
+import { STRATEGY_NAMES, isStrategyName } from "./pool/strategy.js";
 import { forward, MAX_TOKENS_PER_REQUEST, checkTarget } from "./proxy/forward.js";
 import { DOCS_URL } from "./admin/branding.js";
 import { robotsTxt, sitemapXml } from "./admin/seo.js";
@@ -15,6 +16,42 @@ import { page, keysPage, poolsPage, analyticsPage, historyPage, playgroundPage, 
 import { MAX_POOLS, MAX_KEYS_PER_POOL, MAX_API_KEY_CHARS, matchPoolRoute, matchKeyRoute } from "./router/api.js";
 import { health, readiness, analyticsSnapshot } from "./observability/health.js";
 import { getVersionInfo, performUpdate } from "./version.js";
+
+// Fail fast on a typo in POOL_ROTATION_STRATEGY, listing the valid names.
+try {
+  rotationStrategy();
+} catch (e) {
+  console.error(`[error] ${(e as Error).message}`);
+  process.exit(1);
+}
+
+/** Session key for sticky/shuffle-shard routing. Invalid values are ignored, not fatal. */
+function stickyValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const t = value.trim();
+  if (!t || t.length > 256 || /[\r\n\x00]/.test(t)) return undefined;
+  return t;
+}
+
+type ProxyResult = Awaited<ReturnType<typeof forward>>;
+
+function sendProxyResult(res: http.ServerResponse, r: ProxyResult): void {
+  if ("error" in r) {
+    send(res, r.status === 200 ? 400 : r.status, r);
+    return;
+  }
+  send(res, 200, {
+    key_id: r.key_id,
+    label: r.label,
+    masked: r.masked,
+    status: r.upstreamStatus,
+    body: r.body,
+    encoding: r.encoding ?? "text",
+    contentType: r.contentType ?? "",
+    truncated: r.truncated ?? false,
+    tried: r.tried,
+  });
+}
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
@@ -31,7 +68,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader("vary", "Origin");
   }
   res.setHeader("access-control-allow-methods", "GET, POST, PATCH, DELETE, OPTIONS");
-  res.setHeader("access-control-allow-headers", "content-type, authorization");
+  res.setHeader("access-control-allow-headers", "content-type, authorization, x-pool-sticky");
   if ((req.method ?? "GET") === "OPTIONS") {
     // Preflight: succeed at the HTTP layer but only advertise CORS to
     // allowlisted callers; others get no ACAO header and stay blocked.
@@ -84,13 +121,16 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (req.method === "POST" && url.pathname === "/api/pools") {
-    const b = (await readJson(req)) as { provider?: string; name?: string; base_url?: string; key_header?: string; key_prefix?: string };
+    const b = (await readJson(req)) as { provider?: string; name?: string; base_url?: string; key_header?: string; key_prefix?: string; strategy?: string };
     const provider = typeof b.provider === "string" ? b.provider.trim() : "";
     const name = typeof b.name === "string" ? b.name.trim() : "";
     if (!provider || !name)
       return send(res, 400, { error: "provider + name required" });
     if (provider.length > 80 || name.length > 80)
       return send(res, 400, { error: "provider + name must be <= 80 characters" });
+    const strategy = typeof b.strategy === "string" ? b.strategy.trim().toLowerCase() : "";
+    if (strategy && !isStrategyName(strategy))
+      return send(res, 400, { error: `unknown strategy; valid: ${STRATEGY_NAMES.join(", ")}` });
     const total = (sdb.prepare("SELECT COUNT(*) AS n FROM pools").get() as { n: number }).n;
     if (total >= MAX_POOLS) return send(res, 400, { error: `pool limit reached (${MAX_POOLS})` });
     // Fail fast on auth config the proxy could never use (forward-time check stays as backstop).
@@ -108,13 +148,14 @@ const server = http.createServer(async (req, res) => {
       if (!safe.ok) return send(res, 400, safe);
     }
     const r = sdb
-      .prepare("INSERT INTO pools (provider, name, base_url, key_header, key_prefix) VALUES (?, ?, ?, ?, ?)")
+      .prepare("INSERT INTO pools (provider, name, base_url, key_header, key_prefix, strategy) VALUES (?, ?, ?, ?, ?, ?)")
       .run(
         provider,
         name,
         baseUrl.slice(0, 500),
         kh.slice(0, 80),
-        keyPrefix.slice(0, 40)
+        keyPrefix.slice(0, 40),
+        strategy
       );
     send(res, 200, sdb.prepare("SELECT * FROM pools WHERE id = ?").get(r.lastInsertRowid));
     return;
@@ -148,20 +189,31 @@ const server = http.createServer(async (req, res) => {
       send(res, 200, { ok: true });
       return;
     }
+    if (req.method === "PATCH" && !sub) {
+      const b = (await readJson(req)) as { strategy?: string };
+      if (b.strategy === undefined) return send(res, 400, { error: "nothing to update" });
+      const strategy = typeof b.strategy === "string" ? b.strategy.trim().toLowerCase() : null;
+      if (strategy === null || (strategy && !isStrategyName(strategy)))
+        return send(res, 400, { error: `unknown strategy; valid: ${STRATEGY_NAMES.join(", ")}` });
+      const r = sdb.prepare("UPDATE pools SET strategy = ? WHERE id = ?").run(strategy, poolId);
+      if (r.changes === 0) return send(res, 404, { error: "pool not found" });
+      send(res, 200, getPool(poolId));
+      return;
+    }
     if (req.method === "GET" && sub === "/next") {
-      const sel = nextKey(poolId);
+      const sel = nextKey(poolId, { sticky: stickyValue(url.searchParams.get("sticky")) });
       if ("error" in sel) return send(res, sel.error === "pool not found" ? 404 : 400, sel);
       send(res, 200, sel);
       return;
     }
     if (req.method === "POST" && sub === "/consume") {
-      const b = (await readJson(req)) as { tokens?: number; key_id?: number };
+      const b = (await readJson(req)) as { tokens?: number; key_id?: number; sticky?: string };
       const tok = b.tokens;
       if (!Number.isInteger(tok) || (tok as number) <= 0 || (tok as number) > MAX_TOKENS_PER_REQUEST)
         return send(res, 400, { error: `tokens must be a positive integer <= ${MAX_TOKENS_PER_REQUEST}` });
       if (b.key_id !== undefined && (!Number.isInteger(b.key_id) || b.key_id <= 0))
         return send(res, 400, { error: "key_id must be a positive integer" });
-      const sel = recordUsage(poolId, tok as number, b.key_id);
+      const sel = recordUsage(poolId, tok as number, b.key_id, { sticky: stickyValue(b.sticky) });
       if ("error" in sel) {
         const code = sel.error === "pool not found" || sel.error === "key not found" ? 404 : 400;
         return send(res, code, sel);
@@ -184,14 +236,25 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && sub === "/proxy") {
       // Media-aware limit: base64 image/audio/video payloads ride inside JSON.
-      const b = (await readJson(req, MAX_PROXY_BODY_BYTES)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string> };
+      const b = (await readJson(req, MAX_PROXY_BODY_BYTES)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string>; sticky?: string };
       if (b === null || typeof b !== "object" || Array.isArray(b))
         return send(res, 400, { error: "proxy body must be an object" });
-      const r = await forward(poolId, b);
-      if ("error" in r) return send(res, r.status === 200 ? 400 : r.status, r);
-      send(res, 200, { key_id: r.key_id, label: r.label, masked: r.masked, status: r.upstreamStatus, body: r.body, encoding: (r as { encoding?: string }).encoding ?? "text", contentType: (r as { contentType?: string }).contentType ?? "", truncated: r.truncated ?? false, tried: r.tried });
+      const header = req.headers["x-pool-sticky"];
+      const sticky = stickyValue(Array.isArray(header) ? header[0] : header) ?? stickyValue(b.sticky);
+      sendProxyResult(res, await forward(poolId, b, { sticky }));
       return;
     }
+  }
+  // README alias: POST /proxy/:id is the same handler as /api/pools/:id/proxy.
+  const proxyAlias = url.pathname.match(/^\/proxy\/(\d+)$/);
+  if (req.method === "POST" && proxyAlias) {
+    const b = (await readJson(req, MAX_PROXY_BODY_BYTES)) as { path?: string; method?: string; headers?: Record<string, string>; body?: unknown; tokens?: number; query?: Record<string, string>; sticky?: string };
+    if (b === null || typeof b !== "object" || Array.isArray(b))
+      return send(res, 400, { error: "proxy body must be an object" });
+    const header = req.headers["x-pool-sticky"];
+    const sticky = stickyValue(Array.isArray(header) ? header[0] : header) ?? stickyValue(b.sticky);
+    sendProxyResult(res, await forward(Number(proxyAlias[1]), b, { sticky }));
+    return;
   }
   const keyR = matchKeyRoute(url.pathname);
   if (keyR) {
@@ -203,13 +266,14 @@ const server = http.createServer(async (req, res) => {
       const fields = providerKeyFields(pool.provider);
       const now = Date.now();
       const rows = sdb
-        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, cooldown_until FROM pool_keys WHERE pool_id = ? ORDER BY id")
-        .all(poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; cooldown_until: number }[];
+        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, cooldown_until, weight, priority, picks, last_used_at FROM pool_keys WHERE pool_id = ? ORDER BY id")
+        .all(poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; cooldown_until: number; weight: number; priority: number; picks: number; last_used_at: number }[];
       send(res, 200, rows.map((k) => {
         const creds = parseCredentials(k.credentials);
         return {
           id: k.id, label: k.label, masked: mask(k.api_key), info: k.info, created_at: k.created_at,
           cooling: k.cooldown_until > now,
+          weight: k.weight, priority: k.priority, picks: k.picks, last_used_at: k.last_used_at,
           keyFields: fields,
           credentials: Object.keys(creds).length > 0 ? maskCredentials(creds) : undefined,
         };
@@ -219,7 +283,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && keyId === undefined) {
       const pool = getPool(poolId);
       if (!pool) return send(res, 404, { error: "pool not found" });
-      const b = (await readJson(req)) as { label?: string; api_key?: string; credentials?: unknown; info?: string };
+      const b = (await readJson(req)) as { label?: string; api_key?: string; credentials?: unknown; info?: string; weight?: number; priority?: number };
       const label = typeof b.label === "string" ? b.label.trim() : "";
       if (!label)
         return send(res, 400, { error: "label required" });
@@ -229,6 +293,12 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: "label must not contain CR/LF" });
       if (b.info !== undefined && typeof b.info !== "string")
         return send(res, 400, { error: "info must be a string" });
+      const weight = b.weight === undefined ? 1 : b.weight;
+      if (!Number.isInteger(weight) || weight < 0 || weight > 1000)
+        return send(res, 400, { error: "weight must be an integer 0..1000" });
+      const priority = b.priority === undefined ? 0 : b.priority;
+      if (!Number.isInteger(priority) || priority < 0 || priority > 1000)
+        return send(res, 400, { error: "priority must be an integer 0..1000 (lower wins)" });
       const fields = providerKeyFields(pool.provider);
       const multi = !(fields.length === 1 && (fields[0] === "api_key" || fields[0] === "apiToken"));
       let apiKey = "";
@@ -265,28 +335,38 @@ const server = http.createServer(async (req, res) => {
       const dup = sdb.prepare("SELECT id FROM pool_keys WHERE pool_id = ? AND api_key = ?").get(poolId, apiKey) as { id: number } | undefined;
       if (dup) return send(res, 400, { error: "duplicate api_key in this pool" });
       const r = sdb
-        .prepare("INSERT INTO pool_keys (pool_id, label, api_key, credentials, info) VALUES (?, ?, ?, ?, ?)")
-        .run(poolId, label, apiKey, credJson, ((b.info ?? "") as string).slice(0, 200));
+        .prepare("INSERT INTO pool_keys (pool_id, label, api_key, credentials, info, weight, priority) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .run(poolId, label, apiKey, credJson, ((b.info ?? "") as string).slice(0, 200), weight, priority);
       send(res, 200, { id: r.lastInsertRowid });
       return;
     }
     if (req.method === "GET" && keyId !== undefined) {
       const row = sdb
-        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, cooldown_until FROM pool_keys WHERE id = ? AND pool_id = ?")
-        .get(Number(keyId), poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; cooldown_until: number } | undefined;
+        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, cooldown_until, weight, priority, picks, last_used_at FROM pool_keys WHERE id = ? AND pool_id = ?")
+        .get(Number(keyId), poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; cooldown_until: number; weight: number; priority: number; picks: number; last_used_at: number } | undefined;
       if (!row) return send(res, 404, { error: "key not found" });
       const creds = parseCredentials(row.credentials);
       send(res, 200, { ...row, cooling: row.cooldown_until > Date.now(), credentials: Object.keys(creds).length > 0 ? creds : undefined, masked: mask(row.api_key), maskedCredentials: Object.keys(creds).length > 0 ? maskCredentials(creds) : undefined });
       return;
     }
     if (req.method === "PATCH" && keyId !== undefined) {
-      const b = (await readJson(req)) as { label?: string; api_key?: string; credentials?: unknown; info?: string };
+      const b = (await readJson(req)) as { label?: string; api_key?: string; credentials?: unknown; info?: string; weight?: number; priority?: number };
       const cur = sdb
         .prepare("SELECT id FROM pool_keys WHERE id = ? AND pool_id = ?")
         .get(Number(keyId), poolId) as { id: number } | undefined;
       if (!cur) return send(res, 404, { error: "key not found" });
-      if (b.label === undefined && b.api_key === undefined && b.credentials === undefined && b.info === undefined)
+      if (b.label === undefined && b.api_key === undefined && b.credentials === undefined && b.info === undefined && b.weight === undefined && b.priority === undefined)
         return send(res, 400, { error: "nothing to update" });
+      if (b.weight !== undefined) {
+        if (!Number.isInteger(b.weight) || b.weight < 0 || b.weight > 1000)
+          return send(res, 400, { error: "weight must be an integer 0..1000" });
+        sdb.prepare("UPDATE pool_keys SET weight = ? WHERE id = ?").run(b.weight, Number(keyId));
+      }
+      if (b.priority !== undefined) {
+        if (!Number.isInteger(b.priority) || b.priority < 0 || b.priority > 1000)
+          return send(res, 400, { error: "priority must be an integer 0..1000 (lower wins)" });
+        sdb.prepare("UPDATE pool_keys SET priority = ? WHERE id = ?").run(b.priority, Number(keyId));
+      }
       if (b.label !== undefined) {
         if (typeof b.label !== "string" || !b.label.trim() || b.label.trim().length > 80)
           return send(res, 400, { error: "label must be a non-empty string <= 80 characters" });
@@ -315,9 +395,9 @@ const server = http.createServer(async (req, res) => {
         sdb.prepare("UPDATE pool_keys SET info = ? WHERE id = ?").run(b.info.slice(0, 200), Number(keyId));
       }
       const row = sdb
-        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at FROM pool_keys WHERE id = ? AND pool_id = ?")
-        .get(Number(keyId), poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string };
-      send(res, 200, { id: row.id, label: row.label, masked: mask(row.api_key), maskedCredentials: maskCredentials(parseCredentials(row.credentials)), info: row.info });
+        .prepare("SELECT id, label, api_key, COALESCE(credentials,'{}') AS credentials, info, created_at, weight, priority FROM pool_keys WHERE id = ? AND pool_id = ?")
+        .get(Number(keyId), poolId) as { id: number; label: string; api_key: string; credentials: string; info: string; created_at: string; weight: number; priority: number };
+      send(res, 200, { id: row.id, label: row.label, masked: mask(row.api_key), maskedCredentials: maskCredentials(parseCredentials(row.credentials)), info: row.info, weight: row.weight, priority: row.priority });
       return;
     }
     if (req.method === "DELETE" && keyId !== undefined) {

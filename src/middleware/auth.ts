@@ -27,6 +27,7 @@ export function requiresAuth(method: string, pathname: string): boolean {
   if (method === "POST" || method === "PATCH" || method === "DELETE") {
     if (pathname.startsWith("/api/")) return true;
   }
+  if (method === "POST" && /^\/proxy\/\d+$/.test(pathname)) return true;
   // Rotation cursor advances (state change) even though the key is masked.
   if (method === "GET" && /^\/api\/pools\/\d+\/next$/.test(pathname)) return true;
   return false;

@@ -1,4 +1,11 @@
 import { resolveDbPath } from "./paths.js";
+import {
+  STRATEGY_NAMES,
+  isStrategyName,
+  parseRotationOptions,
+  type RotationOptions,
+  type StrategyName,
+} from "../pool/strategy.js";
 
 /** Port for the web UI + API (single server). */
 function parsePort(): number {
@@ -32,6 +39,36 @@ export function proxyTimeoutMs(): number {
 /** Test/loopback escape hatch only: allows http + private hosts upstream. Never in prod. */
 export function allowPrivateUpstream(): boolean {
   return process.env.ALLOW_PRIVATE_UPSTREAM === "1";
+}
+
+/**
+ * Default key-selection strategy for pools that don't set their own.
+ * Read live so tests can override; throws on an unknown name so a typo fails
+ * at startup instead of silently falling back to round-robin.
+ */
+export function rotationStrategy(): StrategyName {
+  const raw = (process.env.POOL_ROTATION_STRATEGY ?? "round-robin").trim().toLowerCase();
+  if (!isStrategyName(raw)) {
+    throw new Error(
+      `POOL_ROTATION_STRATEGY="${raw}" is invalid. Valid strategies: ${STRATEGY_NAMES.join(", ")}`
+    );
+  }
+  return raw;
+}
+
+let rotationOptionsWarned = false;
+
+/** Parsed `POOL_ROTATION_OPTIONS`; malformed JSON warns once and is ignored. Read live so tests can override. */
+export function rotationOptions(): RotationOptions {
+  const parsed = parseRotationOptions(process.env.POOL_ROTATION_OPTIONS);
+  if (!parsed.ok) {
+    if (!rotationOptionsWarned) {
+      console.warn(`[warn] ignoring POOL_ROTATION_OPTIONS: ${parsed.error}`);
+      rotationOptionsWarned = true;
+    }
+    return parsed.value;
+  }
+  return parsed.value;
 }
 
 /** Optional bearer token protecting raw keys, writes, and proxy use. Read live so tests can override. */

@@ -1,8 +1,14 @@
 import { sdb, getPool, logCall, callBodyForStorage } from "../pool/index.js";
 import { nextKeyRaw, markSuccess, markFailure } from "../pool/rotation.js";
-import { resolveTarget, resolveTargetForKey, effectiveApiKey, buildUpstreamRequest, validateQueryParams, type ForwardOpts } from "../upstream/index.js";
+import { beginRequest, endRequest } from "../pool/inflight.js";
+import { resolveTarget, resolveTargetForKey, effectiveApiKey, buildUpstreamRequest, type ForwardOpts } from "../upstream/index.js";
 import { allowPrivateUpstream, proxyTimeoutMs } from "../config/env.js";
 import { resolveAndCheck, hostnameOf } from "./dns.js";
+import {
+  checkTarget as checkTargetShared,
+  isPrivateLiteral,
+  validateProxyOpts as validateProxyOptsShared,
+} from "../shared/proxy-rules.js";
 import { MAX_PROXY_BODY_BYTES, MAX_RELAY_CHARS, MAX_UPSTREAM_MEDIA_BYTES } from "../media/capabilities.js";
 
 /** Hard per-request abuse cap (see disk-fill note in SECURITY.md). */
@@ -10,172 +16,16 @@ export const MAX_TOKENS_PER_REQUEST = 1_000_000;
 /** Cap on buffered upstream bytes before truncating (media-aware; JSON text is relayed up to MAX_RELAY_CHARS). */
 export const MAX_UPSTREAM_BYTES = MAX_UPSTREAM_MEDIA_BYTES;
 
-const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
-
-/** Parse dotted IPv4 with inet_aton semantics (decimal, 0x hex, 0 octal, 1-4 parts). */
-function parseIPv4(host: string): number | null {
-  const parts = host.split(".");
-  if (parts.length < 1 || parts.length > 4) return null;
-  const nums: number[] = [];
-  for (const p of parts) {
-    if (p.length === 0) return null;
-    let v: number;
-    if (/^0[xX][0-9a-fA-F]+$/.test(p)) v = parseInt(p, 16);
-    else if (/^0[0-9]+$/.test(p)) {
-      if (!/^[0-7]+$/.test(p)) return null;
-      v = parseInt(p, 8);
-    } else if (/^[0-9]+$/.test(p)) v = parseInt(p, 10);
-    else return null;
-    if (!Number.isSafeInteger(v) || v < 0 || v > 0xffffffff) return null;
-    nums.push(v);
-  }
-  const widths = { 1: [32], 2: [8, 24], 3: [8, 8, 16], 4: [8, 8, 8, 8] }[nums.length]!;
-  let addr = 0;
-  for (let i = 0; i < nums.length; i++) {
-    if (nums[i]! >= 2 ** widths[i]!) return null;
-    addr = addr * 2 ** widths[i]! + nums[i]!;
-  }
-  return addr >>> 0;
-}
-
-/** True when a hostname is a loopback/private/unspecified literal (v4, v6, or mapped). */
-export function isPrivateLiteral(host: string): boolean {
-  let h = host.toLowerCase();
-  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1); // URL keeps IPv6 brackets
-  // Strip a single trailing dot (FQDN form): "127.0.0.1." still resolves to loopback.
-  if (h.endsWith(".") && h.length > 1) h = h.slice(0, -1);
-  if (h === "localhost" || h.endsWith(".localhost") || h === "::1" || h === "::" || h === "0.0.0.0") return true;
-  if (h === "0:0:0:0:0:0:0:1" || h === "0:0:0:0:0:0:0:0") return true;
-  if (h.includes(":")) {
-    // IPv6: check ::ffff:<v4> mapped forms (compressed or full).
-    const afterLastColon = h.slice(h.lastIndexOf(":") + 1);
-    const tail = afterLastColon.includes(".") ? parseIPv4(afterLastColon) : null;
-    if (tail !== null) return isPrivateV4(tail);
-    // Block non-routable IPv6: fe80::/10 link-local, fc00::/7 ULA, ff00::/8 multicast.
-    // Public global unicast (e.g. 2606:4700::) is allowed.
-    const first = h.split(":")[0] || "";
-    if (/^fe[89ab]/i.test(first)) return true;
-    if (/^(fc|fd)/i.test(first)) return true;
-    if (/^ff/i.test(first)) return true;
-    return false;
-    // DNS names resolving to private IPs remain a residual risk (no DNS pinning).
-    // See residual-risk note in SECURITY.md.
-  }
-  const v4 = parseIPv4(h);
-  if (v4 === null) return false;
-  return isPrivateV4(v4);
-}
-
-function isPrivateV4(addr: number): boolean {
-  const b0 = (addr >>> 24) & 0xff;
-  const b1 = (addr >>> 16) & 0xff;
-  if (b0 === 127 || b0 === 10 || b0 === 0) return true; // loopback, private, "this network"
-  if (b0 === 172 && b1 >= 16 && b1 <= 31) return true;
-  if (b0 === 192 && b1 === 168) return true;
-  if (b0 === 169 && b1 === 254) return true; // link-local incl. cloud metadata
-  return false;
-}
-
-export const QUERY_PARAM_RE = /^[A-Za-z0-9_-]+$/;
+export { isPrivateLiteral };
 
 export function checkTarget(baseUrl: string, keyHeader: string): { ok: boolean; error?: string } {
-  let u: URL;
-  try {
-    u = new URL(baseUrl);
-  } catch {
-    return { ok: false, error: "baseUrl is not a URL" };
-  }
-  if (!allowPrivateUpstream()) {
-    if (u.protocol !== "https:") return { ok: false, error: "baseUrl must be https" };
-    if (isPrivateLiteral(u.hostname)) return { ok: false, error: "baseUrl host blocked" };
-  }
-  if (/^[A-Za-z0-9-]+$/.test(keyHeader)) return { ok: true };
-  if (keyHeader.startsWith("query:")) {
-    const name = keyHeader.slice("query:".length);
-    if (QUERY_PARAM_RE.test(name)) return { ok: true };
-    return { ok: false, error: "keyHeader invalid" };
-  }
-  return { ok: false, error: "keyHeader invalid" };
+  return checkTargetShared(baseUrl, keyHeader, allowPrivateUpstream());
 }
 
-/** Validate caller-supplied proxy fields before any key is touched. No key state changes on failure. */
 export function validateProxyOpts(opts: ProxyOpts): { ok: boolean; error?: string } {
-  const p = opts.path ?? "/";
-  if (typeof p !== "string" || !p.startsWith("/") || p.length > 2000 || /[\s\x00-\x1f\x7f]/.test(p))
-    return { ok: false, error: "path must start with / and contain no whitespace/control characters" };
-  // Reject query/fragment markers and path traversal: the proxy concatenates
-  // baseUrl + path, so "?"/"#" would inject query/fragment and ".." escapes prefixes.
-  if (p.includes("?") || p.includes("#")) return { ok: false, error: "path must not contain ? or #" };
-  if (p.split("/").includes("..")) return { ok: false, error: "path must not contain .." };
-  try {
-    decodeURIComponent(p);
-  } catch {
-    return { ok: false, error: "path has invalid percent-encoding" };
-  }
-  if (opts.method !== undefined && (typeof opts.method !== "string" || !METHODS.has(opts.method.toUpperCase())))
-    return { ok: false, error: "method must be one of GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS" };
-  if (opts.headers !== undefined) {
-    if (typeof opts.headers !== "object" || opts.headers === null || Array.isArray(opts.headers))
-      return { ok: false, error: "headers must be an object" };
-    const entries = Object.entries(opts.headers);
-    if (entries.length > 50) return { ok: false, error: "too many headers" };
-    for (const [k, v] of entries) {
-      // Names must be HTTP tokens: otherwise fetch throws and an innocent key cools down.
-      // Intentionally fail-closed: exotic non-token header names are rejected rather than
-      // risking a pool-wide cooldown on a network error.
-      if (typeof k !== "string" || k.length === 0 || k.length > 256 || !/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(k))
-        return { ok: false, error: "invalid header name" };
-      if (typeof v !== "string" || v.length > 8000 || /[\r\n\x00]/.test(k) || /[\r\n\x00]/.test(v))
-        return { ok: false, error: "invalid header value" };
-      const lk = k.toLowerCase();
-      // Hop-by-hop / routing headers must not be caller-controlled: fetch would
-      // forward them upstream alongside the victim key (vhost confusion, cookie leak).
-      if (
-        lk === "host" || lk === "connection" || lk === "transfer-encoding" ||
-        lk === "content-length" || lk === "cookie" || lk === "proxy-authenticate" ||
-        lk === "proxy-authorization" || lk === "upgrade" || lk === "via" ||
-        lk === "forwarded" || lk === "x-forwarded-for" || lk === "x-forwarded-host" ||
-        lk === "x-forwarded-proto" || lk === "expect" || lk === "trailer" || lk === "te"
-      )
-        return { ok: false, error: `header not allowed: ${k}` };
-    }
-  }
-  if (opts.tokens !== undefined && (!Number.isInteger(opts.tokens) || opts.tokens <= 0 || opts.tokens > MAX_TOKENS_PER_REQUEST))
-    return { ok: false, error: `tokens must be a positive integer <= ${MAX_TOKENS_PER_REQUEST}` };
-  if (opts.query !== undefined) {
-    const q = validateQueryParams(opts.query);
-    if (!q.ok) return { ok: false, error: q.error };
-  }
-  if (opts.body !== undefined && opts.form !== undefined)
-    return { ok: false, error: "body and form are mutually exclusive" };
-  if (opts.form !== undefined) {
-    if (typeof opts.form !== "object" || opts.form === null || Array.isArray(opts.form))
-      return { ok: false, error: "form must be an object" };
-    const entries = Object.entries(opts.form);
-    if (entries.length > 50) return { ok: false, error: "too many form fields" };
-    let bytes = 0;
-    for (const [k, v] of entries) {
-      if (typeof k !== "string" || k.length === 0 || k.length > 256 || /[\r\n\x00]/.test(k))
-        return { ok: false, error: "invalid form field name" };
-      if (typeof v !== "string" || v.length > 8000 || /[\r\n\x00]/.test(v))
-        return { ok: false, error: "invalid form field value" };
-      bytes += k.length + v.length;
-    }
-    if (bytes > MAX_PROXY_BODY_BYTES)
-      return { ok: false, error: `proxy form too large (max ${Math.round(MAX_PROXY_BODY_BYTES / 1_000_000)}MB)` };
-  }
-  if (opts.body !== undefined) {
-    try {
-      const s = JSON.stringify(opts.body);
-      // Byte-accurate: JSON length undercounts non-ASCII, and readJson enforces bytes.
-      if (Buffer.byteLength(s, "utf8") > MAX_PROXY_BODY_BYTES)
-        return { ok: false, error: `proxy body too large (max ${Math.round(MAX_PROXY_BODY_BYTES / 1_000_000)}MB incl. base64 media)` };
-    } catch {
-      return { ok: false, error: "body must be JSON-serializable" };
-    }
-  }
-  return { ok: true };
+  return validateProxyOptsShared(opts, { maxBodyBytes: MAX_PROXY_BODY_BYTES, maxTokens: MAX_TOKENS_PER_REQUEST });
 }
+
 
 /** Read at most `cap` bytes. Textual (json/text) bodies decode as text; binary media (audio/video/image bytes) base64-encodes so Studio can render it.
  *  Memory note: media caps are intentionally large (12MB upstream, 8M-char
@@ -235,7 +85,7 @@ function dlog(poolId: number, opts: ProxyOpts, tried: { status?: number }[], ext
  * upstream status/body plus which key served it. Quota-exhausted and
  * cooling keys are skipped by rotation.
  */
-export async function forward(poolId: number, opts: ProxyOpts) {
+export async function forward(poolId: number, opts: ProxyOpts, selection: { sticky?: string } = {}) {
   const pool = getPool(poolId);
   if (!pool) return { status: 404 as const, error: "pool not found" };
   const poolTarget = resolveTarget(pool);
@@ -261,11 +111,16 @@ export async function forward(poolId: number, opts: ProxyOpts) {
 
   const tried: { key_id: number; label: string; status?: number; detail?: string }[] = [];
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const sel = nextKeyRaw(poolId);
+    const sel = nextKeyRaw(poolId, { sticky: selection.sticky, attempt });
     if ("error" in sel) {
       dlog(poolId, opts, tried, `no-key: ${sel.error}`);
       return { status: 400 as const, error: sel.error, tried };
     }
+    // least-connections sees this request while it is on the wire. The
+    // finally below releases the slot on every path (success, failover,
+    // return, throw).
+    beginRequest(sel.key_id);
+    try {
     let req: { url: string; headers: Record<string, string>; body: string | undefined };
     try {
       const keyTarget = resolveTargetForKey(pool, sel);
@@ -360,6 +215,9 @@ export async function forward(poolId: number, opts: ProxyOpts) {
     logCall({ ...callBase, status: upstream.status, tokens: Number.isInteger(tok) && (tok as number) > 0 ? (tok as number) : 0, error: "" });
     dlog(poolId, opts, tried, `ok upstream=${upstream.status}`);
     return { status: 200 as const, key_id: sel.key_id, label: sel.label, masked: sel.masked, upstreamStatus: upstream.status, body: relayBody, encoding, contentType, truncated, tried };
+    } finally {
+      endRequest(sel.key_id);
+    }
   }
   dlog(poolId, opts, tried, "all-failed");
   return { status: 400 as const, error: "all keys failed or cooling down", tried };

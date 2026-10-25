@@ -1,6 +1,6 @@
 # pool-anything — Instructions
 
-Gather free-tier API keys into one pool. Rotate through them automatically via round-robin + drop-in HTTP proxy.
+Gather free-tier API keys into one pool. Rotate through them automatically with 13 selection strategies + a drop-in HTTP proxy.
 
 ## 0. Agent operating notes
 
@@ -129,7 +129,7 @@ Response reports who served it:
 {"key_id":3,"label":"key 1","masked":"gsk_…ab","status":200,"body":"{ …first 4000 chars… }"}
 ```
 
-Flow: `nextKeyRaw()` round-robin (`cursor % keys.length`) → inject key → forward → record per-key usage in SQLite. Recent attempts: `GET /api/pools/:id/calls?limit=50`.
+Flow: `nextKeyRaw()` picks by the pool's strategy (round-robin by default) → inject key → forward → record per-key usage in SQLite. Recent attempts: `GET /api/pools/:id/calls?limit=50`.
 
 ## 6. Configuration
 
