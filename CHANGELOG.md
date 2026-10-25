@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per-key `weight` (0 = never) and `priority` (tiered overflow), plus `picks` / `last_used_at` counters; new `strategy` / `strategy_state` pool columns.
 - Sticky/session affinity via stateless rendezvous hashing (`X-Pool-Sticky` header, `?sticky=` on `/next`, `sticky` body field on `/consume` and `/proxy`).
 - In-process in-flight counters for `least-connections`; `POST /proxy/:id` alias for the pool proxy; `PATCH /api/pools/:id` to change strategy.
+- Cloudflare Workers build in `worker/`: same REST contract, one SQLite-backed Durable Object (no D1), strategy/weight/priority/sticky support, and `/ui` handoff to the hosted Pages UI.
 
 <!-- Changes land here. Move them under a version heading at release time. -->
 

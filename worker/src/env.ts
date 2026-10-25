@@ -1,5 +1,8 @@
 export type Env = {
-  DB: D1Database;
+  /** Singleton Durable Object that owns the SQLite database. */
+  POOL_DB: DurableObjectNamespace;
+  /** Set only inside the Durable Object (synchronous SQLite adapter). */
+  DB?: D1Database;
   /** Bearer token required for writes/raw-key reads/proxy use when set. */
   POOL_API_TOKEN?: string;
   /** Comma-separated CORS allowlist (Pages UI is always allowed). */
@@ -17,3 +20,6 @@ export type Env = {
   /** Where GET /ui sends the browser (default: hosted tools UI). */
   UI_URL?: string;
 };
+
+/** Env as seen inside the Durable Object, with the SQL adapter bound. */
+export type DbEnv = Env & { DB: D1Database };

@@ -56,8 +56,6 @@
     "typecheck": "tsc --noEmit && tsc -p worker/tsconfig.json",
     "dev:worker": "wrangler dev",
     "deploy:worker": "wrangler deploy",
-    "worker:migrate:local": "wrangler d1 migrations apply DB --local",
-    "worker:migrate": "wrangler d1 migrations apply DB --remote",
     "db:init": "tsx src/db/init.ts",
     "export:tools": "tsx scripts/export-tools-ui.ts",
     "tools:daemon": "tsx scripts/tools-watch.ts",

@@ -9,13 +9,20 @@
   "vars": {
     "ALLOWED_ORIGINS": "https://pool-anything-tools.pages.dev,https://pool-anything.pages.dev"
   },
-  "d1_databases": [
+  // One SQLite-backed Durable Object holds all pool state. Free-plan eligible,
+  // and serialized writes give exact rotation without D1.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "POOL_DB",
+        "class_name": "PoolDB"
+      }
+    ]
+  },
+  "migrations": [
     {
-      "binding": "DB",
-      "database_name": "pool-anything",
-      // TODO: replace with the id from `wrangler d1 create pool-anything`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "worker/migrations"
+      "tag": "v1",
+      "new_sqlite_classes": ["PoolDB"]
     }
   ]
 }

@@ -1,6 +1,7 @@
-// D1 persistence + rotation. Async port of src/pool/index.ts + rotation.ts.
+// SQLite persistence + rotation. Async port of src/pool/index.ts + rotation.ts.
 // Semantics intentionally match the Node server: identical schema, quota
-// windows and failover rules; only the storage calls are awaited.
+// windows and failover rules; the D1-shaped calls are served by the Durable
+// Object's synchronous SQLite adapter (worker/src/durable.ts).
 
 import {
   mask,
@@ -171,30 +172,13 @@ const SCHEMA = [
 
 let schemaReady = false;
 
-/** Idempotent ALTERs for databases created before a column was added. */
-const ALTERS = [
-  "ALTER TABLE pools ADD COLUMN strategy TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE pools ADD COLUMN strategy_state TEXT NOT NULL DEFAULT '{}'",
-  "ALTER TABLE pool_keys ADD COLUMN weight INTEGER NOT NULL DEFAULT 1",
-  "ALTER TABLE pool_keys ADD COLUMN priority INTEGER NOT NULL DEFAULT 0",
-  "ALTER TABLE pool_keys ADD COLUMN picks INTEGER NOT NULL DEFAULT 0",
-  "ALTER TABLE pool_keys ADD COLUMN last_used_at INTEGER NOT NULL DEFAULT 0",
-];
-
 /**
- * Idempotent bootstrap so a fresh deploy works even before migrations are
- * applied. Runs at most once per isolate; migrations remain the source of truth.
+ * Idempotent bootstrap. Runs at most once per isolate; CREATE TABLE IF NOT
+ * EXISTS keeps redeploys safe when the Durable Object wakes up cold.
  */
 export async function ensureSchema(db: D1Database): Promise<void> {
   if (schemaReady) return;
   await db.batch(SCHEMA.map((sql) => db.prepare(sql)));
-  for (const sql of ALTERS) {
-    try {
-      await db.prepare(sql).run();
-    } catch (e) {
-      if (!/duplicate column/i.test(e instanceof Error ? e.message : String(e))) throw e;
-    }
-  }
   schemaReady = true;
 }
 

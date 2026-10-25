@@ -1,5 +1,5 @@
-// Worker-specific caps. D1 rows max 2MB and free-tier CPU is tight, so the
-// edge build keeps smaller media caps than the Node server.
+// Worker-specific caps. A Durable Object has finite memory and only one SQLite
+// row can be large, so the edge build keeps smaller media caps than Node.
 
 export const MAX_TOKENS_PER_REQUEST = 1_000_000;
 

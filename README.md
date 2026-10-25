@@ -29,6 +29,7 @@ Most AI/API providers hand you a free tier: a rate limit, a daily quota, a handf
 - 🔁 **13 rotation strategies** — round-robin by default; random, weighted, least-loaded, sticky, tiered, shuffle-sharded, and more
 - 📊 **Usage & quota tracking** — per-key and per-pool token counts in SQLite
 - 🌐 **Drop-in HTTP proxy** — point your client at pool-anything; it forwards with the right key, header, and auth scheme
+- ☁️ **Cloudflare Workers build** — same API on a free-plan SQLite Durable Object, with the hosted UI pointed at it via `?api=`
 - 🔌 **36 providers preconfigured** — Groq, OpenRouter, Gemini, OpenAI, Anthropic, and more (plus any custom provider)
 - 🖥️ **Built-in web UI** — search providers, gather keys, watch usage on the Analytics dashboard
 - 🧰 **Dependency-free server core** — the proxy, API, and web UI run on Node built-ins + `node:sqlite` only; the interactive shell adds Ink + React
@@ -232,6 +233,18 @@ Pushes to `main` redeploy automatically via [pages-tools.yml](.github/workflows/
 
 Open the Pages URL with `?api=https://your-backend` once (or use the Backend pill, bottom-left) to point it at your server. If the backend sets `POOL_API_TOKEN`, prefer the Backend pill for the token; `?token=…` works but places the bearer in the URL (server logs/history). The server only sends CORS headers to the hosted Pages origins, `http://localhost` dev, and `ALLOWED_ORIGINS`, so cross-origin calls work without exposing the API to arbitrary sites. Keys stay on your backend — the Pages site is UI only.
 
+### Running the backend on Cloudflare Workers
+
+A Workers build lives in [`worker/`](worker/README.md). It exposes the same `/api/*` contract, keeps the Node server unchanged, and stores all state in one SQLite-backed Durable Object — free-plan eligible, with no D1 database to create.
+
+```bash
+npm run dev:worker       # local Workers runtime
+npx wrangler deploy      # deploy Worker + Durable Object
+npx wrangler secret put POOL_API_TOKEN
+```
+
+Point the hosted UI at it with `?api=https://your-worker.workers.dev`, then paste the token into the Backend pill. `GET /ui` on the Worker builds that URL for you. See [`worker/README.md`](worker/README.md) for limits, configuration, and troubleshooting.
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -369,6 +382,13 @@ src/
   playground/adapters.ts  Playground provider adapters (paths, body shapes, output parsing)
   media/capabilities.ts   Multimodal capability map + provider message builders
   observability/health.ts  /health, /api/db/ping, /api/analytics handlers
+worker/
+  README.md          Workers deploy, limits, config, and UI setup
+  src/index.ts       Thin Worker entry → singleton Durable Object
+  src/durable.ts     PoolDB Durable Object + D1-shaped SQLite adapter
+  src/app.ts         HTTP router and API validation (same routes as Node)
+  src/db.ts          SQL schema, CRUD, quota and rotation
+  src/proxy.ts       Buffered edge proxy with failover
 scripts/
   export-tools-ui.ts Static export of the admin UI for Cloudflare Pages
   tools-api-base.js  Backend shim (configurable API base + token)
@@ -396,11 +416,12 @@ A few more things worth knowing about:
 
 ```bash
 npm run dev          # watch mode, http://localhost:3000
-npm run typecheck    # tsc --noEmit
+npm run typecheck    # tsc --noEmit (Node + Worker)
 npm run build        # compile to dist/
 npm run start:dist   # run the compiled output
 npm run db:init      # initialize the local database
-npm test             # unit + integration suites (tests/unit, tests/integration)
+npm run dev:worker   # local Workers runtime (wrangler)
+npm test             # unit + integration suites (tests/unit, tests/integration, tests/worker)
 npx tsx scripts/check-tokens.ts  # verify src/admin/tokens.ts against design-tokens.json
 ./scripts/smoke.sh   # smoke test against a running server (base URL as $1)
 ```
@@ -411,6 +432,7 @@ npx tsx scripts/check-tokens.ts  # verify src/admin/tokens.ts against design-tok
 - List endpoints return **masked** keys (`gsk_…ab`); raw keys are only returned by the single-key `GET`.
 - The server binds `127.0.0.1` by default; set `HOST` to another interface only behind your own auth layer.
 - Without `POOL_API_TOKEN` there is **no authentication** — run it locally or behind your own auth layer, and don't expose it publicly with real keys inside.
+- A public Workers deployment **must** set `POOL_API_TOKEN`; there is no loopback default at the edge. Use `wrangler secret put`, never a committed `vars` entry.
 
 ## Contributing
 

@@ -95,7 +95,7 @@ test("worker: CORS only reflects allowlisted origins", () => {
   assert.equal(isAllowedOrigin("http://127.0.0.1:8080", env), true);
 });
 
-test("worker: auth gates raw keys, writes, and /next only", () => {
+test("worker: auth gates raw keys, writes, rotation, and call history", () => {
   assert.equal(requiresAuth("GET", "/api/pools/1/keys/2"), true);
   assert.equal(requiresAuth("GET", "/api/pools/1/keys"), false);
   assert.equal(requiresAuth("GET", "/api/pools/1/next"), true);
@@ -103,6 +103,7 @@ test("worker: auth gates raw keys, writes, and /next only", () => {
   assert.equal(requiresAuth("POST", "/api/pools/1/proxy"), true);
   assert.equal(requiresAuth("POST", "/api/pools/1/consume"), true);
   assert.equal(requiresAuth("POST", "/proxy/1"), true);
+  assert.equal(requiresAuth("GET", "/api/pools/1/calls"), true);
   assert.equal(requiresAuth("GET", "/health"), false);
 
   const authed = { DB: {} as never, POOL_API_TOKEN: "secret-token-123456" } as Env;

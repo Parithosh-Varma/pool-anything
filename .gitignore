@@ -7,6 +7,8 @@ tools-site/
 # Env
 .env
 .env.local
+.dev.vars
+.dev.vars.*
 # OS / Editor
 .DS_Store
 *.log

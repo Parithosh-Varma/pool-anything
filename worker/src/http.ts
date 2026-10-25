@@ -93,9 +93,10 @@ export function isAuthorized(req: Request, env: Env): boolean {
 }
 
 /**
- * Routes that disclose raw keys, mutate state, spend quota, or advance the
- * rotation cursor require auth when POOL_API_TOKEN is set. Masked read-only
- * summaries stay public so the dashboard works without a token.
+ * Routes that disclose raw keys or call bodies, mutate state, spend quota, or
+ * advance the rotation cursor require auth when POOL_API_TOKEN is set. Masked
+ * pool/key summaries and analytics stay public so the dashboard can render
+ * before a token is entered.
  */
 export function requiresAuth(method: string, pathname: string): boolean {
   if (/^\/api\/pools\/\d+\/keys\/\d+$/.test(pathname)) return true;
@@ -103,7 +104,7 @@ export function requiresAuth(method: string, pathname: string): boolean {
     if (pathname.startsWith("/api/")) return true;
   }
   if (method === "POST" && /^\/proxy\/\d+$/.test(pathname)) return true;
-  if (method === "GET" && /^\/api\/pools\/\d+\/next$/.test(pathname)) return true;
+  if (method === "GET" && /^\/api\/pools\/\d+\/(next|calls)$/.test(pathname)) return true;
   return false;
 }
 
